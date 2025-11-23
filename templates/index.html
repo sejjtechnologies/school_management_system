@@ -10,18 +10,27 @@
     body {
       background: linear-gradient(to right, #e0f7fa, #f1f8e9);
       min-height: 100vh;
-      padding-top: 70px;
       font-family: 'Segoe UI', sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
+      margin: 0;
+      padding: 0;
     }
     .navbar {
       background-color: #00796b !important;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      height: 60px; /* ✅ fixed height */
     }
     .navbar-brand {
       color: #ffffff !important;
+    }
+    main {
+      flex: 1;
+      width: 100%;
+      padding-top: 70px; /* ✅ space below navbar */
+      padding-bottom: 90px; /* ✅ space above footer */
+      overflow-y: auto;
     }
     .login-box {
       width: 100%;
@@ -34,7 +43,7 @@
       border: 1px solid #c8e6c9;
       display: flex;
       flex-direction: column;
-      margin-bottom: 80px;
+      margin-bottom: 40px;
     }
     .login-content {
       padding: 30px;
@@ -95,9 +104,15 @@
     .welcome-message h2 {
       font-size: 1.5rem;
     }
+    footer {
+      height: 70px;
+      background: linear-gradient(to right, #4a148c, #1a237e);
+      box-shadow: 0 -2px 6px rgba(0,0,0,0.2);
+      color: #fff;
+    }
     @media (max-width: 576px) {
       .login-box {
-        margin: 0 15px 80px 15px;
+        margin: 0 15px 40px 15px;
       }
       .login-content {
         padding: 20px;
@@ -120,49 +135,51 @@
     </div>
   </nav>
 
-  <!-- Welcome Message -->
-  <div class="welcome-message text-center my-4 px-3">
-    <h2 class="fw-bold text-primary">Welcome to the School Management System</h2>
-    <p class="text-muted">Empowering education through simplicity and clarity</p>
-  </div>
-
-  <!-- Login Box -->
-  <div class="login-box">
-    <div class="login-content px-3">
-      <h4 class="text-center mb-4">Login to Your Account</h4>
-      <form method="POST" action="/login" onsubmit="showSpinner(event)">
-        <div class="mb-3">
-          <label for="email" class="form-label">Email address</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
-            <input type="email" class="form-control" id="email" name="email" placeholder="Enter email" required>
-          </div>
-        </div>
-        <div class="mb-3">
-          <label for="password" class="form-label">Password</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
-            <input type="password" class="form-control" id="password" name="password" placeholder="Enter password" required>
-            <span class="input-group-text toggle-password" onclick="togglePassword()">
-              <i class="bi bi-eye-fill" id="toggleIcon"></i>
-            </span>
-          </div>
-        </div>
-        <div class="form-check mb-3">
-          <input class="form-check-input" type="checkbox" id="remember" name="remember">
-          <label class="form-check-label" for="remember">Remember me</label>
-        </div>
-        <div class="d-grid mb-3">
-          <button type="submit" class="btn btn-login">
-            <i class="bi bi-box-arrow-in-right me-2"></i>Login
-          </button>
-        </div>
-        <div class="text-center">
-          Forgot password click to <a href="#" class="text-decoration-none">"reset it?"</a>
-        </div>
-      </form>
+  <main>
+    <!-- Welcome Message -->
+    <div class="welcome-message text-center my-4 px-3">
+      <h2 class="fw-bold text-primary">Welcome to the School Management System</h2>
+      <p class="text-muted">Empowering education through simplicity and clarity</p>
     </div>
-  </div>
+
+    <!-- Login Box -->
+    <div class="login-box">
+      <div class="login-content px-3">
+        <h4 class="text-center mb-4">Login to Your Account</h4>
+        <form method="POST" action="/login" onsubmit="showSpinner(event)">
+          <div class="mb-3">
+            <label for="email" class="form-label">Email address</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
+              <input type="email" class="form-control" id="email" name="email" placeholder="Enter email" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+              <input type="password" class="form-control" id="password" name="password" placeholder="Enter password" required>
+              <span class="input-group-text toggle-password" onclick="togglePassword()">
+                <i class="bi bi-eye-fill" id="toggleIcon"></i>
+              </span>
+            </div>
+          </div>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="remember" name="remember">
+            <label class="form-check-label" for="remember">Remember me</label>
+          </div>
+          <div class="d-grid mb-3">
+            <button type="submit" class="btn btn-login">
+              <i class="bi bi-box-arrow-in-right me-2"></i>Login
+            </button>
+          </div>
+          <div class="text-center">
+            Forgot password click to <a href="#" class="text-decoration-none">"reset it?"</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
 
   <!-- Spinner Overlay -->
   <div class="spinner-overlay" id="spinnerOverlay">
