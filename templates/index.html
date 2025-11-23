@@ -20,33 +20,46 @@
     .navbar {
       background-color: #00796b !important;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      height: 60px; /* ✅ fixed height */
+      height: 60px;
     }
     .navbar-brand {
       color: #ffffff !important;
     }
-    .nav-link {
-      color: #ffffff !important;
+    /* ✅ Styled About Me button */
+    .about-btn {
+      background-color: #d32f2f;
+      color: #ffffff;
       font-weight: 500;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 0.9rem;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      transition: background-color 0.3s ease;
     }
-    /* ✅ Custom style for red icon */
-    .nav-link .bi-person-circle {
-      color: #d32f2f !important;
-      font-size: 1.2rem;
+    .about-btn i {
+      color: #ffffff;
+      font-size: 1.1rem;
+      margin-right: 6px;
+    }
+    .about-btn:hover {
+      background-color: #b71c1c;
+      color: #ffffff;
     }
     main {
       flex: 1;
       width: 100%;
-      padding-top: 70px; /* ✅ space below navbar */
-      padding-bottom: 90px; /* ✅ space above footer */
-      overflow-y: auto; /* ✅ vertical scrolling only */
+      padding-top: 70px;
+      padding-bottom: 90px;
+      overflow-y: auto;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
     .login-box {
       width: 100%;
-      max-width: 420px; /* ✅ fits larger screens */
+      max-width: 420px;
       height: auto;
       background: linear-gradient(to bottom right, #ffffff, #f9fbe7);
       border-radius: 16px;
@@ -123,7 +136,7 @@
     }
     @media (max-width: 576px) {
       .login-box {
-        margin: 0 15px 40px 15px; /* ✅ ensures fitting on mobile */
+        margin: 0 15px 40px 15px;
       }
       .login-content {
         padding: 20px;
@@ -133,6 +146,10 @@
       }
       .navbar-brand {
         font-size: 1rem;
+      }
+      .about-btn {
+        font-size: 0.8rem;
+        padding: 5px 10px;
       }
     }
   </style>
@@ -144,9 +161,9 @@
     <div class="container-fluid px-3">
       <a class="navbar-brand fw-bold" href="#">🏫 School Manager</a>
       <div class="ms-auto">
-        <!-- ✅ Red icon linking to Flask route /developer -->
-        <a href="/developer" class="nav-link d-flex align-items-center">
-          <i class="bi bi-person-circle me-1"></i> About Me
+        <!-- ✅ Styled About Me button -->
+        <a href="/developer" class="about-btn">
+          <i class="bi bi-person-circle"></i> About Me
         </a>
       </div>
     </div>
@@ -163,7 +180,7 @@
     <div class="login-box">
       <div class="login-content px-3">
         <h4 class="text-center mb-4">Login to Your Account</h4>
-        <form method="POST" action="/login" onsubmit="showSpinner(event)">
+                <form method="POST" action="/login" onsubmit="showSpinner(event)">
           <div class="mb-3">
             <label for="email" class="form-label">Email address</label>
             <div class="input-group">
@@ -222,7 +239,7 @@
       document.getElementById("spinnerOverlay").style.display = "flex";
       setTimeout(() => {
         event.target.submit();
-      }, 1500); // ✅ Reduced spinner duration to 1.5 seconds
+      }, 1500);
     }
   </script>
 
