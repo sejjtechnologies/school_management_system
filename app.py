@@ -33,6 +33,11 @@ app.register_blueprint(secretary_routes)
 def index():
     return render_template("index.html")
 
+# ✅ Developer page route
+@app.route("/developer")
+def developer():
+    return render_template("developer.html")
+
 # ✅ Health check route for DB connection
 @app.route("/health")
 def health():

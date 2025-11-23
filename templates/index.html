@@ -29,6 +29,11 @@
       color: #ffffff !important;
       font-weight: 500;
     }
+    /* ✅ Custom style for red icon */
+    .nav-link .bi-person-circle {
+      color: #d32f2f !important;
+      font-size: 1.2rem;
+    }
     main {
       flex: 1;
       width: 100%;
@@ -139,7 +144,8 @@
     <div class="container-fluid px-3">
       <a class="navbar-brand fw-bold" href="#">🏫 School Manager</a>
       <div class="ms-auto">
-        <a href="developer.html" class="nav-link d-flex align-items-center">
+        <!-- ✅ Red icon linking to Flask route /developer -->
+        <a href="/developer" class="nav-link d-flex align-items-center">
           <i class="bi bi-person-circle me-1"></i> Read About Me
         </a>
       </div>

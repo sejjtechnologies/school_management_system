@@ -4,13 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>About the Developer</title>
+  <!-- Bootstrap & Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body {
-      background: linear-gradient(to right, #f1f8e9, #e0f7fa);
+      background: linear-gradient(to right, #f9fbe7, #e0f7fa);
       min-height: 100vh;
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Poppins', sans-serif;
       margin: 0;
       padding: 0;
       display: flex;
@@ -18,63 +21,73 @@
     }
     .navbar {
       background-color: #00796b !important;
-      height: 60px;
+      height: 60px; /* ✅ fixed height */
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .navbar-brand {
       color: #fff !important;
+      font-family: 'Roboto', sans-serif;
     }
-    .nav-link {
+    /* ✅ Home button styled with red background */
+    .home-btn {
+      background-color: #d32f2f !important;
       color: #fff !important;
-      font-weight: 500;
+      font-weight: 600;
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+    }
+    .home-btn i {
+      font-size: 1rem;
+      margin-right: 5px;
+    }
+    .home-btn:hover {
+      background-color: #b71c1c !important;
+      color: #fff !important;
     }
     main {
       flex: 1;
-      padding-top: 70px; /* space below navbar */
-      padding-bottom: 90px; /* space above footer */
+      padding-top: 70px;
+      padding-bottom: 90px;
       display: flex;
-      justify-content: center;
-      align-items: flex-start;
+      flex-direction: column;
+      align-items: center;
     }
-    .about-card {
-      max-width: 700px;
+    .card-section {
+      max-width: 900px;
       width: 100%;
-      background: #fff;
       border-radius: 16px;
       box-shadow: 0 6px 16px rgba(0,0,0,0.1);
       padding: 30px;
       margin: 20px;
-    }
-    .about-card h2 {
-      color: #00796b;
-      font-weight: bold;
-    }
-    .about-card p {
-      font-size: 1rem;
-      line-height: 1.6;
       color: #333;
+      background-color: #ffffff; /* ✅ light background */
     }
-    .profile-pic {
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-      object-fit: cover;
+    .card-section h2 {
+      font-weight: bold;
       margin-bottom: 20px;
-      border: 3px solid #00796b;
+      color: #00796b;
     }
-    footer {
-      height: 70px;
-      background: linear-gradient(to right, #4a148c, #1a237e);
-      box-shadow: 0 -2px 6px rgba(0,0,0,0.2);
-      color: #fff;
+    .card-section i {
+      font-size: 1.5rem;
+      margin-right: 10px;
+      color: #00796b;
     }
     @media (max-width: 576px) {
-      .about-card {
+      .card-section {
         margin: 15px;
         padding: 20px;
       }
-      .about-card h2 {
+      .card-section h2 {
         font-size: 1.25rem;
+      }
+      .home-btn {
+        padding: 4px 10px;
+        font-size: 0.75rem;
       }
     }
   </style>
@@ -86,9 +99,9 @@
     <div class="container-fluid px-3">
       <a class="navbar-brand fw-bold" href="#">🏫 School Manager</a>
       <div class="ms-auto">
-        <!-- ✅ Home button with house icon -->
-        <a href="index.html" class="nav-link d-flex align-items-center">
-          <i class="bi bi-house-door-fill me-1"></i> Home
+        <!-- ✅ Red Home button -->
+        <a href="/" class="home-btn">
+          <i class="bi bi-house-door-fill"></i> Home
         </a>
       </div>
     </div>
@@ -96,20 +109,102 @@
 
   <!-- Main Content -->
   <main>
-    <div class="about-card text-center">
-      <!-- Placeholder profile picture -->
-      <img src="https://via.placeholder.com/120" alt="Developer Photo" class="profile-pic" />
-
-      <h2>About the Developer</h2>
+    <!-- Bio Section -->
+    <div class="card-section text-center">
+      <h2><i class="bi bi-person-fill"></i> About Me</h2>
       <p>
-        Hello, my name is <strong>Sejjusa</strong>. I am the architect and developer of this School Management System.
-        My focus is on building modular, scalable, and emotionally supportive systems that empower communities
-        in education and humanitarian aid. I blend technical rigor with user‑friendly design to ensure clarity,
-        warmth, and efficiency in every workflow.
+        My name is <strong>Atukwase Wilber</strong>.
+        I am a student at <strong>Uganda Christian University</strong>, pursuing a degree in <strong>Information Technology</strong>.
+        Passionate about building modern, scalable, and creative IT solutions.
+      </p>
+    </div>
+
+    <!-- Contact Section -->
+    <div class="card-section">
+      <h2><i class="bi bi-envelope-fill"></i> Contact Information</h2>
+      <ul class="list-unstyled">
+        <li><i class="bi bi-envelope-check-fill"></i> <strong>atukwasewilber78@gmail.com</strong></li>
+        <li><i class="bi bi-envelope-fill"></i> sejj78w@gmail.com</li>
+        <li><i class="bi bi-envelope-fill"></i> sejjtechnologies@gmail.com</li>
+        <li><i class="bi bi-telephone-fill"></i> 07689366641</li>
+      </ul>
+    </div>
+
+    <!-- Skills Section -->
+    <div class="card-section">
+      <h2><i class="bi bi-lightbulb-fill"></i> What I Do</h2>
+      <div class="row">
+        <div class="col-md-6 mb-3"><i class="bi bi-globe"></i> Website Development</div>
+        <div class="col-md-6 mb-3"><i class="bi bi-diagram-3-fill"></i> System Development</div>
+        <div class="col-md-6 mb-3"><i class="bi bi-phone-fill"></i> Application Development</div>
+        <div class="col-md-6 mb-3"><i class="bi bi-palette-fill"></i> Flyers & Logos</div>
+        <div class="col-md-6 mb-3"><i class="bi bi-brush-fill"></i> Branding</div>
+        <div class="col-md-6 mb-3"><i class="bi bi-megaphone-fill"></i> Marketing</div>
+        <div class="col-md-12 mb-3"><i class="bi bi-gear-fill"></i> All other IT related services</div>
+      </div>
+    </div>
+           <!-- System Development Section -->
+    <div class="card-section">
+      <h2><i class="bi bi-code-slash"></i> How We Developed the System</h2>
+      <p>
+        The School Management System was developed using <strong>Flask (Python)</strong> for the backend,
+        with <strong>Bootstrap</strong> for responsive and user-friendly interfaces.
+        We integrated <strong>SQLAlchemy</strong> for database management and ensured modular design
+        with separate routes for administrators, secretaries, and users.
       </p>
       <p>
-        This page will be expanded with more details about my journey, skills, and vision for the future.
-        Stay tuned for updates!
+        The development process followed an <strong>iterative workflow</strong>:
+        setting up environment variables securely, scaffolding atomic routes,
+        validating database connections, and designing emotionally supportive UI/UX
+        for clarity and empowerment.
+      </p>
+    </div>
+
+    <!-- Core Functions Section -->
+    <div class="card-section">
+      <h2><i class="bi bi-grid-fill"></i> Core Functions of the System</h2>
+      <ul>
+        <li><i class="bi bi-person-lines-fill"></i> Student registration and management</li>
+        <li><i class="bi bi-people-fill"></i> Class and stream allocation</li>
+        <li><i class="bi bi-receipt-cutoff"></i> Auto-generation of admission and receipt numbers</li>
+        <li><i class="bi bi-search"></i> Search and filter pupils by class, stream, or name</li>
+        <li><i class="bi bi-bar-chart-fill"></i> Real-time statistics and student counts per class</li>
+        <li><i class="bi bi-lock-fill"></i> Secure login and role-based dashboards</li>
+        <li><i class="bi bi-gear-wide-connected"></i> Modular workflows for administrators, secretaries, and teachers</li>
+      </ul>
+    </div>
+
+    <!-- Vision Section -->
+    <div class="card-section">
+      <h2><i class="bi bi-eye-fill"></i> Vision & Future Enhancements</h2>
+      <p>
+        Our vision is to empower schools with a <strong>scalable, transparent, and supportive system</strong>
+        that simplifies management and enhances collaboration. Future enhancements include:
+      </p>
+      <ul>
+        <li><i class="bi bi-cloud-upload-fill"></i> Cloud-based storage and backups</li>
+        <li><i class="bi bi-chat-dots-fill"></i> Integrated communication tools</li>
+        <li><i class="bi bi-cash-stack"></i> Finance and fee management modules</li>
+        <li><i class="bi bi-bar-chart-line-fill"></i> Advanced analytics dashboards</li>
+      </ul>
+    </div>
+
+    <!-- Goodbye Section -->
+    <div class="card-section" style="font-family: 'Dancing Script', cursive; background-color:#fdfdfd;">
+      <h2 style="color:#d32f2f;"><i class="bi bi-heart-fill"></i> A Warm Goodbye</h2>
+      <p style="font-size:1.2rem;">
+        Dear valued clients and friends 🌟,<br><br>
+        Thank you for taking the time to learn about our journey and the School Management System we’ve built with passion and dedication.
+        We invite you to <strong>support us</strong> by offering jobs, collaborations, or simply sharing your feedback and advice 💌.
+        Your encouragement helps us grow and continue delivering meaningful IT solutions.
+      </p>
+      <p style="font-size:1.1rem;">
+        📧 Reach us anytime via: <br>
+        <strong>atukwasewilber78@gmail.com</strong> | sejj78w@gmail.com | sejjtechnologies@gmail.com <br>
+        📞 Call/WhatsApp: <strong>07689366641</strong>
+      </p>
+      <p style="font-size:1.3rem; color:#00796b;">
+        Together, let’s build technology that empowers education and communities 🌍✨
       </p>
     </div>
   </main>
