@@ -5,6 +5,7 @@ from routes.user_routes import user_routes
 from routes.admin_routes import admin_routes
 from routes.secretary_routes import secretary_routes
 from dotenv import load_dotenv   # ✅ Import dotenv
+from sqlalchemy import text       # ✅ Import text for SQL execution
 
 # ✅ Load environment variables from .env file
 load_dotenv()
@@ -36,9 +37,9 @@ def index():
 @app.route("/health")
 def health():
     try:
-        # Try a simple DB connection
+        # Use SQLAlchemy text() for proper execution
         with db.engine.connect() as connection:
-            connection.execute("SELECT 1")
+            connection.execute(text("SELECT 1"))
         return "Database connection OK"
     except Exception as e:
         return f"Database connection failed: {str(e)}"
