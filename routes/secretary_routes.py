@@ -11,19 +11,16 @@ from models.stream_model import Stream
 
 secretary_routes = Blueprint("secretary_routes", __name__)
 
-
 # Utility: Generate next admission number
 def generate_admission_number():
     year = datetime.now().year
     count = Pupil.query.filter(extract("year", Pupil.admission_date) == year).count() + 1
     return f"Sh/sy/{year}/{str(count).zfill(3)}"
 
-
 # Utility: Generate next receipt number
 def generate_receipt_number():
     count = Pupil.query.count() + 1
     return f"receip{str(count).zfill(3)}"
-
 
 # Utility: Generate next pupil_id (ID001, ID002, ...)
 def generate_pupil_id():
@@ -38,6 +35,18 @@ def generate_pupil_id():
         next_num = 1
     return f"ID{str(next_num).zfill(3)}"
 
+# Utility: Generate roll/index number (SYY/001, SYY/002...)
+def generate_roll_number(admission_date: datetime):
+    year_suffix = admission_date.strftime("%y")  # last two digits of year
+    month = admission_date.month
+
+    # Count pupils registered in the same month/year
+    count = Pupil.query.filter(
+        extract("year", Pupil.admission_date) == admission_date.year,
+        extract("month", Pupil.admission_date) == month
+    ).count() + 1
+
+    return f"S{year_suffix}/{str(count).zfill(3)}"
 
 # Utility: Save profile image
 def save_photo(file, pupil_id):
@@ -64,12 +73,10 @@ def save_photo(file, pupil_id):
         return f"/{full_path}"
     return None
 
-
 # ✅ GET: Dashboard page
 @secretary_routes.route("/dashboard", methods=["GET"])
 def dashboard():
     return render_template("secretary/dashboard.html")
-
 
 # GET: Show registration form
 @secretary_routes.route("/register-pupil", methods=["GET"])
@@ -80,20 +87,19 @@ def register_pupil():
         "secretary/register_pupil.html", classes=classes, streams=streams
     )
 
-
 # POST: Handle registration
 @secretary_routes.route("/register-pupil", methods=["POST"])
 def submit_pupil():
+    admission_date = datetime.strptime(request.form["admission_date"], "%Y-%m-%d").date()
     admission_number = generate_admission_number()
     receipt_number = generate_receipt_number()
     pupil_id = generate_pupil_id()   # ✅ Auto-generate pupil_id
+    roll_number = generate_roll_number(admission_date)  # ✅ Auto-generate roll number
     photo_path = save_photo(request.files.get("profile_image"), pupil_id)
 
     pupil = Pupil(
         pupil_id=pupil_id,
-        admission_date=datetime.strptime(
-            request.form["admission_date"], "%Y-%m-%d"
-        ).date(),
+        admission_date=admission_date,
         first_name=request.form["first_name"],
         middle_name=request.form.get("middle_name"),
         last_name=request.form["last_name"],
@@ -114,7 +120,7 @@ def submit_pupil():
         class_id=request.form["class"],
         stream_id=request.form.get("stream"),
         previous_school=request.form.get("previous_school"),
-        roll_number=request.form.get("roll_number"),
+        roll_number=roll_number,  # ✅ Auto-assigned roll number
         photo=photo_path,
         admission_number=admission_number,
         receipt_number=receipt_number,
@@ -125,7 +131,6 @@ def submit_pupil():
     db.session.commit()
 
     return redirect(url_for("secretary_routes.manage_pupils"))
-
 
 # GET: Manage pupils page
 @secretary_routes.route("/manage-pupils", methods=["GET"])
@@ -140,9 +145,7 @@ def manage_pupils():
         class_counts=class_counts,
         total_pupils=total_pupils
     )
-
-
-# ✅ GET: Edit pupil form
+    # ✅ GET: Edit pupil form
 @secretary_routes.route("/edit-pupil/<int:pupil_id>", methods=["GET"])
 def edit_pupil(pupil_id):
     pupil = Pupil.query.get_or_404(pupil_id)
@@ -154,7 +157,6 @@ def edit_pupil(pupil_id):
         classes=classes,
         streams=streams
     )
-
 
 # ✅ POST: Update pupil details (all fields)
 @secretary_routes.route("/edit-pupil/<int:pupil_id>", methods=["POST"])
@@ -185,8 +187,10 @@ def update_pupil(pupil_id):
     pupil.class_id = request.form["class_id"]
     pupil.stream_id = request.form["stream_id"]
     pupil.previous_school = request.form.get("previous_school")
-    pupil.roll_number = request.form.get("roll_number")
     pupil.enrollment_status = request.form["enrollment_status"]
+
+    # ✅ Roll number should not be manually edited — regenerate if admission_date changes
+    pupil.roll_number = generate_roll_number(pupil.admission_date)
 
     # ✅ Handle profile image update
     photo_path = save_photo(request.files.get("profile_image"), pupil.pupil_id)
@@ -195,7 +199,6 @@ def update_pupil(pupil_id):
 
     db.session.commit()
     return redirect(url_for("secretary_routes.manage_pupils"))
-
 
 # ✅ DELETE: Remove pupil
 @secretary_routes.route("/delete-pupil/<int:pupil_id>", methods=["POST"])
@@ -211,6 +214,8 @@ def delete_pupil(pupil_id):
         except Exception as e:
             print(f"Warning: Failed to delete photo: {e}")
 
+    # ✅ Remove pupil record from database
     db.session.delete(pupil)
     db.session.commit()
+
     return redirect(url_for("secretary_routes.manage_pupils"))
