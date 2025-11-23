@@ -32,6 +32,17 @@ app.register_blueprint(secretary_routes)
 def index():
     return render_template("index.html")
 
+# ✅ Health check route for DB connection
+@app.route("/health")
+def health():
+    try:
+        # Try a simple DB connection
+        with db.engine.connect() as connection:
+            connection.execute("SELECT 1")
+        return "Database connection OK"
+    except Exception as e:
+        return f"Database connection failed: {str(e)}"
+
 # ✅ Auto-create tables if missing
 with app.app_context():
     db.create_all()
