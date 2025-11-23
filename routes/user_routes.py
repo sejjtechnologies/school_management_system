@@ -27,6 +27,10 @@ def login():
 
             role = user.role.role_name.lower()
 
+            # ✅ Lock Admin accounts: always route to Admin dashboard
+            if role == "admin":
+                return redirect(url_for("user_routes.admin_dashboard"))
+
             return redirect(url_for(f"user_routes.{role}_dashboard"))
         else:
             flash("Invalid email or password.", "danger")
