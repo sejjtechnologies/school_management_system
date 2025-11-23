@@ -19,14 +19,15 @@
         }
 
         footer {
-            background: #0a58ca; /* Blue background */
+            background: #0a58ca;
             color: #ffffff;
-            padding: 20px 0;
-            height: 70px;
+            padding: 20px;
+            min-height: 70px;
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
             justify-content: space-between;
-            padding: 0 40px;
+            text-align: center;
         }
 
         .footer-left {
@@ -35,14 +36,24 @@
 
         .footer-right a {
             color: #ffffff;
-            margin-left: 20px;
-            font-size: 20px;
+            margin: 0 10px;
+            font-size: 22px;
             text-decoration: none;
             transition: 0.3s;
         }
 
         .footer-right a:hover {
             color: #d1e7ff;
+        }
+            @media (max-width: 600px) {
+            footer {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .footer-right a {
+                font-size: 24px;
+            }
         }
     </style>
 </head>
