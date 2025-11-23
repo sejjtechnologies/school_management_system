@@ -31,19 +31,21 @@
       padding-top: 70px; /* ✅ space below navbar */
       padding-bottom: 90px; /* ✅ space above footer */
       overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     .login-box {
       width: 100%;
       max-width: 420px;
       height: auto;
       background: linear-gradient(to bottom right, #ffffff, #f9fbe7);
-      padding: 0;
       border-radius: 16px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.1);
       border: 1px solid #c8e6c9;
       display: flex;
       flex-direction: column;
-      margin-bottom: 40px;
+      margin: 20px; /* ✅ margin for spacing on all devices */
     }
     .login-content {
       padding: 30px;
@@ -112,7 +114,7 @@
     }
     @media (max-width: 576px) {
       .login-box {
-        margin: 0 15px 40px 15px;
+        margin: 15px; /* ✅ ensures fitting on mobile */
       }
       .login-content {
         padding: 20px;
