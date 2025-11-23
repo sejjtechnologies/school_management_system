@@ -1,7 +1,7 @@
 <footer class="footer fixed-bottom text-white">
   <style>
     .footer {
-      min-height: 90px; /* ✅ increased height */
+      height: 70px; /* ✅ fixed height */
       background: linear-gradient(to right, #4a148c, #1a237e);
       box-shadow: 0 -2px 6px rgba(0,0,0,0.2);
       font-size: 0.85rem;
@@ -13,25 +13,31 @@
     }
     .footer .row {
       height: 100%;
+      display: flex;
+      align-items: center;
+    }
+    /* ✅ Force two columns even on small screens */
+    .footer .col {
+      flex: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     /* ✅ Mobile adjustments */
     @media (max-width: 576px) {
       .footer {
         font-size: 0.65rem; /* shrink text */
-        min-height: 100px;  /* allow more space on small screens */
       }
       .footer i {
         font-size: 0.9rem; /* shrink icons */
       }
-      .footer .row {
+      .footer .col {
         flex-direction: column;
-        text-align: center;
-      }
-      .footer .col-md-6 {
-        margin-bottom: 4px;
+        justify-content: center;
+        align-items: center;
       }
     }
-    /* ✅ Larger screens auto expand */
+    /* ✅ Larger screens */
     @media (min-width: 577px) {
       .footer {
         font-size: 0.85rem;
@@ -43,10 +49,10 @@
   </style>
 
   <div class="container-fluid px-3">
-    <div class="row align-items-center">
+    <div class="row w-100">
       <!-- Left side -->
-      <div class="col-md-6 d-flex flex-column flex-md-row align-items-center justify-content-md-start mb-1 mb-md-0">
-        <div class="me-md-3">
+      <div class="col">
+        <div>
           📍 Entebbe, Uganda &nbsp; | &nbsp; 🏫 "Empowering Young Minds for a Brighter Future"
         </div>
         <div>
@@ -55,8 +61,8 @@
       </div>
 
       <!-- Right side -->
-      <div class="col-md-6 d-flex flex-column flex-md-row align-items-center justify-content-md-end">
-        <div class="me-md-3 mb-1 mb-md-0">
+      <div class="col">
+        <div>
           <i class="bi bi-envelope-fill"></i> schoolmanager@primary.edu &nbsp; | &nbsp;
           <i class="bi bi-telephone-fill"></i> +256 700 123456 &nbsp; | &nbsp;
           <i class="bi bi-telephone-fill"></i> +256 772 654321
