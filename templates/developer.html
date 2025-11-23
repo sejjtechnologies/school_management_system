@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About the Developer</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    body {
+      background: linear-gradient(to right, #f1f8e9, #e0f7fa);
+      min-height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .navbar {
+      background-color: #00796b !important;
+      height: 60px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .navbar-brand {
+      color: #fff !important;
+    }
+    .nav-link {
+      color: #fff !important;
+      font-weight: 500;
+    }
+    main {
+      flex: 1;
+      padding-top: 70px; /* space below navbar */
+      padding-bottom: 90px; /* space above footer */
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .about-card {
+      max-width: 700px;
+      width: 100%;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+      padding: 30px;
+      margin: 20px;
+    }
+    .about-card h2 {
+      color: #00796b;
+      font-weight: bold;
+    }
+    .about-card p {
+      font-size: 1rem;
+      line-height: 1.6;
+      color: #333;
+    }
+    .profile-pic {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 20px;
+      border: 3px solid #00796b;
+    }
+    footer {
+      height: 70px;
+      background: linear-gradient(to right, #4a148c, #1a237e);
+      box-shadow: 0 -2px 6px rgba(0,0,0,0.2);
+      color: #fff;
+    }
+    @media (max-width: 576px) {
+      .about-card {
+        margin: 15px;
+        padding: 20px;
+      }
+      .about-card h2 {
+        font-size: 1.25rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar fixed-top">
+    <div class="container-fluid px-3">
+      <a class="navbar-brand fw-bold" href="#">🏫 School Manager</a>
+      <div class="ms-auto">
+        <!-- ✅ Home button with house icon -->
+        <a href="index.html" class="nav-link d-flex align-items-center">
+          <i class="bi bi-house-door-fill me-1"></i> Home
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main>
+    <div class="about-card text-center">
+      <!-- Placeholder profile picture -->
+      <img src="https://via.placeholder.com/120" alt="Developer Photo" class="profile-pic" />
+
+      <h2>About the Developer</h2>
+      <p>
+        Hello, my name is <strong>Sejjusa</strong>. I am the architect and developer of this School Management System.
+        My focus is on building modular, scalable, and emotionally supportive systems that empower communities
+        in education and humanitarian aid. I blend technical rigor with user‑friendly design to ensure clarity,
+        warmth, and efficiency in every workflow.
+      </p>
+      <p>
+        This page will be expanded with more details about my journey, skills, and vision for the future.
+        Stay tuned for updates!
+      </p>
+    </div>
+  </main>
+
+  {% include 'footer.html' %}
+
+</body>
+</html>
