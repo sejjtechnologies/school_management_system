@@ -1,4 +1,48 @@
-<footer class="footer fixed-bottom text-center text-white" style="height: 60px; background: linear-gradient(to right, #4a148c, #1a237e); box-shadow: 0 -2px 6px rgba(0,0,0,0.2); font-size: 0.85rem;">
+<footer class="footer fixed-bottom text-center text-white">
+  <style>
+    .footer {
+      height: 60px;
+      background: linear-gradient(to right, #4a148c, #1a237e);
+      box-shadow: 0 -2px 6px rgba(0,0,0,0.2);
+      font-size: 0.85rem;
+    }
+    .footer .container-fluid {
+      height: 100%;
+    }
+    .footer .d-flex {
+      height: 100%;
+    }
+    /* ✅ Mobile adjustments */
+    @media (max-width: 576px) {
+      .footer {
+        font-size: 0.65rem; /* smaller font size */
+      }
+      .footer i {
+        font-size: 0.9rem; /* shrink icons slightly */
+      }
+      .footer .me-md-3 {
+        margin-right: 0 !important;
+      }
+      .footer .mb-md-0 {
+        margin-bottom: 2px !important;
+      }
+      .footer .d-flex {
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+    }
+    /* ✅ Larger screens auto expand */
+    @media (min-width: 577px) {
+      .footer {
+        font-size: 0.85rem; /* normal size */
+      }
+      .footer i {
+        font-size: 1.1rem; /* normal icon size */
+      }
+    }
+  </style>
+
   <div class="container-fluid px-2">
     <div class="d-flex flex-column flex-md-row justify-content-center align-items-center h-100">
       <div class="me-md-3 mb-1 mb-md-0">
@@ -13,12 +57,12 @@
         🔢<strong>v1.0.0</strong>
       </div>
       <div>
-        <a href="#" class="me-2" style="color: #1877f2;"><i class="bi bi-facebook fs-5"></i></a>
-        <a href="#" class="me-2" style="color: #1da1f2;"><i class="bi bi-twitter fs-5"></i></a>
-        <a href="#" class="me-2" style="color: #e4405f;"><i class="bi bi-instagram fs-5"></i></a>
-        <a href="#" class="me-2" style="color: #0a66c2;"><i class="bi bi-linkedin fs-5"></i></a>
-        <a href="#" class="me-2" style="color: #ff0000;"><i class="bi bi-youtube fs-5"></i></a>
-        <a href="#" style="color: #25d366;"><i class="bi bi-whatsapp fs-5"></i></a>
+        <a href="#" class="me-2" style="color: #1877f2;"><i class="bi bi-facebook"></i></a>
+        <a href="#" class="me-2" style="color: #1da1f2;"><i class="bi bi-twitter"></i></a>
+        <a href="#" class="me-2" style="color: #e4405f;"><i class="bi bi-instagram"></i></a>
+        <a href="#" class="me-2" style="color: #0a66c2;"><i class="bi bi-linkedin"></i></a>
+        <a href="#" class="me-2" style="color: #ff0000;"><i class="bi bi-youtube"></i></a>
+        <a href="#" style="color: #25d366;"><i class="bi bi-whatsapp"></i></a>
       </div>
     </div>
   </div>
