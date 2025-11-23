@@ -30,14 +30,14 @@
       width: 100%;
       padding-top: 70px; /* ✅ space below navbar */
       padding-bottom: 90px; /* ✅ space above footer */
-      overflow-y: auto;
+      overflow-y: auto; /* ✅ vertical scrolling only */
       display: flex;
       flex-direction: column;
       align-items: center;
     }
     .login-box {
       width: 100%;
-      max-width: 420px;
+      max-width: 420px; /* ✅ fits larger screens */
       height: auto;
       background: linear-gradient(to bottom right, #ffffff, #f9fbe7);
       border-radius: 16px;
@@ -45,7 +45,7 @@
       border: 1px solid #c8e6c9;
       display: flex;
       flex-direction: column;
-      margin: 20px; /* ✅ margin for spacing on all devices */
+      margin: 20px;
     }
     .login-content {
       padding: 30px;
@@ -114,7 +114,7 @@
     }
     @media (max-width: 576px) {
       .login-box {
-        margin: 15px; /* ✅ ensures fitting on mobile */
+        margin: 0 15px 40px 15px; /* ✅ ensures fitting on mobile */
       }
       .login-content {
         padding: 20px;
