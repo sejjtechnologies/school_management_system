@@ -15,6 +15,7 @@ def manage_users():
 
 @admin_routes.route("/admin/create-user", methods=["GET", "POST"])
 def create_user():
+    # ✅ Show all roles except Admin (to prevent creating another Admin via UI)
     roles = Role.query.filter(Role.role_name != "Admin").order_by(Role.role_name.asc()).all()
 
     if request.method == "POST":
@@ -24,18 +25,29 @@ def create_user():
         password = request.form.get("password")
         role_name = request.form.get("role")
 
+        # ✅ Always resolve role_id from roles table
         role = Role.query.filter_by(role_name=role_name).first()
         if not role:
             flash("Invalid role selected.", "danger")
-            return redirect(url_for("admin_routes.create_user"))
+            return render_template("admin/create_user.html", roles=roles)
 
+        # ✅ Unique email check
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            flash("Email already exists. Please use a different email.", "danger")
+            return render_template("admin/create_user.html", roles=roles,
+                                   first_name=first_name, last_name=last_name, email=email)
+
+        # ✅ Hash password
         hashed_password = generate_password_hash(password)
+
+        # ✅ Create user with correct role_id
         new_user = User(
             first_name=first_name,
             last_name=last_name,
             email=email,
             password=hashed_password,
-            role_id=role.id
+            role_id=role.id   # ✅ Always correct mapping
         )
         db.session.add(new_user)
         db.session.commit()
@@ -53,16 +65,24 @@ def edit_user(user_id):
     if request.method == "POST":
         user.first_name = request.form.get("first_name")
         user.last_name = request.form.get("last_name")
-        user.email = request.form.get("email")
+        new_email = request.form.get("email")
         role_name = request.form.get("role")
         password = request.form.get("password")
 
+        # ✅ Always resolve role_id from roles table
         role = Role.query.filter_by(role_name=role_name).first()
         if not role:
             flash("Invalid role selected.", "danger")
-            return redirect(url_for("admin_routes.edit_user", user_id=user.id))
+            return render_template("admin/edit_user.html", user=user, roles=roles)
 
-        user.role_id = role.id
+        # ✅ Unique email check (exclude current user)
+        existing_user = User.query.filter(User.email == new_email, User.id != user.id).first()
+        if existing_user:
+            flash("Email already exists. Please use a different email.", "danger")
+            return render_template("admin/edit_user.html", user=user, roles=roles)
+
+        user.email = new_email
+        user.role_id = role.id   # ✅ Always correct mapping
 
         if password:
             user.password = generate_password_hash(password)
