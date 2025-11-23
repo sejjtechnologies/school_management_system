@@ -1,23 +1,24 @@
+import os
 from flask import Flask, render_template
 from models.user_models import db
 from routes.user_routes import user_routes
 from routes.admin_routes import admin_routes
-from routes.secretary_routes import secretary_routes  # ✅ Newly added
+from routes.secretary_routes import secretary_routes
+from dotenv import load_dotenv   # ✅ Import dotenv
 
-# ✅ Direct model imports for table creation
-from models.register_pupils import Pupil
-from models.class_model import Class
-from models.stream_model import Stream
+# ✅ Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = "your_secret_key"
 
-# ✅ Hardcoded Neon PostgreSQL connection string
-app.config["SQLALCHEMY_DATABASE_URI"] = (
-    "postgresql://neondb_owner:npg_sCrqa7J6oxGg@ep-snowy-voice-afsxk5rn-pooler.c-2.us-west-2.aws.neon.tech/neondb"
-    "?sslmode=require&channel_binding=require"
+# ✅ Secret key from environment
+app.secret_key = os.getenv("SECRET_KEY", "default_secret")
+
+# ✅ Database configuration from environment
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = (
+    os.getenv("SQLALCHEMY_TRACK_MODIFICATIONS", "False") == "True"
 )
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # ✅ Initialize DB
 db.init_app(app)
