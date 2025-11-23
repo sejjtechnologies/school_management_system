@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Secretary Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    body {
+      padding-top: 70px;
+      background-color: #f1f8e9;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .navbar {
+      background-color: #00695c;
+    }
+    .navbar-brand, .nav-link {
+      color: #fff !important;
+    }
+    .logout-btn {
+      background-color: #d32f2f;
+      color: #fff;
+      border: none;
+    }
+    .logout-btn:hover {
+      background-color: #b71c1c;
+    }
+    .action-card {
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease;
+    }
+    .action-card:hover {
+      transform: scale(1.02);
+    }
+    .btn-register {
+      background-color: #2e7d32;
+      color: #fff;
+    }
+    .btn-manage {
+      background-color: #0277bd;
+      color: #fff;
+    }
+    .btn-register:hover {
+      background-color: #1b5e20;
+    }
+    .btn-manage:hover {
+      background-color: #01579b;
+    }
+  </style>
+</head>
+<body>
+  <!-- Fixed Navbar -->
+  <nav class="navbar fixed-top navbar-expand-lg">
+    <div class="container-fluid px-3">
+      <a class="navbar-brand fw-bold" href="#">
+        <i class="bi bi-person-lines-fill me-2"></i>Secretary Dashboard
+      </a>
+      <div class="ms-auto">
+        <form action="{{ url_for('user_routes.logout') }}" method="get" class="d-inline">
+          <button type="submit" class="btn logout-btn">
+            <i class="bi bi-box-arrow-right me-1"></i>Logout
+          </button>
+        </form>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="container my-5">
+    <div class="row g-4">
+      <!-- Register Student -->
+      <div class="col-md-6">
+        <div class="action-card bg-white text-center">
+          <h5 class="mb-3">
+            <i class="bi bi-person-plus-fill me-2"></i>Register a Student
+          </h5>
+          <a href="{{ url_for('secretary_routes.register_pupil') }}" class="btn btn-register">
+            <i class="bi bi-pencil-square me-1"></i>Start Registration
+          </a>
+        </div>
+      </div>
+
+      <!-- Manage Pupils -->
+      <div class="col-md-6">
+        <div class="action-card bg-white text-center">
+          <h5 class="mb-3">
+            <i class="bi bi-people-fill me-2"></i>Manage Pupils
+          </h5>
+          <a href="{{ url_for('secretary_routes.manage_pupils') }}" class="btn btn-manage">
+            <i class="bi bi-list-check me-1"></i>View & Edit Records
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  {% include 'footer.html' %}
+</body>
+</html>
