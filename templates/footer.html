@@ -1,10 +1,12 @@
 <footer class="footer fixed-bottom text-white">
   <style>
     .footer {
-      height: 60px;
+      min-height: 90px; /* ✅ increased height */
       background: linear-gradient(to right, #4a148c, #1a237e);
       box-shadow: 0 -2px 6px rgba(0,0,0,0.2);
       font-size: 0.85rem;
+      display: flex;
+      align-items: center;
     }
     .footer .container-fluid {
       height: 100%;
@@ -16,6 +18,7 @@
     @media (max-width: 576px) {
       .footer {
         font-size: 0.65rem; /* shrink text */
+        min-height: 100px;  /* allow more space on small screens */
       }
       .footer i {
         font-size: 0.9rem; /* shrink icons */
