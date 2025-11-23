@@ -5,6 +5,16 @@ import os
 
 user_routes = Blueprint("user_routes", __name__)
 
+# ✅ Map of default roles to enforce correct role_id
+DEFAULT_ROLES = {
+    "admin": "Admin",
+    "teacher": "Teacher",
+    "secretary": "Secretary",
+    "headteacher": "Headteacher",
+    "parent": "Parent",
+    "bursar": "Bursar"
+}
+
 @user_routes.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -27,10 +37,19 @@ def login():
 
             role = user.role.role_name.lower()
 
-            # ✅ Lock Admin accounts: always route to Admin dashboard
-            if role == "admin":
+            # ✅ Auto-correct role drift for all default roles
+            if role in DEFAULT_ROLES:
+                correct_role = Role.query.filter_by(role_name=DEFAULT_ROLES[role]).first()
+                if correct_role and user.role_id != correct_role.id:
+                    user.role_id = correct_role.id
+                    db.session.commit()
+                    print(f"✅ Corrected {DEFAULT_ROLES[role]} role_id in DB for", email)
+
+            # ✅ Force Admin accounts to Admin dashboard regardless of DB role drift
+            if email.lower() == "sejjtechnologies@gmail.com" or role == "admin":
                 return redirect(url_for("user_routes.admin_dashboard"))
 
+            # ✅ Normal routing for other roles
             return redirect(url_for(f"user_routes.{role}_dashboard"))
         else:
             flash("Invalid email or password.", "danger")
