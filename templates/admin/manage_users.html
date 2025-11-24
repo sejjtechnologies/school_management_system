@@ -91,9 +91,10 @@
     <div class="container-fluid px-3">
       <a class="navbar-brand fw-bold" href="#"><i class="bi bi-people-fill me-2"></i>Manage Users</a>
       <div class="ms-auto">
-        <button onclick="window.history.back()" class="btn back-btn">
+        <!-- ✅ Back button now links to admin dashboard safely -->
+        <a href="{{ url_for('user_routes.admin_dashboard') }}" class="btn back-btn">
           <i class="bi bi-box-arrow-left me-1"></i>Back
-        </button>
+        </a>
       </div>
     </div>
   </nav>

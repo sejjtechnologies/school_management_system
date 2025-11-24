@@ -1,7 +1,6 @@
 from flask import Blueprint, request, redirect, render_template, flash, session, url_for, Response
 from werkzeug.security import check_password_hash
 from models.user_models import db, User, Role
-# Class and Stream models are not referenced in this module; import where needed.
 from models.teacher_assignment_models import TeacherAssignment
 from models.register_pupils import Pupil   # ✅ Import pupil model
 import csv
@@ -59,8 +58,8 @@ def login():
 
             # ✅ Force Admin accounts to Admin dashboard regardless of DB role drift
             if email.lower() == "sejjtechnologies@gmail.com" or role == "admin":
-                admin = user
-                return render_template("admin/dashboard.html", admin=admin)
+                # ✅ Redirect to avoid resubmission warning
+                return redirect(url_for("user_routes.admin_dashboard"))
 
             # ✅ Normal routing for other roles
             return redirect(url_for(f"user_routes.{role}_dashboard"))
@@ -90,6 +89,7 @@ def admin_dashboard():
         flash("Access denied. Only admins can view this dashboard.", "danger")
         return redirect(url_for("user_routes.login"))
 
+    # ✅ Pass admin object safely
     return render_template("admin/dashboard.html", admin=admin)
 
 @user_routes.route("/teacher/dashboard")
@@ -130,8 +130,7 @@ def teacher_dashboard():
                            assignments=assignments,
                            summary=summary,
                            records=all_records)
-
-# ✅ Export pupils to CSV
+    # ✅ Export pupils to CSV
 @user_routes.route("/teacher/export_csv")
 def teacher_export_csv():
     user_id = session.get("user_id")
@@ -243,9 +242,7 @@ def teacher_export_excel():
     return Response(data,
                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     headers={"Content-Disposition": "attachment;filename=class_list.xlsx"})
-
-
-# ✅ Pupils Details route
+    # ✅ Pupils Details route
 @user_routes.route("/teacher/pupils_details")
 def pupils_details():
     user_id = session.get("user_id")
