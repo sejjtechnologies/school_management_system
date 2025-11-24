@@ -48,3 +48,10 @@ class Pupil(db.Model):
     # ✅ Relationships
     class_ = db.relationship('Class', backref='pupils', lazy=True)
     stream = db.relationship('Stream', backref='pupils', lazy=True)
+
+    # ✅ Relationships to marks and reports
+    marks = db.relationship("Mark", back_populates="pupil", lazy=True)
+    reports = db.relationship("Report", back_populates="pupil", lazy=True)
+
+    def __repr__(self):
+        return f"<Pupil {self.first_name} {self.last_name} (Admission {self.admission_number})>"

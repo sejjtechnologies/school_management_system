@@ -105,7 +105,7 @@
     <!-- ✅ Buttons Section -->
     <div class="d-flex flex-wrap justify-content-center">
       <!-- Pupils Details -->
-      <a href="{{ url_for('teacher_routes.pupils_details') }}" class="main-btn btn-pupils">
+      <a href="{{ url_for('user_routes.pupils_details') }}" class="main-btn btn-pupils">
         <i class="bi bi-people-fill"></i> View Pupils Details
       </a>
 
@@ -115,7 +115,6 @@
       </a>
 
       <!-- Manage Pupils Reports -->
-      <!-- For now, link to a selection page or test IDs -->
       <a href="{{ url_for('teacher_routes.generate_report', pupil_id=1, exam_id=1) }}" class="main-btn btn-reports">
         <i class="bi bi-file-earmark-text"></i> Manage Pupils Reports
       </a>

@@ -43,6 +43,10 @@
     .grade-C { background-color: #ffc107; color: #000; }
     .grade-D { background-color: #ff9800; color: #fff; }
     .grade-E { background-color: #f44336; color: #fff; }
+    .nav-btn {
+      margin-top: 15px;
+      margin-right: 10px;
+    }
   </style>
 </head>
 <body>
@@ -76,6 +80,16 @@
 
       <p><strong>Position in Stream:</strong> {{ stream_position }}</p>
       <p><strong>Position in Class:</strong> {{ class_position }}</p>
+
+      <!-- ✅ Navigation Buttons -->
+      <div class="mt-3">
+        <a href="{{ url_for('teacher_routes.dashboard') }}" class="btn btn-secondary nav-btn">
+          <i class="bi bi-arrow-left-circle"></i> Back to Dashboard
+        </a>
+        <a href="{{ url_for('teacher_routes.manage_marks') }}" class="btn btn-primary nav-btn">
+          <i class="bi bi-pencil-square"></i> Manage Marks
+        </a>
+      </div>
     </div>
   </main>
 

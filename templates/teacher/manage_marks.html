@@ -40,6 +40,10 @@
     .submit-btn:hover {
       background-color: #004d40;
     }
+    .nav-btn {
+      margin-top: 15px;
+      margin-right: 10px;
+    }
   </style>
 </head>
 <body>
@@ -57,24 +61,48 @@
     <div class="form-section">
       <form method="POST" action="{{ url_for('teacher_routes.manage_marks') }}">
 
-        <!-- Select Pupil -->
+        <!-- Grouped Pupil Selection -->
         <div class="mb-3">
           <label for="pupil_id" class="form-label">Select Pupil</label>
-          <select class="form-select" id="pupil_id" name="pupil_id" required>
+          <select class="form-select" id="pupil_id" name="pupil_id" required
+                  onchange="updatePupilInfo(this)">
+            <option value="">-- Select Pupil --</option>
             {% for pupil in pupils %}
-              <option value="{{ pupil.id }}">
-                {{ pupil.first_name }} {{ pupil.last_name }} (Class {{ pupil.class_id }}, Stream {{ pupil.stream_id }})
+              <option value="{{ pupil.id }}"
+                      data-class="{{ pupil.class_.name }}"
+                      data-stream="{{ pupil.stream.name if pupil.stream else 'N/A' }}">
+                {{ pupil.first_name }} {{ pupil.last_name }}
               </option>
             {% endfor %}
           </select>
         </div>
 
-        <!-- Select Exam -->
+        <!-- Auto-filled Class and Stream -->
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Class</label>
+            <input type="text" id="class_name" class="form-control" readonly>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Stream</label>
+            <input type="text" id="stream_name" class="form-control" readonly>
+          </div>
+        </div>
+
+        <!-- Select Exam (Grouped by Term and Year) -->
         <div class="mb-3">
           <label for="exam_id" class="form-label">Select Exam</label>
           <select class="form-select" id="exam_id" name="exam_id" required>
-            {% for exam in exams %}
-              <option value="{{ exam.id }}">{{ exam.name }} - {{ exam.term }} {{ exam.year }}</option>
+            {% for year, exams_by_year in exams_grouped.items() %}
+              <optgroup label="Year {{ year }}">
+                {% for term, exams_in_term in exams_by_year.items() %}
+                  <optgroup label="{{ term }}">
+                    {% for exam in exams_in_term %}
+                      <option value="{{ exam.id }}">{{ exam.name }} - {{ exam.term }} {{ exam.year }}</option>
+                    {% endfor %}
+                  </optgroup>
+                {% endfor %}
+              </optgroup>
             {% endfor %}
           </select>
         </div>
@@ -92,9 +120,28 @@
         <!-- Submit Button -->
         <button type="submit" class="submit-btn">Save Marks</button>
       </form>
+
+      <!-- ✅ Navigation Buttons -->
+      <div class="mt-3">
+        <a href="{{ url_for('teacher_routes.dashboard') }}" class="btn btn-secondary nav-btn">
+          <i class="bi bi-arrow-left-circle"></i> Back to Dashboard
+        </a>
+        <a href="{{ url_for('teacher_routes.generate_report', pupil_id=1, exam_id=1) }}" class="btn btn-primary nav-btn">
+          <i class="bi bi-file-earmark-text"></i> View Reports
+        </a>
+      </div>
     </div>
   </main>
 
   {% include 'footer.html' %}
+
+  <!-- ✅ Script to auto-fill class and stream -->
+  <script>
+    function updatePupilInfo(select) {
+      const selectedOption = select.options[select.selectedIndex];
+      document.getElementById('class_name').value = selectedOption.getAttribute('data-class') || '';
+      document.getElementById('stream_name').value = selectedOption.getAttribute('data-stream') || '';
+    }
+  </script>
 </body>
 </html>

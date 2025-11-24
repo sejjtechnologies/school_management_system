@@ -6,6 +6,7 @@ from models import marks_model   # ✅ Import marks_model to include new tables
 from routes.user_routes import user_routes
 from routes.admin_routes import admin_routes
 from routes.secretary_routes import secretary_routes
+from routes.teacher_routes import teacher_routes   # ✅ Import teacher_routes
 from dotenv import load_dotenv   # ✅ Import dotenv
 from sqlalchemy import text       # ✅ Import text for SQL execution
 
@@ -37,6 +38,7 @@ db.init_app(app)
 app.register_blueprint(user_routes)
 app.register_blueprint(admin_routes)
 app.register_blueprint(secretary_routes)
+app.register_blueprint(teacher_routes)   # ✅ Register teacher_routes
 
 @app.route("/")
 def index():

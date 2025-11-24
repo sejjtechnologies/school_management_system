@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, session, flash, redirect, url_for, request
+from collections import defaultdict
 from models.user_models import User, Role, db
 from models.class_model import Class
 from models.stream_model import Stream
@@ -6,6 +7,7 @@ from models.teacher_assignment_models import TeacherAssignment
 from models.register_pupils import Pupil
 from models.marks_model import Subject, Exam, Mark, Report
 
+# Blueprint registered as "teacher_routes"
 teacher_routes = Blueprint("teacher_routes", __name__, url_prefix="/teacher")
 
 @teacher_routes.route("/dashboard")
@@ -107,12 +109,17 @@ def manage_marks():
     streams = Stream.query.all()
     classes = Class.query.all()
 
+    # ✅ Group exams by year and term for template
+    exams_grouped = defaultdict(lambda: defaultdict(list))
+    for exam in exams:
+        exams_grouped[exam.year][exam.term].append(exam)
+
     return render_template("teacher/manage_marks.html",
                            pupils=pupils,
-                           exams=exams,
                            subjects=subjects,
                            streams=streams,
                            classes=classes,
+                           exams_grouped=exams_grouped,  # ✅ pass grouped exams
                            success_message=success_message)
 
 
