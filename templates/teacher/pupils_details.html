@@ -30,7 +30,7 @@
     main {
       flex: 1;
       overflow-y: auto;
-      margin-bottom: 40px; /* spacing above footer */
+      margin-bottom: 40px;
     }
     .card-header { background-color: #283593; color: #fff; font-weight: bold; }
     .table-sm th, .table-sm td { padding: 0.4rem; font-size: 0.8rem; }
@@ -58,7 +58,6 @@
         <i class="bi bi-people-fill me-2"></i>Pupils Details
       </a>
       <div class="ms-auto d-flex align-items-center">
-        <!-- ✅ Back to Dashboard Button -->
         <a href="{{ url_for('user_routes.teacher_dashboard') }}" class="btn back-btn me-2">
           <i class="bi bi-box-arrow-left me-1"></i> Back
         </a>
@@ -70,7 +69,7 @@
   <main class="container my-4">
     <h3 class="mb-3">All Pupils Records</h3>
 
-    <!-- ✅ Summary Cards forced in pairs of 2 -->
+    <!-- ✅ Summary Cards -->
     <div class="row mb-3">
       <div class="col-6 mb-2">
         <div class="summary-card bg-total">
@@ -93,8 +92,8 @@
       <div class="col-6 mb-2">
         <div class="summary-card bg-year">
           <h6>Academic Year</h6>
-          <!-- ✅ Display the year passed from route -->
-          <p>{{ current_year }}</p>
+          <!-- ✅ Hardcoded year -->
+          <p>2025/26</p>
         </div>
       </div>
     </div>
@@ -102,7 +101,6 @@
     <div class="card mb-4 shadow-sm">
       <div class="card-header d-flex justify-content-between align-items-center">
         <span><i class="bi bi-people-fill me-2"></i>Pupils List</span>
-        <!-- ✅ Export Buttons -->
         <div>
           <a href="{{ url_for('user_routes.pupils_export_csv') }}" class="btn btn-sm btn-success">
             <i class="bi bi-download me-1"></i>CSV
@@ -113,7 +111,6 @@
         </div>
       </div>
       <div class="card-body">
-        <!-- ✅ Search Bar -->
         <div class="mb-2">
           <input type="text" id="searchInput" class="form-control search-input" placeholder="Search pupils...">
         </div>
@@ -156,10 +153,8 @@
     </div>
   </main>
 
-  <!-- ✅ Shared Footer -->
   {% include 'footer.html' %}
 
-  <!-- ✅ Search Script -->
   <script>
     document.getElementById('searchInput').addEventListener('keyup', function() {
       const filter = this.value.toLowerCase();
