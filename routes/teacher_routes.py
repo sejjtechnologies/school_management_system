@@ -4,6 +4,7 @@ from models.class_model import Class
 from models.stream_model import Stream
 from models.teacher_assignment_models import TeacherAssignment
 from models.register_pupils import Pupil   # ✅ Import your pupil model
+from datetime import datetime              # ✅ Import datetime for academic year
 
 teacher_routes = Blueprint("teacher_routes", __name__)
 
@@ -38,10 +39,14 @@ def dashboard():
         ).all()
         records.extend(pupils)
 
+    # ✅ Auto-fill academic year from system date
+    current_year = datetime.now().year
+
     return render_template("teacher/dashboard.html",
                            teacher=teacher,
                            assignments=assignments,
-                           records=records)
+                           records=records,
+                           current_year=current_year)
 
 
 # ✅ New route for Pupils Details page
@@ -70,6 +75,10 @@ def pupils_details():
         ).all()
         records.extend(pupils)
 
+    # ✅ Auto-fill academic year from system date
+    current_year = datetime.now().year
+
     return render_template("teacher/pupils_details.html",
                            teacher=teacher,
-                           records=records)
+                           records=records,
+                           current_year=current_year)
