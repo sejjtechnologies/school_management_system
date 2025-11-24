@@ -62,19 +62,6 @@
       box-shadow: 0 -2px 6px rgba(0,0,0,0.2);
       color: #fff;
     }
-    .row {
-      display: flex;
-      flex-wrap: nowrap;
-    }
-    .col-left {
-      flex: 0 0 35%;
-      max-width: 35%;
-    }
-    .col-right {
-      flex: 0 0 65%;
-      max-width: 65%;
-      overflow-x: auto;
-    }
     .assignments-table {
       border: 2px solid #6a1b9a;
       background-color: #ede7f6;
@@ -130,9 +117,9 @@
 
   <!-- ✅ Scrollable Main Section -->
   <main class="container my-4">
-    <div class="row">
+    <div class="row gy-4">
       <!-- Left Side: Form -->
-      <div class="col-left">
+      <div class="col-12 col-md-4">
         <div class="card shadow-sm">
           <div class="card-header">
             <i class="bi bi-journal-check me-2"></i>Assign Classes & Streams
@@ -183,9 +170,8 @@
           </div>
         </div>
       </div>
-
-      <!-- Right Side: Table -->
-      <div class="col-right ps-3">
+            <!-- Right Side: Table -->
+      <div class="col-12 col-md-8">
         <div class="card shadow-sm">
           <div class="card-header bg-success text-white">
             <i class="bi bi-table me-2"></i>All Assignments
@@ -204,7 +190,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                                      {% for assignment in assignments %}
+                  {% for assignment in assignments %}
                   <tr>
                     <td>{{ assignment.teacher.first_name }}</td>
                     <td>{{ assignment.teacher.last_name }}</td>
@@ -217,7 +203,7 @@
                         <i class="bi bi-x-circle"></i> Drop
                       </button>
 
-                      <!-- Light Styled Confirmation Modal -->
+                      <!-- Confirmation Modal -->
                       <div class="modal fade" id="confirmDrop{{ assignment.id }}" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered">
                           <div class="modal-content border-0 shadow-sm">
