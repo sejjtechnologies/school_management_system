@@ -12,9 +12,6 @@
             margin: 0;
             font-family: 'Segoe UI', Arial, sans-serif;
             background-color: #f5f7fa;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
         }
         .navbar {
             position: fixed;
@@ -47,15 +44,9 @@
             color: white;
         }
         .content {
-            flex: 1;
-            overflow-y: auto;
-            margin-top: 80px; /* ✅ extra space below navbar */
-            margin-bottom: 70px; /* legacy spacing above footer */
+            margin-top: 70px;
+            margin-bottom: 60px;
             padding: 15px;
-            /* ensure the last button/controls are scrolled above fixed footer
-               footer height can vary depending on include; add generous bottom
-               padding so users can scroll past the last element and still see it */
-            padding-bottom: 160px;
         }
         h2 {
             font-size: 20px;
@@ -165,7 +156,8 @@
     </div>
 
     <div class="content">
-          <form action="/register-pupil" method="post" enctype="multipart/form-data">
+
+        <form action="/register-pupil" method="post" enctype="multipart/form-data">
 
             <!-- 1. Student Personal Information -->
             <div class="section">
@@ -247,7 +239,8 @@
                     </div>
                 </div>
             </div>
-                        <!-- 3. Parent/Guardian Information -->
+
+            <!-- 3. Parent/Guardian Information -->
             <div class="section">
                 <h2 class="title-guardian"><i class="bi bi-people-fill"></i> <span class="section-number">3.</span> Parent/Guardian Information</h2>
                 <label for="guardian_name">Parent/guardian name</label>
@@ -378,6 +371,40 @@
             });
         });
     });
+    </script>
+
+    <!-- Ensure content bottom padding matches footer height so final button isn't hidden -->
+    <script>
+    function adjustContentPadding() {
+        var footer = document.querySelector('.footer');
+        var content = document.querySelector('.content');
+        if (!footer || !content) return;
+        // extra space (px) between last element and footer
+        var extra = 24;
+        // compute footer height including margins
+        var footerHeight = footer.offsetHeight || 0;
+        // set padding-bottom so user can scroll past last element
+        content.style.paddingBottom = (footerHeight + extra) + 'px';
+    }
+
+    // Run on load and resize. Use a small debounce on resize.
+    document.addEventListener('DOMContentLoaded', adjustContentPadding);
+    var resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(adjustContentPadding, 120);
+    });
+
+    // If footer content may change dynamically, observe size changes.
+    try {
+        var footerEl = document.querySelector('.footer');
+        if (window.ResizeObserver && footerEl) {
+            var ro = new ResizeObserver(function() { adjustContentPadding(); });
+            ro.observe(footerEl);
+        }
+    } catch (e) {
+        // ResizeObserver may not be available; it's fine to skip.
+    }
     </script>
 
 </body>
