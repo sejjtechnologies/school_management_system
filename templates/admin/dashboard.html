@@ -6,6 +6,8 @@
   <title>Admin Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <!-- ✅ Dancing Script Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script&display=swap" rel="stylesheet" />
   <style>
     body {
       background-color: #f1f8e9;
@@ -27,55 +29,49 @@
       background-color: #d32f2f;
       color: #fff;
       border: none;
+      font-size: 0.85rem;
+      padding: 6px 12px;
     }
     .logout-btn:hover {
       background-color: #b71c1c;
     }
 
-    .btn-create {
-      background-color: #00796b;
+    /* ✅ Unified button style (same as View Pupils Details) */
+    .main-btn {
       color: #fff;
       border: none;
+      padding: 8px 16px; /* compact height */
+      font-size: 0.9rem;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      width: 100%;
+      justify-content: center;
     }
-    .btn-create:hover,
-    .btn-create:focus,
-    .btn-create:active {
-      background-color: #00796b !important;
-      color: #fff !important;
-      box-shadow: none !important;
+    .main-btn i {
+      margin-right: 6px;
+    }
+    .main-btn:hover {
+      color: #fff;
+      box-shadow: none;
     }
 
-    .btn-manage {
-      background-color: #283593;
-      color: #fff;
-      border: none;
-    }
-    .btn-manage:hover,
-    .btn-manage:focus,
-    .btn-manage:active {
-      background-color: #283593 !important;
-      color: #fff !important;
-      box-shadow: none !important;
-    }
+    /* ✅ Specific colors for each action */
+    .btn-create { background-color: #00796b; }
+    .btn-create:hover { background-color: #004d40 !important; }
 
-    .btn-assign {
-      background-color: #6a1b9a;
-      color: #fff;
-      border: none;
-    }
-    .btn-assign:hover,
-    .btn-assign:focus,
-    .btn-assign:active {
-      background-color: #6a1b9a !important;
-      color: #fff !important;
-      box-shadow: none !important;
-    }
+    .btn-manage { background-color: #283593; }
+    .btn-manage:hover { background-color: #1a237e !important; }
+
+    .btn-assign { background-color: #6a1b9a; }
+    .btn-assign:hover { background-color: #4a148c !important; }
 
     /* ✅ Main content scrolls between navbar and footer */
     main {
       flex: 1;
       overflow-y: auto;
-      padding-top: 70px; /* space below navbar (slightly more than 60px) */
+      padding-top: 80px; /* space below navbar */
       padding-bottom: 80px; /* space above footer */
     }
 
@@ -84,6 +80,15 @@
       background: linear-gradient(to right, #4a148c, #1a237e);
       box-shadow: 0 -2px 6px rgba(0,0,0,0.2);
       color: #fff;
+    }
+
+    /* ✅ Welcome message style */
+    .welcome-message {
+      font-family: 'Dancing Script', cursive;
+      font-size: 1.5rem;
+      color: #4a148c;
+      text-align: center;
+      margin-bottom: 30px;
     }
   </style>
 </head>
@@ -104,21 +109,23 @@
 
   <!-- ✅ Scrollable Main Section -->
   <main class="container my-4">
+    <!-- ✅ Welcome Message -->
+    <h3 class="welcome-message">Welcome, Admin</h3>
+
     <div class="row g-3">
       <div class="col-md-4">
-        <a href="{{ url_for('admin_routes.create_user') }}" class="btn btn-create w-100 py-2">
-          <i class="bi bi-person-plus-fill me-2"></i>Create User
+        <a href="{{ url_for('admin_routes.create_user') }}" class="main-btn btn-create">
+          <i class="bi bi-person-plus-fill"></i>Create User
         </a>
       </div>
       <div class="col-md-4">
-        <a href="{{ url_for('admin_routes.manage_users') }}" class="btn btn-manage w-100 py-2">
-          <i class="bi bi-people-fill me-2"></i>Manage Users
+        <a href="{{ url_for('admin_routes.manage_users') }}" class="main-btn btn-manage">
+          <i class="bi bi-people-fill"></i>Manage Users
         </a>
       </div>
       <div class="col-md-4">
-        <!-- ✅ Linked Assign Button -->
-        <a href="{{ url_for('admin_routes.assign_teacher') }}" class="btn btn-assign w-100 py-2">
-          <i class="bi bi-journal-check me-2"></i>Assign Classes & Streams
+        <a href="{{ url_for('admin_routes.assign_teacher') }}" class="main-btn btn-assign">
+          <i class="bi bi-journal-check"></i>Assign Classes & Streams
         </a>
       </div>
     </div>
