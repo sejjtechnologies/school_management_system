@@ -35,7 +35,6 @@
       background-color: #b71c1c;
     }
     .main-btn {
-      background-color: #00796b;
       color: #fff;
       border: none;
       padding: 8px 16px; /* ✅ Uniform height */
@@ -51,9 +50,24 @@
     .main-btn i {
       margin-right: 6px;
     }
-    .main-btn:hover {
+    /* ✅ Different background colors for each button */
+    .btn-pupils {
+      background-color: #00796b; /* teal */
+    }
+    .btn-pupils:hover {
       background-color: #004d40;
-      color: #fff;
+    }
+    .btn-marks {
+      background-color: #1976d2; /* blue */
+    }
+    .btn-marks:hover {
+      background-color: #0d47a1;
+    }
+    .btn-reports {
+      background-color: #6a1b9a; /* purple */
+    }
+    .btn-reports:hover {
+      background-color: #4a148c;
     }
     main {
       height: calc(100vh - 60px); /* ✅ Scrollable area below navbar */
@@ -91,17 +105,17 @@
     <!-- ✅ Buttons Section -->
     <div class="d-flex flex-wrap justify-content-center">
       <!-- Pupils Details -->
-      <a href="{{ url_for('user_routes.pupils_details') }}" class="main-btn">
+      <a href="{{ url_for('user_routes.pupils_details') }}" class="main-btn btn-pupils">
         <i class="bi bi-people-fill"></i> View Pupils-Details
       </a>
 
       <!-- Manage Pupils Marks -->
-      <a href="#" class="main-btn">
+      <a href="#" class="main-btn btn-marks">
         <i class="bi bi-pencil-square"></i> Manage Pupils Marks
       </a>
 
       <!-- Manage Pupils Reports -->
-      <a href="#" class="main-btn">
+      <a href="#" class="main-btn btn-reports">
         <i class="bi bi-file-earmark-text"></i> Manage Pupils Reports
       </a>
     </div>
