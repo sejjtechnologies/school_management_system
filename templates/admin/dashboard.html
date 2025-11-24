@@ -20,7 +20,7 @@
     }
     .navbar {
       background-color: #4a148c;
-      height: 60px; /* ✅ fixed height */
+      height: 60px;
     }
     .navbar-brand, .nav-link {
       color: #fff !important;
@@ -36,18 +36,17 @@
       background-color: #b71c1c;
     }
 
-    /* ✅ Unified button style (compact like View Pupils Details) */
     .main-btn {
       color: #fff;
       border: none;
-      padding: 8px 16px; /* compact height */
+      padding: 8px 16px;
       font-size: 0.9rem;
       border-radius: 6px;
       display: inline-flex;
       align-items: center;
       text-decoration: none;
       justify-content: center;
-      min-width: 160px; /* ✅ fixed width for compactness */
+      min-width: 160px;
     }
     .main-btn i {
       margin-right: 6px;
@@ -57,7 +56,6 @@
       box-shadow: none;
     }
 
-    /* ✅ Specific colors for each action */
     .btn-create { background-color: #00796b; }
     .btn-create:hover { background-color: #004d40 !important; }
 
@@ -67,12 +65,11 @@
     .btn-assign { background-color: #6a1b9a; }
     .btn-assign:hover { background-color: #4a148c !important; }
 
-    /* ✅ Main content scrolls between navbar and footer */
     main {
       flex: 1;
       overflow-y: auto;
-      padding-top: 80px; /* space below navbar */
-      padding-bottom: 80px; /* space above footer */
+      padding-top: 80px;
+      padding-bottom: 80px;
     }
 
     footer {
@@ -82,7 +79,6 @@
       color: #fff;
     }
 
-    /* ✅ Welcome message style */
     .welcome-message {
       font-family: 'Dancing Script', cursive;
       font-size: 1.5rem;
@@ -91,11 +87,10 @@
       margin-bottom: 30px;
     }
 
-    /* ✅ Responsive: stack buttons vertically on mobile but keep compact width */
     @media (max-width: 767px) {
       .main-btn {
-        width: auto; /* ✅ prevent full-width stretch */
-        margin: 0 auto; /* center buttons */
+        width: auto;
+        margin: 0 auto;
         display: block;
       }
       .row.g-3 > div {
@@ -122,7 +117,9 @@
   <!-- ✅ Scrollable Main Section -->
   <main class="container my-4">
     <!-- ✅ Welcome Message -->
-    <h3 class="welcome-message">Welcome, {{ admin.first_name }} ({{ admin.role }})</h3>
+    <h3 class="welcome-message">
+      Welcome, {{ admin.first_name.upper() }} ({{ admin.role.role_name.lower() }})
+    </h3>
 
     <div class="row g-3 justify-content-center">
       <div class="col-md-4 text-center">

@@ -1,15 +1,19 @@
-from flask import Blueprint, request, redirect, render_template, flash, session, url_for, jsonify, Response
+from flask import Blueprint, request, redirect, render_template, flash, session, url_for, Response
 from werkzeug.security import check_password_hash
 from models.user_models import db, User, Role
-from models.class_model import Class
-from models.stream_model import Stream
+# Class and Stream models are not referenced in this module; import where needed.
 from models.teacher_assignment_models import TeacherAssignment
 from models.register_pupils import Pupil   # ✅ Import pupil model
-import os
 import csv
 import io
 from datetime import datetime
-import xlsxwriter   # ✅ For Excel export
+try:
+    import xlsxwriter  # type: ignore
+except Exception as e:
+    raise RuntimeError(
+        "Missing dependency: xlsxwriter is required for Excel export routes. "
+        "Install in your virtualenv with 'python -m pip install xlsxwriter'."
+    ) from e
 
 user_routes = Blueprint("user_routes", __name__)
 
