@@ -8,6 +8,8 @@ from models.register_pupils import Pupil   # ✅ Import pupil model
 import os
 import csv
 import io
+from datetime import datetime
+import xlsxwriter   # ✅ For Excel export
 
 user_routes = Blueprint("user_routes", __name__)
 
@@ -69,47 +71,6 @@ def logout():
     flash("You have been logged out.", "info")
     return redirect(url_for("user_routes.login"))
 
-# ✅ Debugging route to test login manually
-@user_routes.route("/debug-login", methods=["POST"])
-def debug_login():
-    email = request.form.get("email")
-    password = request.form.get("password")
-
-    user = User.query.filter_by(email=email).first()
-    password_ok = check_password_hash(user.password, password) if user else None
-    role = user.role.role_name if user else None
-
-    # Print to terminal
-    print("DEBUG /debug-login:", email, password, "User:", user, "Password OK:", password_ok, "Role:", role)
-
-    return jsonify({
-        "email": email,
-        "user_found": bool(user),
-        "password_ok": password_ok,
-        "role": role
-    })
-
-# ✅ Debugging route to list all users
-@user_routes.route("/debug-users")
-def debug_users():
-    users = User.query.all()
-    output = []
-    for u in users:
-        output.append({
-            "id": u.id,
-            "email": u.email,
-            "role": u.role.role_name if u.role else None
-        })
-    print("DEBUG /debug-users:", output)  # ✅ prints to terminal
-    return jsonify({"users": output})
-
-# ✅ Debugging route to show which DB URL is being used
-@user_routes.route("/debug-db")
-def debug_db():
-    db_url = os.getenv("DATABASE_URL")
-    print("DEBUG /debug-db: DATABASE_URL =", db_url)
-    return jsonify({"DATABASE_URL": db_url})
-
 # Dashboard routes for each role
 @user_routes.route("/admin/dashboard")
 def admin_dashboard():
@@ -117,27 +78,21 @@ def admin_dashboard():
 
 @user_routes.route("/teacher/dashboard")
 def teacher_dashboard():
-    # ✅ Ensure user is logged in
     user_id = session.get("user_id")
     if not user_id:
         flash("You must be logged in to access the teacher dashboard.", "danger")
         return redirect(url_for("user_routes.login"))
 
-    # ✅ Ensure user is a teacher
     teacher = User.query.get_or_404(user_id)
     role = Role.query.get(teacher.role_id)
     if not role or role.role_name != "Teacher":
         flash("Access denied. Only teachers can view this dashboard.", "danger")
         return redirect(url_for("user_routes.login"))
 
-    # ✅ Get teacher assignments
     assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
-
     if not assignments:
-        # No assignments yet
         return render_template("teacher/no_assignment.html", teacher=teacher)
 
-    # ✅ Collect pupils and summary info
     all_records = []
     summary = []
     for assignment in assignments:
@@ -147,13 +102,11 @@ def teacher_dashboard():
         ).all()
 
         student_count = len(pupils)
-
         summary.append({
             "class": assignment.class_.name,
             "stream": assignment.stream.name if assignment.stream else None,
             "student_count": student_count
         })
-
         all_records.extend(pupils)
 
     return render_template("teacher/dashboard.html",
@@ -163,19 +116,14 @@ def teacher_dashboard():
                            records=all_records)
 
 # ✅ Export pupils to CSV
-@user_routes.route("/teacher/export")
-def teacher_export():
+@user_routes.route("/teacher/export_csv")
+def teacher_export_csv():
     user_id = session.get("user_id")
     if not user_id:
         flash("You must be logged in.", "danger")
         return redirect(url_for("user_routes.login"))
 
     teacher = User.query.get_or_404(user_id)
-    role = Role.query.get(teacher.role_id)
-    if not role or role.role_name != "Teacher":
-        flash("Access denied.", "danger")
-        return redirect(url_for("user_routes.login"))
-
     assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
     if not assignments:
         flash("No assignments found.", "warning")
@@ -183,35 +131,85 @@ def teacher_export():
 
     output = io.StringIO()
     writer = csv.writer(output)
-
-    # Header row
-    writer.writerow(["Admission No.", "First Name", "Middle Name", "Last Name",
-                     "Gender", "DOB", "Nationality", "Enrollment Status",
-                     "Class", "Stream"])
+    current_year = datetime.now().year
 
     for assignment in assignments:
-        pupils = Pupil.query.filter_by(
-            class_id=assignment.class_id,
-            stream_id=assignment.stream_id
-        ).all()
+        heading = f"School Management System - Teacher: {teacher.first_name} {teacher.last_name} - Year: {current_year} - Class: {assignment.class_.name} - Stream: {assignment.stream.name if assignment.stream else ''}"
+        writer.writerow([heading])
+        writer.writerow(["Admission No.", "First Name", "Middle Name", "Last Name",
+                         "Gender", "DOB", "Nationality", "Enrollment Status",
+                         "Class", "Stream"])
 
+        pupils = Pupil.query.filter_by(class_id=assignment.class_id,
+                                       stream_id=assignment.stream_id).all()
         for p in pupils:
             writer.writerow([
-                p.admission_number,
-                p.first_name,
-                p.middle_name,
-                p.last_name,
-                p.gender,
-                p.dob,
-                p.nationality,
-                p.enrollment_status,
-                assignment.class_.name,
-                assignment.stream.name if assignment.stream else None
+                p.admission_number, p.first_name, p.middle_name, p.last_name,
+                p.gender, p.dob, p.nationality, p.enrollment_status,
+                assignment.class_.name, assignment.stream.name if assignment.stream else None
             ])
+        writer.writerow([])
 
     output.seek(0)
     return Response(output, mimetype="text/csv",
                     headers={"Content-Disposition": "attachment;filename=class_list.csv"})
+
+# ✅ Export pupils to Excel (XLSX)
+@user_routes.route("/teacher/export_excel")
+def teacher_export_excel():
+    user_id = session.get("user_id")
+    if not user_id:
+        flash("You must be logged in.", "danger")
+        return redirect(url_for("user_routes.login"))
+
+    teacher = User.query.get_or_404(user_id)
+    assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
+    if not assignments:
+        flash("No assignments found.", "warning")
+        return redirect(url_for("user_routes.teacher_dashboard"))
+
+    output = io.BytesIO()
+    workbook = xlsxwriter.Workbook(output, {'in_memory': True})
+    worksheet = workbook.add_worksheet("Pupils")
+
+    bold = workbook.add_format({'bold': True})
+    current_year = datetime.now().year
+    row = 0
+
+    for assignment in assignments:
+        heading = f"School Management System - Teacher: {teacher.first_name} {teacher.last_name} - Year: {current_year} - Class: {assignment.class_.name} - Stream: {assignment.stream.name if assignment.stream else ''}"
+        worksheet.write(row, 0, heading, bold)
+        row += 2
+
+        headers = ["Admission No.", "First Name", "Middle Name", "Last Name",
+                   "Gender", "DOB", "Nationality", "Enrollment Status",
+                   "Class", "Stream"]
+        for col, h in enumerate(headers):
+            worksheet.write(row, col, h, bold)
+        row += 1
+
+        pupils = Pupil.query.filter_by(class_id=assignment.class_id,
+                                       stream_id=assignment.stream_id).all()
+        for p in pupils:
+            worksheet.write(row, 0, p.admission_number)
+            worksheet.write(row, 1, p.first_name)
+            worksheet.write(row, 2, p.middle_name)
+            worksheet.write(row, 3, p.last_name)
+            worksheet.write(row, 4, p.gender)
+            worksheet.write(row, 5, str(p.dob))
+            worksheet.write(row, 6, p.nationality)
+            worksheet.write(row, 7, p.enrollment_status)
+            worksheet.write(row, 8, assignment.class_.name)
+            worksheet.write(row, 9, assignment.stream.name if assignment.stream else None)
+            row += 1
+
+        row += 2  # spacing between assignments
+
+    workbook.close()
+    output.seek(0)
+
+    return Response(output, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": "attachment;filename=class_list.xlsx"})
 
 @user_routes.route("/secretary/dashboard")
 def secretary_dashboard():
