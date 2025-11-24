@@ -1,7 +1,13 @@
-from flask import Blueprint, request, redirect, render_template, flash, session, url_for, jsonify
+from flask import Blueprint, request, redirect, render_template, flash, session, url_for, jsonify, Response
 from werkzeug.security import check_password_hash
 from models.user_models import db, User, Role
+from models.class_model import Class
+from models.stream_model import Stream
+from models.teacher_assignment_models import TeacherAssignment
+from models.register_pupils import Pupil   # ✅ Import pupil model
 import os
+import csv
+import io
 
 user_routes = Blueprint("user_routes", __name__)
 
@@ -111,7 +117,101 @@ def admin_dashboard():
 
 @user_routes.route("/teacher/dashboard")
 def teacher_dashboard():
-    return render_template("teacher/dashboard.html")
+    # ✅ Ensure user is logged in
+    user_id = session.get("user_id")
+    if not user_id:
+        flash("You must be logged in to access the teacher dashboard.", "danger")
+        return redirect(url_for("user_routes.login"))
+
+    # ✅ Ensure user is a teacher
+    teacher = User.query.get_or_404(user_id)
+    role = Role.query.get(teacher.role_id)
+    if not role or role.role_name != "Teacher":
+        flash("Access denied. Only teachers can view this dashboard.", "danger")
+        return redirect(url_for("user_routes.login"))
+
+    # ✅ Get teacher assignments
+    assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
+
+    if not assignments:
+        # No assignments yet
+        return render_template("teacher/no_assignment.html", teacher=teacher)
+
+    # ✅ Collect pupils and summary info
+    all_records = []
+    summary = []
+    for assignment in assignments:
+        pupils = Pupil.query.filter_by(
+            class_id=assignment.class_id,
+            stream_id=assignment.stream_id
+        ).all()
+
+        student_count = len(pupils)
+
+        summary.append({
+            "class": assignment.class_.name,
+            "stream": assignment.stream.name if assignment.stream else None,
+            "student_count": student_count
+        })
+
+        all_records.extend(pupils)
+
+    return render_template("teacher/dashboard.html",
+                           teacher=teacher,
+                           assignments=assignments,
+                           summary=summary,
+                           records=all_records)
+
+# ✅ Export pupils to CSV
+@user_routes.route("/teacher/export")
+def teacher_export():
+    user_id = session.get("user_id")
+    if not user_id:
+        flash("You must be logged in.", "danger")
+        return redirect(url_for("user_routes.login"))
+
+    teacher = User.query.get_or_404(user_id)
+    role = Role.query.get(teacher.role_id)
+    if not role or role.role_name != "Teacher":
+        flash("Access denied.", "danger")
+        return redirect(url_for("user_routes.login"))
+
+    assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
+    if not assignments:
+        flash("No assignments found.", "warning")
+        return redirect(url_for("user_routes.teacher_dashboard"))
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Header row
+    writer.writerow(["Admission No.", "First Name", "Middle Name", "Last Name",
+                     "Gender", "DOB", "Nationality", "Enrollment Status",
+                     "Class", "Stream"])
+
+    for assignment in assignments:
+        pupils = Pupil.query.filter_by(
+            class_id=assignment.class_id,
+            stream_id=assignment.stream_id
+        ).all()
+
+        for p in pupils:
+            writer.writerow([
+                p.admission_number,
+                p.first_name,
+                p.middle_name,
+                p.last_name,
+                p.gender,
+                p.dob,
+                p.nationality,
+                p.enrollment_status,
+                assignment.class_.name,
+                assignment.stream.name if assignment.stream else None
+            ])
+
+    output.seek(0)
+    return Response(output, mimetype="text/csv",
+                    headers={"Content-Disposition": "attachment;filename=class_list.csv"})
 
 @user_routes.route("/secretary/dashboard")
 def secretary_dashboard():

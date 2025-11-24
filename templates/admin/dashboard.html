@@ -58,6 +58,19 @@
       box-shadow: none !important;
     }
 
+    .btn-assign {
+      background-color: #6a1b9a;
+      color: #fff;
+      border: none;
+    }
+    .btn-assign:hover,
+    .btn-assign:focus,
+    .btn-assign:active {
+      background-color: #6a1b9a !important;
+      color: #fff !important;
+      box-shadow: none !important;
+    }
+
     /* ✅ Main content scrolls between navbar and footer */
     main {
       flex: 1;
@@ -92,14 +105,20 @@
   <!-- ✅ Scrollable Main Section -->
   <main class="container my-4">
     <div class="row g-3">
-      <div class="col-md-6">
+      <div class="col-md-4">
         <a href="{{ url_for('admin_routes.create_user') }}" class="btn btn-create w-100 py-2">
           <i class="bi bi-person-plus-fill me-2"></i>Create User
         </a>
       </div>
-      <div class="col-md-6">
+      <div class="col-md-4">
         <a href="{{ url_for('admin_routes.manage_users') }}" class="btn btn-manage w-100 py-2">
           <i class="bi bi-people-fill me-2"></i>Manage Users
+        </a>
+      </div>
+      <div class="col-md-4">
+        <!-- ✅ Linked Assign Button -->
+        <a href="{{ url_for('admin_routes.assign_teacher') }}" class="btn btn-assign w-100 py-2">
+          <i class="bi bi-journal-check me-2"></i>Assign Classes & Streams
         </a>
       </div>
     </div>

@@ -1,5 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from models.user_models import db, User, Role
+from models.class_model import Class
+from models.stream_model import Stream
+from models.teacher_assignment_models import TeacherAssignment
 from werkzeug.security import generate_password_hash
 
 admin_routes = Blueprint("admin_routes", __name__)
@@ -100,3 +103,51 @@ def delete_user(user_id):
     db.session.commit()
     flash("User deleted successfully!", "success")
     return redirect(url_for("admin_routes.manage_users"))
+
+# ✅ New Route: Assign Classes & Streams to Teachers
+@admin_routes.route("/admin/assign-teacher", methods=["GET", "POST"])
+def assign_teacher():
+    # Query teachers (users whose role is Teacher)
+    teacher_role = Role.query.filter_by(role_name="Teacher").first()
+    teachers = []
+    if teacher_role:
+        teachers = User.query.filter_by(role_id=teacher_role.id).order_by(User.first_name.asc()).all()
+
+    # Query classes and streams
+    classes = Class.query.order_by(Class.name.asc()).all()
+    streams = Stream.query.order_by(Stream.name.asc()).all()
+
+    if request.method == "POST":
+        teacher_id = request.form.get("teacher_id")
+        class_id = request.form.get("class_id")
+        stream_id = request.form.get("stream_id")
+
+        # ✅ Save assignment into teacher_assignments table
+        assignment = TeacherAssignment(
+            teacher_id=teacher_id,
+            class_id=class_id,
+            stream_id=stream_id
+        )
+        db.session.add(assignment)
+        db.session.commit()
+
+        flash("Teacher assignment saved successfully!", "success")
+        return redirect(url_for("admin_routes.assign_teacher"))
+
+    # ✅ Fetch all assignments for the right-side table
+    assignments = TeacherAssignment.query.all()
+
+    return render_template("admin/assign_teacher.html",
+                           teachers=teachers,
+                           classes=classes,
+                           streams=streams,
+                           assignments=assignments)
+
+# ✅ New Route: Drop Assignment
+@admin_routes.route("/admin/drop-assignment/<int:assignment_id>", methods=["POST"])
+def drop_assignment(assignment_id):
+    assignment = TeacherAssignment.query.get_or_404(assignment_id)
+    db.session.delete(assignment)
+    db.session.commit()
+    flash("Assignment dropped successfully!", "success")
+    return redirect(url_for("admin_routes.assign_teacher"))
