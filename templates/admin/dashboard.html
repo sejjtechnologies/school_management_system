@@ -36,7 +36,7 @@
       background-color: #b71c1c;
     }
 
-    /* ✅ Unified button style (same as View Pupils Details) */
+    /* ✅ Unified button style (compact like View Pupils Details) */
     .main-btn {
       color: #fff;
       border: none;
@@ -46,8 +46,8 @@
       display: inline-flex;
       align-items: center;
       text-decoration: none;
-      width: 100%;
       justify-content: center;
+      min-width: 160px; /* ✅ fixed width for compactness */
     }
     .main-btn i {
       margin-right: 6px;
@@ -90,6 +90,18 @@
       text-align: center;
       margin-bottom: 30px;
     }
+
+    /* ✅ Responsive: stack buttons vertically on mobile but keep compact width */
+    @media (max-width: 767px) {
+      .main-btn {
+        width: auto; /* ✅ prevent full-width stretch */
+        margin: 0 auto; /* center buttons */
+        display: block;
+      }
+      .row.g-3 > div {
+        text-align: center;
+      }
+    }
   </style>
 </head>
 <body>
@@ -110,20 +122,20 @@
   <!-- ✅ Scrollable Main Section -->
   <main class="container my-4">
     <!-- ✅ Welcome Message -->
-    <h3 class="welcome-message">Welcome, Admin</h3>
+    <h3 class="welcome-message">Welcome, {{ admin.first_name }} ({{ admin.role }})</h3>
 
-    <div class="row g-3">
-      <div class="col-md-4">
+    <div class="row g-3 justify-content-center">
+      <div class="col-md-4 text-center">
         <a href="{{ url_for('admin_routes.create_user') }}" class="main-btn btn-create">
           <i class="bi bi-person-plus-fill"></i>Create User
         </a>
       </div>
-      <div class="col-md-4">
+      <div class="col-md-4 text-center">
         <a href="{{ url_for('admin_routes.manage_users') }}" class="main-btn btn-manage">
           <i class="bi bi-people-fill"></i>Manage Users
         </a>
       </div>
-      <div class="col-md-4">
+      <div class="col-md-4 text-center">
         <a href="{{ url_for('admin_routes.assign_teacher') }}" class="main-btn btn-assign">
           <i class="bi bi-journal-check"></i>Assign Classes & Streams
         </a>
