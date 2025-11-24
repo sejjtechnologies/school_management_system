@@ -50,8 +50,12 @@
             flex: 1;
             overflow-y: auto;
             margin-top: 80px; /* ✅ extra space below navbar */
-            margin-bottom: 70px; /* ✅ space above footer */
+            margin-bottom: 70px; /* legacy spacing above footer */
             padding: 15px;
+            /* ensure the last button/controls are scrolled above fixed footer
+               footer height can vary depending on include; add generous bottom
+               padding so users can scroll past the last element and still see it */
+            padding-bottom: 160px;
         }
         h2 {
             font-size: 20px;
