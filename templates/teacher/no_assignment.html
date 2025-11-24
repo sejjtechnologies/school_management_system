@@ -23,6 +23,24 @@
       color: #fff !important;
       font-weight: bold;
     }
+    .logout-btn {
+      background-color: #d32f2f;
+      color: #fff;
+      border: none;
+      padding: 4px 8px;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      border-radius: 4px;
+    }
+    .logout-btn i {
+      color: #fff;
+      font-size: 1rem;
+    }
+    .logout-btn:hover {
+      background-color: #b71c1c;
+      color: #fff;
+    }
     .main-message {
       flex: 1;
       display: flex;
@@ -48,10 +66,16 @@
 <body>
   <!-- ✅ Fixed Navbar -->
   <nav class="navbar fixed-top">
-    <div class="container-fluid px-3">
+    <div class="container-fluid px-3 d-flex justify-content-between align-items-center">
       <a class="navbar-brand" href="#">
         <i class="bi bi-shield-lock-fill me-2"></i>Teacher Dashboard
       </a>
+      <!-- ✅ Small Logout Button -->
+      <form action="{{ url_for('user_routes.logout') }}" method="get" class="d-inline">
+        <button type="submit" class="logout-btn">
+          <i class="bi bi-box-arrow-right me-1"></i>Logout
+        </button>
+      </form>
     </div>
   </nav>
 
