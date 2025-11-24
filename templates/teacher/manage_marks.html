@@ -27,6 +27,12 @@
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
+    /* allow only vertical scrolling in main and leave space above footer */
+    main {
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-bottom: 160px; /* leave space so footer doesn't cover last button */
+    }
     .form-label {
       font-weight: 500;
     }
@@ -61,7 +67,7 @@
     <div class="form-section">
       <form method="POST" action="{{ url_for('teacher_routes.manage_marks') }}">
 
-        <!-- Grouped Pupil Selection -->
+        <!-- Select Pupil -->
         <div class="mb-3">
           <label for="pupil_id" class="form-label">Select Pupil</label>
           <select class="form-select" id="pupil_id" name="pupil_id" required
@@ -80,30 +86,47 @@
         <!-- Auto-filled Class and Stream -->
         <div class="row mb-3">
           <div class="col-md-6">
-            <label class="form-label">Class</label>
-            <input type="text" id="class_name" class="form-control" readonly>
+            <label for="class_name" class="form-label">Class</label>
+            <input type="text" id="class_name" class="form-control" readonly
+                   title="Selected class"
+                   placeholder="Class will be filled automatically"
+                   aria-readonly="true">
           </div>
           <div class="col-md-6">
-            <label class="form-label">Stream</label>
-            <input type="text" id="stream_name" class="form-control" readonly>
+            <label for="stream_name" class="form-label">Stream</label>
+            <input type="text" id="stream_name" class="form-control" readonly
+                   title="Selected stream"
+                   placeholder="Stream will be filled automatically"
+                   aria-readonly="true">
           </div>
         </div>
 
-        <!-- Select Exam (Grouped by Term and Year) -->
+        <!-- Select Term -->
         <div class="mb-3">
-          <label for="exam_id" class="form-label">Select Exam</label>
-          <select class="form-select" id="exam_id" name="exam_id" required>
-            {% for year, exams_by_year in exams_grouped.items() %}
-              <optgroup label="Year {{ year }}">
-                {% for term, exams_in_term in exams_by_year.items() %}
-                  <optgroup label="{{ term }}">
-                    {% for exam in exams_in_term %}
-                      <option value="{{ exam.id }}">{{ exam.name }} - {{ exam.term }} {{ exam.year }}</option>
-                    {% endfor %}
-                  </optgroup>
-                {% endfor %}
-              </optgroup>
+          <label for="term" class="form-label">Select Term</label>
+          <select class="form-select" id="term" name="term" required title="Select academic term">
+            <option value="1">Term 1</option>
+            <option value="2">Term 2</option>
+            <option value="3">Term 3</option>
+          </select>
+        </div>
+
+        <!-- Select Year -->
+        <div class="mb-3">
+          <label for="year" class="form-label">Select Year</label>
+          <select class="form-select" id="year" name="year" required title="Select year">
+            {% for y in years %}
+              <option value="{{ y }}">{{ y }}</option>
             {% endfor %}
+          </select>
+        </div>
+
+        <!-- Select Exam Type -->
+        <div class="mb-3">
+          <label for="exam_name" class="form-label">Select Exam</label>
+          <select class="form-select" id="exam_name" name="exam_name" required title="Select exam type">
+            <option value="Midterm">Midterm</option>
+            <option value="End Term">End Term</option>
           </select>
         </div>
 
@@ -113,7 +136,9 @@
           <div class="mb-3">
             <label for="score_{{ subject.id }}" class="form-label">{{ subject.name }}</label>
             <input type="number" class="form-control" id="score_{{ subject.id }}"
-                   name="score_{{ subject.id }}" min="0" max="100" required>
+                   name="score_{{ subject.id }}" min="0" max="100" required
+                   title="Enter marks for {{ subject.name }} (0-100)"
+                   placeholder="0 - 100">
           </div>
         {% endfor %}
 
@@ -126,7 +151,8 @@
         <a href="{{ url_for('teacher_routes.dashboard') }}" class="btn btn-secondary nav-btn">
           <i class="bi bi-arrow-left-circle"></i> Back to Dashboard
         </a>
-        <a href="{{ url_for('teacher_routes.generate_report', pupil_id=1, exam_id=1) }}" class="btn btn-primary nav-btn">
+        <!-- Example report link (replace with dynamic pupil/term/year/exam_name) -->
+        <a href="{{ url_for('teacher_routes.generate_report', pupil_id=1, term=1, year=2025, exam_name='Midterm') }}" class="btn btn-primary nav-btn">
           <i class="bi bi-file-earmark-text"></i> View Reports
         </a>
       </div>

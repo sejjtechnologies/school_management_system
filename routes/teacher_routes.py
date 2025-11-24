@@ -1,5 +1,4 @@
 from flask import Blueprint, render_template, session, flash, redirect, url_for, request
-from collections import defaultdict
 from models.user_models import User, Role, db
 from models.class_model import Class
 from models.stream_model import Stream
@@ -9,6 +8,7 @@ from models.marks_model import Subject, Exam, Mark, Report
 
 # Blueprint registered as "teacher_routes"
 teacher_routes = Blueprint("teacher_routes", __name__, url_prefix="/teacher")
+
 
 @teacher_routes.route("/dashboard")
 def dashboard():
@@ -92,64 +92,78 @@ def manage_marks():
 
     if request.method == "POST":
         pupil_id = request.form["pupil_id"]
-        exam_id = request.form["exam_id"]
+        term = int(request.form["term"])
+        year = int(request.form["year"])
+        exam_name = request.form["exam_name"]  # "Midterm" or "End Term"
 
+        # ✅ Find or create exam record
+        exam = Exam.query.filter_by(name=exam_name, term=term, year=year).first()
+        if not exam:
+            exam = Exam(name=exam_name, term=term, year=year)
+            db.session.add(exam)
+            db.session.commit()
+
+        # Save marks for all subjects
         subjects = Subject.query.all()
         for subject in subjects:
             score = float(request.form.get(f"score_{subject.id}", 0))
-            mark = Mark(pupil_id=pupil_id, subject_id=subject.id, exam_id=exam_id, score=score)
+            mark = Mark(pupil_id=pupil_id, subject_id=subject.id, exam_id=exam.id, score=score)
             db.session.add(mark)
 
         db.session.commit()
-        success_message = "Marks saved successfully!"
+        success_message = f"Marks saved successfully for Term {term}, {year} ({exam_name})!"
 
     pupils = Pupil.query.all()
-    exams = Exam.query.all()
     subjects = Subject.query.all()
     streams = Stream.query.all()
     classes = Class.query.all()
-
-    # ✅ Group exams by year and term for template
-    exams_grouped = defaultdict(lambda: defaultdict(list))
-    for exam in exams:
-        exams_grouped[exam.year][exam.term].append(exam)
+    years = [2025, 2026, 2027]  # ✅ Example year list
 
     return render_template("teacher/manage_marks.html",
                            pupils=pupils,
                            subjects=subjects,
                            streams=streams,
                            classes=classes,
-                           exams_grouped=exams_grouped,  # ✅ pass grouped exams
+                           years=years,
                            success_message=success_message)
 
 
-@teacher_routes.route("/generate_report/<int:pupil_id>/<int:exam_id>")
-def generate_report(pupil_id, exam_id):
-    marks = Mark.query.filter_by(pupil_id=pupil_id, exam_id=exam_id).all()
-    total_score = sum([m.score for m in marks])   # max 400
-    average_score = total_score / 4 if marks else 0  # max 100
+@teacher_routes.route("/generate_report/<int:pupil_id>/<int:term>/<int:year>/<exam_name>")
+def generate_report(pupil_id, term, year, exam_name):
+    exam = Exam.query.filter_by(term=term, year=year, name=exam_name).first_or_404()
+    marks = Mark.query.filter_by(pupil_id=pupil_id, exam_id=exam.id).all()
+    total_score = sum([m.score for m in marks])
+    average_score = total_score / len(marks) if marks else 0
 
-    # Save report
-    report = Report(
-        pupil_id=pupil_id,
-        exam_id=exam_id,
-        total_score=total_score,
-        average_score=average_score,
-        grade=calculate_grade(average_score),
-        remarks="Keep working hard!"
-    )
-    db.session.add(report)
+    # Save or update report
+    report = Report.query.filter_by(pupil_id=pupil_id, exam_id=exam.id).first()
+    if not report:
+        report = Report(
+            pupil_id=pupil_id,
+            exam_id=exam.id,
+            total_score=total_score,
+            average_score=average_score,
+            grade=calculate_grade(average_score),
+            remarks="Keep working hard!"
+        )
+        db.session.add(report)
+    else:
+        report.total_score = total_score
+        report.average_score = average_score
+        report.grade = calculate_grade(average_score)
+        report.remarks = "Keep working hard!"
+
     db.session.commit()
 
     # Positions in stream and class
     pupil = Pupil.query.get_or_404(pupil_id)
     stream_reports = Report.query.join(Pupil).filter(
-        Report.exam_id == exam_id,
+        Report.exam_id == exam.id,
         Pupil.stream_id == pupil.stream_id
     ).order_by(Report.total_score.desc()).all()
 
     class_reports = Report.query.join(Pupil).filter(
-        Report.exam_id == exam_id,
+        Report.exam_id == exam.id,
         Pupil.class_id == pupil.class_id
     ).order_by(Report.total_score.desc()).all()
 
