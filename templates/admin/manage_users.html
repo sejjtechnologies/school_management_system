@@ -123,7 +123,8 @@
   </nav>
 
   <!-- Main Content -->
-  <main class="container my-4">
+  <div class="content">
+    <main class="container my-2">
 
     <!-- ✅ Flash messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -137,7 +138,7 @@
       {% endif %}
     {% endwith %}
 
-    <div class="table-responsive">
+    <div class="table-responsive table-card">
       <table class="table table-bordered table-striped align-middle">
         <thead>
           <tr>
@@ -152,11 +153,11 @@
         <tbody>
           {% for user in users %}
           <tr>
-            <td>{{ loop.index }}</td>
-            <td>{{ user.first_name }}</td>
-            <td>{{ user.last_name }}</td>
-            <td>{{ user.email }}</td>
-            <td>{{ user.role.role_name }}</td>
+            <td data-label="#">{{ loop.index }}</td>
+            <td data-label="First Name">{{ user.first_name }}</td>
+            <td data-label="Last Name">{{ user.last_name }}</td>
+            <td data-label="Email">{{ user.email }}</td>
+            <td data-label="Role">{{ user.role.role_name }}</td>
             <td class="text-center">
               <a href="{{ url_for('admin_routes.edit_user', user_id=user.id) }}" class="action-btn btn-edit me-1" title="Edit user">
                 <i class="bi bi-pencil-fill"></i>
