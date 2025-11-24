@@ -38,12 +38,15 @@
       background-color: #00796b;
       color: #fff;
       border: none;
-      padding: 8px 16px; /* ✅ Reduced height */
+      padding: 8px 16px; /* ✅ Uniform height */
       font-size: 0.9rem;
       border-radius: 6px;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       text-decoration: none;
+      min-width: 200px; /* ✅ Ensures consistent width */
+      margin: 8px; /* ✅ spacing between buttons */
     }
     .main-btn i {
       margin-right: 6px;
@@ -85,10 +88,23 @@
   <main class="container text-center">
     <h3 class="mb-4 welcome-message">Welcome, {{ teacher.first_name }} {{ teacher.last_name }}</h3>
 
-    <!-- ✅ Button linking to Pupils Details -->
-    <a href="{{ url_for('user_routes.pupils_details') }}" class="main-btn">
-      <i class="bi bi-people-fill"></i> View Pupils-Details
-    </a>
+    <!-- ✅ Buttons Section -->
+    <div class="d-flex flex-wrap justify-content-center">
+      <!-- Pupils Details -->
+      <a href="{{ url_for('user_routes.pupils_details') }}" class="main-btn">
+        <i class="bi bi-people-fill"></i> View Pupils-Details
+      </a>
+
+      <!-- Manage Pupils Marks -->
+      <a href="#" class="main-btn">
+        <i class="bi bi-pencil-square"></i> Manage Pupils Marks
+      </a>
+
+      <!-- Manage Pupils Reports -->
+      <a href="#" class="main-btn">
+        <i class="bi bi-file-earmark-text"></i> Manage Pupils Reports
+      </a>
+    </div>
   </main>
 
   {% include 'footer.html' %}
