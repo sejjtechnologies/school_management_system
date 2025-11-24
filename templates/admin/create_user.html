@@ -53,7 +53,23 @@
       background-color: #ffffff;
       box-shadow: 0 1px 4px rgba(0,0,0,0.04);
     }
-    .section h3 { margin: 0 0 10px 0; font-size: 1.05rem; }
+    .section h3 { margin: 0 0 10px 0; font-size: 1.05rem; display:flex; align-items:center; }
+    /* icon badges for section headings */
+    .section h3 .icon-badge {
+      display: inline-flex;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+      margin-right: 10px;
+      flex: 0 0 34px;
+      font-size: 18px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      color: #fff; /* icon color stays white */
+    }
+    .section h3 .personal-icon { background-color: #e53935; } /* red */
+    .section h3 .credentials-icon { background-color: #1e88e5; } /* blue */
     .form-row { display: flex; flex-wrap: wrap; gap: 10px; }
     .form-row > div { flex: 1; min-width: 120px; }
 
@@ -105,7 +121,7 @@
 
         <form method="post">
           <div class="section">
-            <h3><i class="bi bi-person-circle me-2"></i>Personal Information</h3>
+            <h3><i class="bi bi-person-circle icon-badge personal-icon" aria-hidden="true"></i>Personal Information</h3>
             <div class="form-row">
               <div>
                 <label for="first_name">First name</label>
@@ -134,7 +150,7 @@
           </div>
 
           <div class="section">
-            <h3><i class="bi bi-shield-lock me-2"></i>Credentials</h3>
+            <h3><i class="bi bi-shield-lock icon-badge credentials-icon" aria-hidden="true"></i>Credentials</h3>
             <div class="form-row">
               <div>
                 <label for="password">Password</label>
