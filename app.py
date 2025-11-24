@@ -1,4 +1,5 @@
 import os
+import logging
 from flask import Flask, render_template
 from models.user_models import db
 from routes.user_routes import user_routes
@@ -11,6 +12,13 @@ from sqlalchemy import text       # ✅ Import text for SQL execution
 load_dotenv()
 
 app = Flask(__name__)
+
+# ✅ Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,  # Log everything (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 # ✅ Secret key from environment
 app.secret_key = os.getenv("SECRET_KEY", "default_secret")
@@ -31,28 +39,36 @@ app.register_blueprint(secretary_routes)
 
 @app.route("/")
 def index():
+    logger.info("Index route accessed")
     return render_template("index.html")
 
 # ✅ Developer page route
 @app.route("/developer")
 def developer():
+    logger.info("Developer route accessed")
     return render_template("developer.html")
 
 # ✅ Health check route for DB connection
 @app.route("/health")
 def health():
     try:
-        # Use SQLAlchemy text() for proper execution
         with db.engine.connect() as connection:
             connection.execute(text("SELECT 1"))
+        logger.info("Database connection successful")
         return "Database connection OK"
     except Exception as e:
+        logger.error(f"Database connection failed: {str(e)}")
         return f"Database connection failed: {str(e)}"
 
 # ✅ Auto-create tables if missing
 with app.app_context():
-    db.create_all()
+    try:
+        db.create_all()
+        logger.info("Database tables created successfully")
+    except Exception as e:
+        logger.error(f"Error creating tables: {str(e)}")
 
 # ✅ Entry point for local testing
 if __name__ == "__main__":
+    logger.info("Starting Flask app locally...")
     app.run(debug=True)
