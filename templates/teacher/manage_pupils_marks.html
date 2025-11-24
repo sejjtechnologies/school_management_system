@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Pupils Marks</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0;
+      padding-top: 60px; /* ✅ Navbar height */
+      background-color: #f9f9f9;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .navbar {
+      background-color: #283593;
+      height: 60px; /* ✅ Fixed navbar height */
+    }
+    .navbar-brand {
+      color: #fff !important;
+      font-weight: bold;
+    }
+    .form-section {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .form-label {
+      font-weight: 500;
+    }
+    .submit-btn {
+      background-color: #00796b;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+    }
+    .submit-btn:hover {
+      background-color: #004d40;
+    }
+  </style>
+</head>
+<body>
+  <!-- ✅ Navbar -->
+  <nav class="navbar fixed-top">
+    <div class="container-fluid px-3">
+      <a class="navbar-brand" href="#">
+        <i class="bi bi-pencil-square me-2"></i> Manage Pupils Marks
+      </a>
+    </div>
+  </nav>
+
+  <!-- ✅ Main Content -->
+  <main class="container mt-4">
+    <div class="form-section">
+      <form method="POST" action="{{ url_for('teacher_routes.manage_marks') }}">
+
+        <!-- Select Pupil -->
+        <div class="mb-3">
+          <label for="pupil_id" class="form-label">Select Pupil</label>
+          <select class="form-select" id="pupil_id" name="pupil_id" required>
+            {% for pupil in pupils %}
+              <option value="{{ pupil.id }}">
+                {{ pupil.first_name }} {{ pupil.last_name }} (Class {{ pupil.class_id }}, Stream {{ pupil.stream_id }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Select Exam -->
+        <div class="mb-3">
+          <label for="exam_id" class="form-label">Select Exam</label>
+          <select class="form-select" id="exam_id" name="exam_id" required>
+            {% for exam in exams %}
+              <option value="{{ exam.id }}">{{ exam.name }} - {{ exam.term }} {{ exam.year }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Enter Marks for Subjects -->
+        <h5 class="mt-4 mb-3">Enter Marks (out of 100)</h5>
+        {% for subject in subjects %}
+          <div class="mb-3">
+            <label for="score_{{ subject.id }}" class="form-label">{{ subject.name }}</label>
+            <input type="number" class="form-control" id="score_{{ subject.id }}"
+                   name="score_{{ subject.id }}" min="0" max="100" required>
+          </div>
+        {% endfor %}
+
+        <!-- Submit Button -->
+        <button type="submit" class="submit-btn">Save Marks</button>
+      </form>
+    </div>
+  </main>
+
+  {% include 'footer.html' %}
+</body>
+</html>

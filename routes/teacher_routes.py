@@ -1,9 +1,10 @@
-from flask import Blueprint, render_template, session, flash, redirect, url_for
-from models.user_models import User, Role
+from flask import Blueprint, render_template, session, flash, redirect, url_for, request
+from models.user_models import User, Role, db
 from models.class_model import Class
 from models.stream_model import Stream
 from models.teacher_assignment_models import TeacherAssignment
 from models.register_pupils import Pupil
+from models.marks_model import Subject, Exam, Mark, Report
 
 teacher_routes = Blueprint("teacher_routes", __name__, url_prefix="/teacher")
 
@@ -70,6 +71,97 @@ def pupils_details():
                            teacher=teacher,
                            records=records,
                            current_year=current_year)
+
+
+@teacher_routes.route("/manage_marks", methods=["GET", "POST"])
+def manage_marks():
+    user_id = session.get("user_id")
+    if not user_id:
+        flash("You must be logged in to manage marks.", "danger")
+        return redirect(url_for("user_routes.login"))
+
+    teacher = User.query.get_or_404(user_id)
+    role = Role.query.get(teacher.role_id)
+    if not role or role.role_name != "Teacher":
+        flash("Access denied.", "danger")
+        return redirect(url_for("user_routes.login"))
+
+    success_message = None
+
+    if request.method == "POST":
+        pupil_id = request.form["pupil_id"]
+        exam_id = request.form["exam_id"]
+
+        subjects = Subject.query.all()
+        for subject in subjects:
+            score = float(request.form.get(f"score_{subject.id}", 0))
+            mark = Mark(pupil_id=pupil_id, subject_id=subject.id, exam_id=exam_id, score=score)
+            db.session.add(mark)
+
+        db.session.commit()
+        success_message = "Marks saved successfully!"
+
+    pupils = Pupil.query.all()
+    exams = Exam.query.all()
+    subjects = Subject.query.all()
+    streams = Stream.query.all()
+    classes = Class.query.all()
+
+    return render_template("teacher/manage_marks.html",
+                           pupils=pupils,
+                           exams=exams,
+                           subjects=subjects,
+                           streams=streams,
+                           classes=classes,
+                           success_message=success_message)
+
+
+@teacher_routes.route("/generate_report/<int:pupil_id>/<int:exam_id>")
+def generate_report(pupil_id, exam_id):
+    marks = Mark.query.filter_by(pupil_id=pupil_id, exam_id=exam_id).all()
+    total_score = sum([m.score for m in marks])   # max 400
+    average_score = total_score / 4 if marks else 0  # max 100
+
+    # Save report
+    report = Report(
+        pupil_id=pupil_id,
+        exam_id=exam_id,
+        total_score=total_score,
+        average_score=average_score,
+        grade=calculate_grade(average_score),
+        remarks="Keep working hard!"
+    )
+    db.session.add(report)
+    db.session.commit()
+
+    # Positions in stream and class
+    pupil = Pupil.query.get_or_404(pupil_id)
+    stream_reports = Report.query.join(Pupil).filter(
+        Report.exam_id == exam_id,
+        Pupil.stream_id == pupil.stream_id
+    ).order_by(Report.total_score.desc()).all()
+
+    class_reports = Report.query.join(Pupil).filter(
+        Report.exam_id == exam_id,
+        Pupil.class_id == pupil.class_id
+    ).order_by(Report.total_score.desc()).all()
+
+    stream_position = [r.pupil_id for r in stream_reports].index(pupil_id) + 1
+    class_position = [r.pupil_id for r in class_reports].index(pupil_id) + 1
+
+    return render_template("teacher/manage_reports.html",
+                           report=report,
+                           pupil=pupil,
+                           stream_position=stream_position,
+                           class_position=class_position)
+
+
+def calculate_grade(avg):
+    if avg >= 80: return "A"
+    elif avg >= 70: return "B"
+    elif avg >= 60: return "C"
+    elif avg >= 50: return "D"
+    else: return "E"
 
 
 @teacher_routes.route("/debug_year")

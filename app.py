@@ -2,6 +2,7 @@ import os
 import logging
 from flask import Flask, render_template
 from models.user_models import db
+from models import marks_model   # ✅ Import marks_model to include new tables
 from routes.user_routes import user_routes
 from routes.admin_routes import admin_routes
 from routes.secretary_routes import secretary_routes
@@ -63,7 +64,7 @@ def health():
 # ✅ Auto-create tables if missing
 with app.app_context():
     try:
-        db.create_all()
+        db.create_all()  # ✅ This now includes marks_model tables
         logger.info("Database tables created successfully")
     except Exception as e:
         logger.error(f"Error creating tables: {str(e)}")

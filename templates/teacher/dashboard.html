@@ -105,17 +105,17 @@
     <!-- ✅ Buttons Section -->
     <div class="d-flex flex-wrap justify-content-center">
       <!-- Pupils Details -->
-      <a href="{{ url_for('user_routes.pupils_details') }}" class="main-btn btn-pupils">
-        <i class="bi bi-people-fill"></i> View Pupils-Details
+      <a href="{{ url_for('teacher_routes.pupils_details') }}" class="main-btn btn-pupils">
+        <i class="bi bi-people-fill"></i> View Pupils Details
       </a>
 
       <!-- Manage Pupils Marks -->
-      <a href="#" class="main-btn btn-marks">
+      <a href="{{ url_for('teacher_routes.manage_marks') }}" class="main-btn btn-marks">
         <i class="bi bi-pencil-square"></i> Manage Pupils Marks
       </a>
 
       <!-- Manage Pupils Reports -->
-      <a href="#" class="main-btn btn-reports">
+      <a href="{{ url_for('teacher_routes.generate_report', pupil_id=1, exam_id=1) }}" class="main-btn btn-reports">
         <i class="bi bi-file-earmark-text"></i> Manage Pupils Reports
       </a>
     </div>
