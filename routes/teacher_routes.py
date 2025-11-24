@@ -42,3 +42,34 @@ def dashboard():
                            teacher=teacher,
                            assignments=assignments,
                            records=records)
+
+
+# ✅ New route for Pupils Details page
+@teacher_routes.route("/teacher/pupils_details")
+def pupils_details():
+    # ✅ Ensure user is logged in
+    user_id = session.get("user_id")
+    if not user_id:
+        flash("You must be logged in to view pupils details.", "danger")
+        return redirect(url_for("user_routes.login"))
+
+    # ✅ Ensure user is a teacher
+    teacher = User.query.get_or_404(user_id)
+    role = Role.query.get(teacher.role_id)
+    if not role or role.role_name != "Teacher":
+        flash("Access denied. Only teachers can view pupils details.", "danger")
+        return redirect(url_for("user_routes.login"))
+
+    # ✅ Collect all pupil records for this teacher’s assignments
+    assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
+    records = []
+    for assignment in assignments:
+        pupils = Pupil.query.filter_by(
+            class_id=assignment.class_id,
+            stream_id=assignment.stream_id
+        ).all()
+        records.extend(pupils)
+
+    return render_template("teacher/pupils_details.html",
+                           teacher=teacher,
+                           records=records)
