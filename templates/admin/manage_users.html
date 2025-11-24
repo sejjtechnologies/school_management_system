@@ -123,8 +123,7 @@
   </nav>
 
   <!-- Main Content -->
-  <div class="content">
-    <main class="container my-2">
+  <main class="container my-4">
 
     <!-- ✅ Flash messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -138,7 +137,7 @@
       {% endif %}
     {% endwith %}
 
-    <div class="table-responsive table-card">
+    <div class="table-responsive">
       <table class="table table-bordered table-striped align-middle">
         <thead>
           <tr>
@@ -153,11 +152,11 @@
         <tbody>
           {% for user in users %}
           <tr>
-            <td data-label="#">{{ loop.index }}</td>
-            <td data-label="First Name">{{ user.first_name }}</td>
-            <td data-label="Last Name">{{ user.last_name }}</td>
-            <td data-label="Email">{{ user.email }}</td>
-            <td data-label="Role">{{ user.role.role_name }}</td>
+            <td>{{ loop.index }}</td>
+            <td>{{ user.first_name }}</td>
+            <td>{{ user.last_name }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.role.role_name }}</td>
             <td class="text-center">
               <a href="{{ url_for('admin_routes.edit_user', user_id=user.id) }}" class="action-btn btn-edit me-1" title="Edit user">
                 <i class="bi bi-pencil-fill"></i>
@@ -198,26 +197,5 @@
   {% include 'footer.html' %}
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- dynamic padding to keep last rows above fixed footer -->
-  <script>
-    function adjustContentPadding() {
-      var footer = document.querySelector('.footer') || document.querySelector('footer');
-      var content = document.querySelector('.content');
-      if (!content) return;
-      var extra = 24;
-      var footerHeight = footer ? footer.offsetHeight : 0;
-      content.style.paddingBottom = (footerHeight + extra) + 'px';
-    }
-    document.addEventListener('DOMContentLoaded', adjustContentPadding);
-    var resizeTimer;
-    window.addEventListener('resize', function() { clearTimeout(resizeTimer); resizeTimer = setTimeout(adjustContentPadding, 120); });
-    try {
-      var footerEl = document.querySelector('.footer') || document.querySelector('footer');
-      if (window.ResizeObserver && footerEl) {
-        var ro = new ResizeObserver(function() { adjustContentPadding(); });
-        ro.observe(footerEl);
-      }
-    } catch (e) {}
-  </script>
 </body>
 </html>

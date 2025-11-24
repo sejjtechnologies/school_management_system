@@ -36,13 +36,11 @@
       background-color: #b71c1c;
       color: #fff;
     }
-    /* Content wrapper that scrolls between navbar and footer */
-    .content {
+    main {
       flex: 1;
       overflow-y: auto;
-      margin-top: 70px; /* space below fixed navbar */
-      padding: 18px;
-      padding-bottom: 160px; /* ensure space above footer */
+      padding-top: 70px;
+      padding-bottom: 80px;
     }
     .card-header {
       background-color: #283593;
@@ -65,22 +63,19 @@
       color: #fff;
     }
     .assignments-table {
-      border: none;
-      background-color: transparent;
-    }
-    .table-card {
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(15,23,42,0.06);
-      overflow: hidden;
+      border: 2px solid #6a1b9a;
+      background-color: #ede7f6;
     }
     .assignments-table thead {
       background-color: #6a1b9a;
       color: #fff;
-      border-bottom: 0;
     }
-    .assignments-table tbody tr:nth-child(even) { background-color: #fbf7ff; }
-    .assignments-table tbody tr:hover { background-color: #f6f0fb; }
+    .assignments-table tbody tr:nth-child(even) {
+      background-color: #f3e5f5;
+    }
+    .assignments-table tbody tr:hover {
+      background-color: #d1c4e9;
+    }
     .input-group-text {
       background-color: #283593;
       color: #fff;
@@ -121,8 +116,7 @@
   </nav>
 
   <!-- ✅ Scrollable Main Section -->
-  <div class="content">
-    <main class="container my-2">
+  <main class="container my-4">
     <div class="row gy-4">
       <!-- Left Side: Form -->
       <div class="col-12 col-md-4">
@@ -183,7 +177,7 @@
             <i class="bi bi-table me-2"></i>All Assignments
           </div>
           <div class="card-body">
-            <div class="table-responsive table-card">
+            <div class="table-responsive">
               <table class="table assignments-table">
                 <thead>
                   <tr>
@@ -198,12 +192,12 @@
                 <tbody>
                   {% for assignment in assignments %}
                   <tr>
-                    <td data-label="First Name">{{ assignment.teacher.first_name }}</td>
-                    <td data-label="Last Name">{{ assignment.teacher.last_name }}</td>
-                    <td data-label="Email">{{ assignment.teacher.email }}</td>
-                    <td data-label="Class">{{ assignment.class_.name }}</td>
-                    <td data-label="Stream">{{ assignment.stream.name }}</td>
-                    <td data-label="Action">
+                    <td>{{ assignment.teacher.first_name }}</td>
+                    <td>{{ assignment.teacher.last_name }}</td>
+                    <td>{{ assignment.teacher.email }}</td>
+                    <td>{{ assignment.class_.name }}</td>
+                    <td>{{ assignment.stream.name }}</td>
+                    <td>
                       <!-- Drop Button triggers modal -->
                       <button type="button" class="btn btn-drop" data-bs-toggle="modal" data-bs-target="#confirmDrop{{ assignment.id }}">
                         <i class="bi bi-x-circle"></i> Drop
@@ -244,34 +238,12 @@
         </div>
       </div>
     </div>
-    </main>
-  </div>
+  </main>
 
   <!-- ✅ Fixed Footer -->
   {% include 'footer.html' %}
 
   <!-- ✅ Bootstrap JS for modal functionality -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    // dynamic padding so last table rows aren't hidden by fixed footer
-    function adjustContentPadding() {
-      var footer = document.querySelector('.footer') || document.querySelector('footer');
-      var content = document.querySelector('.content');
-      if (!content) return;
-      var extra = 24;
-      var footerHeight = footer ? footer.offsetHeight : 0;
-      content.style.paddingBottom = (footerHeight + extra) + 'px';
-    }
-    document.addEventListener('DOMContentLoaded', adjustContentPadding);
-    var resizeTimer;
-    window.addEventListener('resize', function() { clearTimeout(resizeTimer); resizeTimer = setTimeout(adjustContentPadding, 120); });
-    try {
-      var footerEl = document.querySelector('.footer') || document.querySelector('footer');
-      if (window.ResizeObserver && footerEl) {
-        var ro = new ResizeObserver(function() { adjustContentPadding(); });
-        ro.observe(footerEl);
-      }
-    } catch (e) {}
-  </script>
 </body>
 </html>
