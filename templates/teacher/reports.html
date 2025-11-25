@@ -16,8 +16,8 @@
     }
     .main-content {
       flex: 1;
-      overflow-y: auto; /* ✅ vertical scroll */
-      padding-bottom: 140px; /* ✅ space before footer */
+      overflow-y: auto;
+      padding-bottom: 100px; /* ✅ small distance before footer */
     }
     .school-header {
       text-align: center;
@@ -80,20 +80,22 @@
       font-weight: 500;
       font-size: 0.9rem;
     }
+    /* ✅ Combined Term Performance styled with colors and grouped into 2 rows */
     .combined-summary {
       margin-top: 15px;
-      padding: 10px;
-      background: #e0f7fa;
+      padding: 12px;
+      background: linear-gradient(90deg, #e0f7fa 50%, #fffde7 50%);
       border-left: 5px solid #00838f;
       font-size: 0.95rem;
-      display: flex; /* ✅ inline layout */
-      flex-wrap: wrap;
-      justify-content: space-between;
+      border-radius: 6px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-row-gap: 8px;
       align-items: center;
     }
     .combined-summary p {
-      margin: 0 10px 0 0;
-      flex: 1;
+      margin: 0;
+      font-weight: 500;
     }
     .download-btn {
       display: block;
@@ -105,7 +107,7 @@
       color: #fff;
       text-align: center;
       padding: 15px;
-      position: fixed; /* ✅ fixed on screen */
+      position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
@@ -134,7 +136,7 @@
         padding: 10px;
       }
       footer {
-        position: static; /* ✅ footer only once at end */
+        position: static;
         margin-top: 20px;
       }
     }
@@ -232,17 +234,24 @@
               {% set average_score = (term_reports|map(attribute="average_score")|sum) / term_reports|length %}
               {% set general_remark = term_reports[0].general_remark %}
               <div class="combined-summary">
-                <p><strong>Combined Term Performance:</strong></p>
-                <p>
-                  Total Score: <strong>{{ total_score }}</strong> |
-                  Average: <strong>{{ "%.2f"|format(average_score) }}</strong> |
+                <!-- ✅ First row -->
+                <p style="background:#bbdefb; padding:6px; border-radius:4px;">
+                  Total Score: <strong>{{ total_score }}</strong>
+                </p>
+                <p style="background:#c8e6c9; padding:6px; border-radius:4px;">
+                  Average: <strong>{{ "%.2f"|format(average_score) }}</strong>
+                </p>
+                <!-- ✅ Second row -->
+                <p style="background:#ffe0b2; padding:6px; border-radius:4px;">
                   Grade: <strong>
                     {% if average_score >= 80 %} A
                     {% elif average_score >= 60 %} B
                     {% elif average_score >= 40 %} C
                     {% else %} D
                     {% endif %}
-                  </strong> |
+                  </strong>
+                </p>
+                <p style="background:#f8bbd0; padding:6px; border-radius:4px;">
                   General Remark: <em>{{ general_remark }}</em>
                 </p>
               </div>
