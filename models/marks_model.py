@@ -70,6 +70,9 @@ class Report(db.Model):
     # ✅ New column for overall performance comment
     general_remark = db.Column(db.String(255))
 
+    # ✅ New column for combined term position
+    combined_position = db.Column(db.Integer)  # Rank for combined Mid + End term performance
+
     # ✅ Relationships
     pupil = db.relationship("Pupil", back_populates="reports")
     exam = db.relationship("Exam", back_populates="reports")
@@ -78,5 +81,6 @@ class Report(db.Model):
         return (
             f"<Report Pupil {self.pupil_id} Exam {self.exam_id} "
             f"Grade {self.grade} StreamPos {self.stream_position} "
-            f"ClassPos {self.class_position} GeneralRemark {self.general_remark}>"
+            f"ClassPos {self.class_position} CombinedPos {self.combined_position} "
+            f"GeneralRemark {self.general_remark}>"
         )

@@ -107,7 +107,7 @@ def manage_pupils_reports():
 
     db.session.commit()
 
-    # ✅ Assign positions
+    # ✅ Assign positions for each exam
     for exam_id in set([r.exam_id for r in reports]):
         stream_reports = Report.query.join(Pupil).filter(
             Report.exam_id == exam_id,
@@ -126,7 +126,7 @@ def manage_pupils_reports():
 
     db.session.commit()
 
-    # ✅ Compute combined term performance
+    # ✅ Compute combined term performance and positions
     for pupil in assigned_pupils:
         pupil_reports = Report.query.filter(Report.pupil_id == pupil.id).all()
         if not pupil_reports:
@@ -152,6 +152,28 @@ def manage_pupils_reports():
                 r.general_remark = general_remark
                 r.combined_average = avg_term_score
                 r.combined_grade = calculate_grade(avg_term_score)
+
+            # ✅ Calculate combined position across the whole class
+            class_reports_for_term = Report.query.join(Pupil).filter(
+                Report.exam_id.in_(exam_ids_in_term),
+                Pupil.class_id == pupil.class_id
+            ).all()
+
+            # Compute combined totals for each pupil in the class
+            combined_scores = {}
+            for rep in class_reports_for_term:
+                combined_scores.setdefault(rep.pupil_id, []).append(rep.total_score)
+
+            combined_totals = [
+                (pid, sum(scores)) for pid, scores in combined_scores.items()
+            ]
+            combined_totals.sort(key=lambda x: x[1], reverse=True)
+
+            # Assign combined positions
+            for idx, (pid, total) in enumerate(combined_totals, start=1):
+                for rep in class_reports_for_term:
+                    if rep.pupil_id == pid:
+                        rep.combined_position = idx
 
     db.session.commit()
 

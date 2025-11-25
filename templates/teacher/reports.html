@@ -168,63 +168,7 @@
           <p><strong>Academic Year:</strong> {{ exams[0].year }}</p>
         {% endif %}
       </div>
-            {% for term in [1,2,3] %}
-        {% set term_exams = exams|selectattr("term","equalto",term)|list %}
-        {% if term_exams %}
-          <div class="term-section term-{{ term }}">
-            <h4>Term {{ term }} Performance</h4>
-
-            <!-- Show Mid Term and End Term separately -->
-            {% for exam in term_exams %}
-              {% set exam_reports = reports|selectattr("exam_id","equalto",exam.id)|selectattr("pupil_id","equalto",pupil.id)|list %}
-              {% if exam_reports %}
-                <h5>{{ exam.name }} (Year {{ exam.year }})</h5>
-                <div class="table-responsive">
-                  <table class="table table-bordered subject-table table-sm">
-                    <thead>
-                      <tr>
-                        <th>Subject</th>
-                        <th>Mark</th>
-                        <th>Remark</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {% for mark in marks if mark.exam_id == exam.id and mark.pupil_id == pupil.id %}
-                        {% set subject = subjects|selectattr("id","equalto",mark.subject_id)|first %}
-                        <tr>
-                          <td>{{ subject.name }}</td>
-                          <td>{{ mark.score }}</td>
-                          <td>
-                            {% if mark.score >= 80 %}
-                              Excellent
-                            {% elif mark.score >= 60 %}
-                              Good
-                            {% elif mark.score >= 40 %}
-                              Fair
-                            {% else %}
-                              Needs Improvement
-                            {% endif %}
-                          </td>
-                        </tr>
-                      {% endfor %}
-                    </tbody>
-                  </table>
-                </div>
-
-                {% for report in exam_reports %}
-                  <div class="summary">
-                    <p>Total Score: <strong>{{ report.total_score }}</strong> |
-                       Average: <strong>{{ "%.2f"|format(report.average_score) }}</strong> |
-                       Grade: <strong>{{ report.grade }}</strong> |
-                       Stream Position: <strong>{{ report.stream_position or "-" }}</strong> |
-                       Class Position: <strong>{{ report.class_position or "-" }}</strong>
-                    </p>
-                  </div>
-                {% endfor %}
-              {% endif %}
-            {% endfor %}
-
-            <!-- Combined Term Performance -->
+                  <!-- Combined Term Performance -->
             {% set term_reports = reports
                 |selectattr("pupil_id","equalto",pupil.id)
                 |selectattr("exam_id","in",term_exams|map(attribute="id")|list)
@@ -233,6 +177,7 @@
               {% set total_score = term_reports|map(attribute="total_score")|sum %}
               {% set average_score = (term_reports|map(attribute="average_score")|sum) / term_reports|length %}
               {% set general_remark = term_reports[0].general_remark %}
+              {% set combined_position = term_reports[0].combined_position %}
               <div class="combined-summary">
                 <!-- ✅ First row -->
                 <p style="background:#bbdefb; padding:6px; border-radius:4px;">
@@ -253,6 +198,10 @@
                 </p>
                 <p style="background:#f8bbd0; padding:6px; border-radius:4px;">
                   General Remark: <em>{{ general_remark }}</em>
+                </p>
+                <!-- ✅ New Combined Position -->
+                <p style="background:#d1c4e9; padding:6px; border-radius:4px;">
+                  Combined Position: <strong>{{ combined_position or "-" }}</strong>
                 </p>
               </div>
             {% endif %}
