@@ -83,6 +83,7 @@ def pupils_details():
                            records=records,
                            current_year=current_year)
 
+
 @teacher_routes.route("/manage_marks", methods=["GET", "POST"])
 def manage_marks():
     teacher, redirect_resp = _require_teacher()
@@ -115,12 +116,29 @@ def manage_marks():
                 score = float(raw) if raw != "" else 0.0
             except ValueError:
                 score = 0.0
-            mark = Mark(pupil_id=pupil_id, subject_id=subject.id, exam_id=exam.id, score=score)
-            db.session.add(mark)
+
+            # ✅ FIX: update existing mark instead of duplicating
+            existing_mark = Mark.query.filter_by(
+                pupil_id=pupil_id,
+                subject_id=subject.id,
+                exam_id=exam.id
+            ).first()
+
+            if existing_mark:
+                existing_mark.score = score
+            else:
+                new_mark = Mark(
+                    pupil_id=pupil_id,
+                    subject_id=subject.id,
+                    exam_id=exam.id,
+                    score=score
+                )
+                db.session.add(new_mark)
 
         db.session.commit()
 
-        return redirect(url_for("teacher_routes.manage_reports"))
+        # ✅ Redirect to correct endpoint in teacher_manage_reports blueprint
+        return redirect(url_for("teacher_manage_reports.manage_pupils_reports"))
 
     assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
     records = []
@@ -197,6 +215,13 @@ def generate_report(pupil_id, term, year, exam_name):
     db.session.commit()
 
     pupil = Pupil.query.get_or_404(pupil_id)
+
+    # ✅ Fetch proper class and stream names
+    class_obj = Class.query.get(pupil.class_id)
+    stream_obj = Stream.query.get(pupil.stream_id)
+    class_name = class_obj.name if class_obj else f"Class {pupil.class_id}"
+    stream_name = stream_obj.name if stream_obj else f"Stream {pupil.stream_id}"
+
     stream_reports = Report.query.join(Pupil).filter(
         Report.exam_id == exam.id,
         Pupil.stream_id == pupil.stream_id
@@ -219,7 +244,9 @@ def generate_report(pupil_id, term, year, exam_name):
                            selected_exam_name=exam_name,
                            teacher=teacher,
                            stream_position=stream_position,
-                           class_position=class_position)
+                           class_position=class_position,
+                           class_name=class_name,
+                           stream_name=stream_name)
 
 
 def calculate_grade(avg):

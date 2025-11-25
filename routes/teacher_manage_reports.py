@@ -69,6 +69,12 @@ def manage_pupils_reports():
     reports = []
 
     for pupil in assigned_pupils:
+        # ✅ Attach class and stream names to each pupil
+        class_obj = Class.query.get(pupil.class_id)
+        stream_obj = Stream.query.get(pupil.stream_id)
+        pupil.class_name = class_obj.name if class_obj else f"Class {pupil.class_id}"
+        pupil.stream_name = stream_obj.name if stream_obj else f"Stream {pupil.stream_id}"
+
         marks = Mark.query.filter_by(pupil_id=pupil.id).all()
         if not marks:
             continue
