@@ -65,7 +65,6 @@ def manage_pupils_reports():
         ).all()
         assigned_pupils.extend(pupils)
 
-    pupil_ids = [p.id for p in assigned_pupils]
     reports = []
 
     for pupil in assigned_pupils:
@@ -108,6 +107,7 @@ def manage_pupils_reports():
 
     db.session.commit()
 
+    # ✅ Assign positions
     for exam_id in set([r.exam_id for r in reports]):
         stream_reports = Report.query.join(Pupil).filter(
             Report.exam_id == exam_id,
@@ -126,6 +126,7 @@ def manage_pupils_reports():
 
     db.session.commit()
 
+    # ✅ Compute combined term performance
     for pupil in assigned_pupils:
         pupil_reports = Report.query.filter(Report.pupil_id == pupil.id).all()
         if not pupil_reports:
@@ -146,8 +147,11 @@ def manage_pupils_reports():
             avg_term_score = sum([r.average_score for r in term_reports]) / len(term_reports)
             general_remark = calculate_general_remark(avg_term_score)
 
+            # ✅ Attach combined term performance to each report in that term
             for r in term_reports:
                 r.general_remark = general_remark
+                r.combined_average = avg_term_score
+                r.combined_grade = calculate_grade(avg_term_score)
 
     db.session.commit()
 

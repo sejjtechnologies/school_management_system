@@ -71,6 +71,13 @@
       font-weight: 500;
       font-size: 0.9rem;
     }
+    .combined-summary {
+      margin-top: 15px;
+      padding: 10px;
+      background: #e0f7fa;
+      border-left: 5px solid #00838f;
+      font-size: 0.95rem;
+    }
     .general-remark {
       margin-top: 10px;
       padding: 10px;
@@ -144,13 +151,13 @@
           <p><strong>Academic Year:</strong> {{ exams[0].year }}</p>
         {% endif %}
       </div>
-
-      {% for term in [1,2,3] %}
+            {% for term in [1,2,3] %}
         {% set term_exams = exams|selectattr("term","equalto",term)|list %}
         {% if term_exams %}
           <div class="term-section term-{{ term }}">
             <h4>Term {{ term }} Performance</h4>
 
+            <!-- Show Mid Term and End Term separately -->
             {% for exam in term_exams %}
               {% set exam_reports = reports|selectattr("exam_id","equalto",exam.id)|selectattr("pupil_id","equalto",pupil.id)|list %}
               {% if exam_reports %}
@@ -200,8 +207,28 @@
               {% endif %}
             {% endfor %}
 
-            {% set term_reports = reports|selectattr("pupil_id","equalto",pupil.id)|selectattr("exam_id","in",term_exams|map(attribute="id")|list)|list %}
+            <!-- Combined Term Performance -->
+            {% set term_reports = reports
+                |selectattr("pupil_id","equalto",pupil.id)
+                |selectattr("exam_id","in",term_exams|map(attribute="id")|list)
+                |list %}
             {% if term_reports %}
+              {% set total_score = term_reports|map(attribute="total_score")|sum %}
+              {% set average_score = (term_reports|map(attribute="average_score")|sum) / term_reports|length %}
+              <div class="combined-summary">
+                <p><strong>Combined Term Performance:</strong></p>
+                <p>Total Score: <strong>{{ total_score }}</strong> |
+                   Average: <strong>{{ "%.2f"|format(average_score) }}</strong> |
+                   Grade: <strong>
+                     {% if average_score >= 80 %} A
+                     {% elif average_score >= 60 %} B
+                     {% elif average_score >= 40 %} C
+                     {% else %} D
+                     {% endif %}
+                   </strong>
+                </p>
+              </div>
+
               {% set general_remark = term_reports[0].general_remark %}
               <div class="general-remark">
                 <strong>General Remark:</strong> {{ general_remark }}
