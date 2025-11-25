@@ -63,9 +63,20 @@ class Report(db.Model):
     grade = db.Column(db.String(5), nullable=False)
     remarks = db.Column(db.String(255))
 
+    # ✅ New columns for positions
+    stream_position = db.Column(db.Integer)   # Rank within stream
+    class_position = db.Column(db.Integer)    # Rank within class
+
+    # ✅ New column for overall performance comment
+    general_remark = db.Column(db.String(255))
+
     # ✅ Relationships
     pupil = db.relationship("Pupil", back_populates="reports")
     exam = db.relationship("Exam", back_populates="reports")
 
     def __repr__(self):
-        return f"<Report Pupil {self.pupil_id} Exam {self.exam_id} Grade {self.grade}>"
+        return (
+            f"<Report Pupil {self.pupil_id} Exam {self.exam_id} "
+            f"Grade {self.grade} StreamPos {self.stream_position} "
+            f"ClassPos {self.class_position} GeneralRemark {self.general_remark}>"
+        )

@@ -7,6 +7,7 @@ from routes.user_routes import user_routes
 from routes.admin_routes import admin_routes
 from routes.secretary_routes import secretary_routes
 from routes.teacher_routes import teacher_routes   # ✅ Import teacher_routes
+from routes.teacher_manage_reports import teacher_manage_reports   # ✅ Import teacher_manage_reports
 from dotenv import load_dotenv   # ✅ Import dotenv
 from sqlalchemy import text       # ✅ Import text for SQL execution
 
@@ -38,7 +39,8 @@ db.init_app(app)
 app.register_blueprint(user_routes)
 app.register_blueprint(admin_routes)
 app.register_blueprint(secretary_routes)
-app.register_blueprint(teacher_routes)   # ✅ Register teacher_routes
+app.register_blueprint(teacher_routes)            # ✅ Register teacher_routes
+app.register_blueprint(teacher_manage_reports)    # ✅ Register teacher_manage_reports
 
 @app.route("/")
 def index():

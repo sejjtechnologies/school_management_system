@@ -125,12 +125,24 @@ def teacher_dashboard():
         })
         all_records.extend(pupils)
 
+    current_year = "2025/26"
+
+    # ✅ Add these lists so templates don’t break
+    terms = [1, 2, 3]
+    years = [2025, 2026, 2027]
+    exam_types = ["Midterm", "End Term"]
+
     return render_template("teacher/dashboard.html",
                            teacher=teacher,
                            assignments=assignments,
                            summary=summary,
-                           records=all_records)
-    # ✅ Export pupils to CSV
+                           records=all_records,
+                           current_year=current_year,
+                           terms=terms,
+                           years=years,
+                           exam_types=exam_types)
+
+# ✅ Export pupils to CSV
 @user_routes.route("/teacher/export_csv")
 def teacher_export_csv():
     user_id = session.get("user_id")
@@ -238,11 +250,11 @@ def teacher_export_excel():
     workbook.close()
     output.seek(0)
     data = output.getvalue()
-
     return Response(data,
                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     headers={"Content-Disposition": "attachment;filename=class_list.xlsx"})
-    # ✅ Pupils Details route
+
+# ✅ Pupils Details route
 @user_routes.route("/teacher/pupils_details")
 def pupils_details():
     user_id = session.get("user_id")
@@ -271,7 +283,6 @@ def pupils_details():
     return render_template("teacher/pupils_details.html",
                            teacher=teacher,
                            records=records)
-
 
 # ✅ Export all pupils (from pupils_details) to CSV
 @user_routes.route("/teacher/pupils_export_csv")
@@ -309,7 +320,6 @@ def pupils_export_csv():
     output.seek(0)
     return Response(output.getvalue(), mimetype="text/csv",
                     headers={"Content-Disposition": "attachment;filename=pupils_details.csv"})
-
 
 # ✅ Export all pupils (from pupils_details) to Excel
 @user_routes.route("/teacher/pupils_export_excel")
@@ -364,7 +374,6 @@ def pupils_export_excel():
 
     return Response(output.getvalue(), mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     headers={"Content-Disposition": "attachment;filename=pupils_details.xlsx"})
-
 
 # ✅ Other role dashboards
 @user_routes.route("/secretary/dashboard")

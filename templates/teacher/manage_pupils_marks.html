@@ -9,25 +9,30 @@
   <style>
     body {
       margin: 0;
-      padding-top: 60px; /* ✅ Navbar height */
+      padding-top: 60px;
       background-color: #f9f9f9;
       font-family: 'Segoe UI', sans-serif;
     }
     .navbar {
       background-color: #283593;
-      height: 60px; /* ✅ Fixed navbar height */
+      height: 60px;
     }
     .navbar-brand {
       color: #fff !important;
       font-weight: bold;
     }
-    .back-btn {
-      color: #fff;
-      font-size: 1.2rem;
+    .nav-btn-top {
+      background-color: #f5f5f5;
+      color: #283593;
+      font-size: 0.9rem;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
       text-decoration: none;
     }
-    .back-btn:hover {
-      color: #ffc107;
+    .nav-btn-top:hover {
+      background-color: #e0e0e0;
+      color: #1a237e;
     }
     .form-section {
       background: #fff;
@@ -35,11 +40,10 @@
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-    /* allow only vertical scrolling in main and leave space above footer */
     main {
       overflow-y: auto;
       overflow-x: hidden;
-      padding-bottom: 160px; /* leave space so footer doesn't cover last button */
+      padding-bottom: 160px;
     }
     .form-label {
       font-weight: 500;
@@ -67,9 +71,9 @@
       <a class="navbar-brand" href="#">
         <i class="bi bi-pencil-square me-2"></i> Manage Pupils Marks
       </a>
-      <!-- ✅ Small Back Button -->
-      <a href="{{ url_for('teacher_routes.dashboard') }}" class="back-btn">
-        <i class="bi bi-house-door-fill"></i>
+      <!-- ✅ Back Button with Door Icon -->
+      <a href="{{ url_for('teacher_routes.dashboard') }}" class="nav-btn-top" title="Back to Dashboard">
+        <i class="bi bi-door-open me-1"></i> Back
       </a>
     </div>
   </nav>
@@ -82,8 +86,7 @@
         <!-- Select Pupil -->
         <div class="mb-3">
           <label for="pupil_id" class="form-label">Select Pupil</label>
-          <select class="form-select" id="pupil_id" name="pupil_id" required
-                  onchange="updatePupilInfo(this)">
+          <select class="form-select" id="pupil_id" name="pupil_id" required onchange="updatePupilInfo(this)">
             <option value="">-- Select Pupil --</option>
             {% for pupil in pupils %}
               <option value="{{ pupil.id }}"
@@ -99,34 +102,28 @@
         <div class="row mb-3">
           <div class="col-md-6">
             <label for="class_name" class="form-label">Class</label>
-            <input type="text" id="class_name" class="form-control" readonly
-                   title="Selected class"
-                   placeholder="Class will be filled automatically"
-                   aria-readonly="true">
+            <input type="text" id="class_name" class="form-control" readonly placeholder="Class will be filled automatically">
           </div>
           <div class="col-md-6">
             <label for="stream_name" class="form-label">Stream</label>
-            <input type="text" id="stream_name" class="form-control" readonly
-                   title="Selected stream"
-                   placeholder="Stream will be filled automatically"
-                   aria-readonly="true">
+            <input type="text" id="stream_name" class="form-control" readonly placeholder="Stream will be filled automatically">
           </div>
         </div>
 
         <!-- Select Term -->
         <div class="mb-3">
           <label for="term" class="form-label">Select Term</label>
-          <select class="form-select" id="term" name="term" required title="Select academic term">
-            <option value="1">Term 1</option>
-            <option value="2">Term 2</option>
-            <option value="3">Term 3</option>
+          <select class="form-select" id="term" name="term" required>
+            {% for t in terms %}
+              <option value="{{ t }}">Term {{ t }}</option>
+            {% endfor %}
           </select>
         </div>
 
         <!-- Select Year -->
         <div class="mb-3">
           <label for="year" class="form-label">Select Year</label>
-          <select class="form-select" id="year" name="year" required title="Select year">
+          <select class="form-select" id="year" name="year" required>
             {% for y in years %}
               <option value="{{ y }}">{{ y }}</option>
             {% endfor %}
@@ -136,9 +133,10 @@
         <!-- Select Exam Type -->
         <div class="mb-3">
           <label for="exam_name" class="form-label">Select Exam</label>
-          <select class="form-select" id="exam_name" name="exam_name" required title="Select exam type">
-            <option value="Midterm">Midterm</option>
-            <option value="End Term">End Term</option>
+          <select class="form-select" id="exam_name" name="exam_name" required>
+            {% for et in exam_types %}
+              <option value="{{ et }}">{{ et }}</option>
+            {% endfor %}
           </select>
         </div>
 
@@ -148,26 +146,13 @@
           <div class="mb-3">
             <label for="score_{{ subject.id }}" class="form-label">{{ subject.name }}</label>
             <input type="number" class="form-control" id="score_{{ subject.id }}"
-                   name="score_{{ subject.id }}" min="0" max="100" required
-                   title="Enter marks for {{ subject.name }} (0-100)"
-                   placeholder="0 - 100">
+                   name="score_{{ subject.id }}" min="0" max="100" required placeholder="0 - 100">
           </div>
         {% endfor %}
 
         <!-- Submit Button -->
         <button type="submit" class="submit-btn">Save Marks</button>
       </form>
-
-      <!-- ✅ Navigation Buttons -->
-      <div class="mt-3">
-        <a href="{{ url_for('teacher_routes.dashboard') }}" class="btn btn-secondary nav-btn">
-          <i class="bi bi-arrow-left-circle"></i> Back to Dashboard
-        </a>
-        <!-- Example report link (replace with dynamic pupil/term/year/exam_name) -->
-        <a href="{{ url_for('teacher_routes.generate_report', pupil_id=1, term=1, year=2025, exam_name='Midterm') }}" class="btn btn-primary nav-btn">
-          <i class="bi bi-file-earmark-text"></i> View Reports
-        </a>
-      </div>
     </div>
   </main>
 
