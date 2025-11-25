@@ -17,22 +17,29 @@
     .main-content {
       flex: 1;
       overflow-y: auto; /* ✅ vertical scroll */
-      padding-bottom: 120px; /* ✅ extra space before footer */
+      padding-bottom: 140px; /* ✅ more space before footer */
     }
     .school-header {
       text-align: center;
-      padding: 20px;
+      height: 60px; /* ✅ reduced height */
+      padding: 10px;
       background-color: #c62828;
       color: #fff;
       border-bottom: 4px solid #b71c1c;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
     .school-header h2 {
       font-weight: bold;
-      margin-bottom: 5px;
+      margin: 0;
+      font-size: 1.2rem;
+      line-height: 1.2;
     }
     .school-header p {
       margin: 0;
       font-style: italic;
+      font-size: 0.8rem;
     }
     .report-card {
       background: #fff;
@@ -41,7 +48,7 @@
       border-radius: 10px;
       box-shadow: 0 3px 8px rgba(0,0,0,0.1);
       max-width: 900px;
-      page-break-inside: avoid; /* ✅ prevent splitting across pages */
+      page-break-inside: avoid; /* ✅ prevent splitting */
     }
     .pupil-info {
       font-size: 1.1rem;
@@ -86,7 +93,7 @@
       background: #fff3e0;
       border-left: 5px solid #fb8c00;
       font-style: italic;
-      page-break-inside: avoid; /* ✅ keep remark intact */
+      page-break-inside: avoid; /* ✅ keep intact */
     }
     .download-btn {
       display: block;
@@ -98,7 +105,7 @@
       color: #fff;
       text-align: center;
       padding: 15px;
-      position: fixed; /* ✅ stays fixed at bottom on screen */
+      position: fixed; /* ✅ fixed at bottom on screen */
       bottom: 0;
       left: 0;
       right: 0;
@@ -123,9 +130,11 @@
         print-color-adjust: exact;
         background-color: #c62828 !important;
         color: #fff !important;
+        height: auto;
+        padding: 10px;
       }
       footer {
-        position: static; /* ✅ footer only once at end of report */
+        position: static; /* ✅ footer only once at end */
         margin-top: 20px;
       }
     }
