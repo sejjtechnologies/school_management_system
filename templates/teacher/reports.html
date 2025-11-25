@@ -9,7 +9,15 @@
     body {
       background-color: #f4f6f9;
       font-family: 'Segoe UI', sans-serif;
-      padding-bottom: 60px;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .main-content {
+      flex: 1;
+      overflow-y: auto; /* ✅ vertical scroll */
+      padding-bottom: 40px; /* ✅ space before footer */
     }
     .school-header {
       text-align: center;
@@ -75,6 +83,13 @@
       margin: 0 auto 20px auto;
       text-align: center;
     }
+    footer {
+      background: #283593;
+      color: #fff;
+      text-align: center;
+      padding: 15px;
+      margin-top: auto; /* ✅ sticks footer at bottom */
+    }
     @media print {
       .download-btn { display: none; }
       body {
@@ -106,93 +121,96 @@
 <body>
   <!-- ✅ School Header -->
   <div class="school-header">
-    <h2>Bright Future High School</h2>
+    <h2>Bright Future Primary School</h2>
     <p>Empowering Learners for Tomorrow</p>
   </div>
 
-  <!-- ✅ PDF Download Button -->
-  <div class="download-btn">
-    <button class="btn btn-success mt-3" onclick="window.print()">
-      Download PDF
-    </button>
-  </div>
-
-  <!-- ✅ Report Card -->
-  <div class="report-card">
-    <h3 class="text-center text-primary">Progress Report</h3>
-    <div class="pupil-info">
-      <p><strong>Pupil Name:</strong> {{ pupil.first_name }} {{ pupil.last_name }}</p>
-      <p><strong>Class:</strong> {{ class_name }} | <strong>Stream:</strong> {{ stream_name }}</p>
-      {% if exams %}
-        <p><strong>Academic Year:</strong> {{ exams[0].year }}</p>
-      {% endif %}
+  <!-- ✅ Main Content with Scroll -->
+  <div class="main-content">
+    <!-- ✅ PDF Download Button -->
+    <div class="download-btn">
+      <button class="btn btn-success mt-3" onclick="window.print()">
+        Download PDF
+      </button>
     </div>
 
-    {% for term in [1,2,3] %}
-      {% set term_exams = exams|selectattr("term","equalto",term)|list %}
-      {% if term_exams %}
-        <div class="term-section term-{{ term }}">
-          <h4>Term {{ term }} Performance</h4>
+    <!-- ✅ Report Card -->
+    <div class="report-card">
+      <h3 class="text-center text-primary">Progress Report</h3>
+      <div class="pupil-info">
+        <p><strong>Pupil Name:</strong> {{ pupil.first_name }} {{ pupil.last_name }}</p>
+        <p><strong>Class:</strong> {{ class_name }} | <strong>Stream:</strong> {{ stream_name }}</p>
+        {% if exams %}
+          <p><strong>Academic Year:</strong> {{ exams[0].year }}</p>
+        {% endif %}
+      </div>
 
-          {% for exam in term_exams %}
-            {% set exam_reports = reports|selectattr("exam_id","equalto",exam.id)|selectattr("pupil_id","equalto",pupil.id)|list %}
-            {% if exam_reports %}
-              <h5>{{ exam.name }} (Year {{ exam.year }})</h5>
-              <div class="table-responsive">
-                <table class="table table-bordered subject-table table-sm">
-                  <thead>
-                    <tr>
-                      <th>Subject</th>
-                      <th>Mark</th>
-                      <th>Remark</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for mark in marks if mark.exam_id == exam.id and mark.pupil_id == pupil.id %}
-                      {% set subject = subjects|selectattr("id","equalto",mark.subject_id)|first %}
+      {% for term in [1,2,3] %}
+        {% set term_exams = exams|selectattr("term","equalto",term)|list %}
+        {% if term_exams %}
+          <div class="term-section term-{{ term }}">
+            <h4>Term {{ term }} Performance</h4>
+
+            {% for exam in term_exams %}
+              {% set exam_reports = reports|selectattr("exam_id","equalto",exam.id)|selectattr("pupil_id","equalto",pupil.id)|list %}
+              {% if exam_reports %}
+                <h5>{{ exam.name }} (Year {{ exam.year }})</h5>
+                <div class="table-responsive">
+                  <table class="table table-bordered subject-table table-sm">
+                    <thead>
                       <tr>
-                        <td>{{ subject.name }}</td>
-                        <td>{{ mark.score }}</td>
-                        <td>
-                          {% if mark.score >= 80 %}
-                            Excellent
-                          {% elif mark.score >= 60 %}
-                            Good
-                          {% elif mark.score >= 40 %}
-                            Fair
-                          {% else %}
-                            Needs Improvement
-                          {% endif %}
-                        </td>
+                        <th>Subject</th>
+                        <th>Mark</th>
+                        <th>Remark</th>
                       </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-
-              {% for report in exam_reports %}
-                <div class="summary">
-                  <p>Total Score: <strong>{{ report.total_score }}</strong> |
-                     Average: <strong>{{ "%.2f"|format(report.average_score) }}</strong> |
-                     Grade: <strong>{{ report.grade }}</strong> |
-                     Stream Position: <strong>{{ report.stream_position or "-" }}</strong> |
-                     Class Position: <strong>{{ report.class_position or "-" }}</strong>
-                  </p>
+                    </thead>
+                    <tbody>
+                      {% for mark in marks if mark.exam_id == exam.id and mark.pupil_id == pupil.id %}
+                        {% set subject = subjects|selectattr("id","equalto",mark.subject_id)|first %}
+                        <tr>
+                          <td>{{ subject.name }}</td>
+                          <td>{{ mark.score }}</td>
+                          <td>
+                            {% if mark.score >= 80 %}
+                              Excellent
+                            {% elif mark.score >= 60 %}
+                              Good
+                            {% elif mark.score >= 40 %}
+                              Fair
+                            {% else %}
+                              Needs Improvement
+                            {% endif %}
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
                 </div>
-              {% endfor %}
-            {% endif %}
-          {% endfor %}
 
-          {% set term_reports = reports|selectattr("pupil_id","equalto",pupil.id)|selectattr("exam_id","in",term_exams|map(attribute="id")|list)|list %}
-          {% if term_reports %}
-            {% set general_remark = term_reports[0].general_remark %}
-            <div class="general-remark">
-              <strong>General Remark:</strong> {{ general_remark }}
-            </div>
-          {% endif %}
-        </div>
-      {% endif %}
-    {% endfor %}
+                {% for report in exam_reports %}
+                  <div class="summary">
+                    <p>Total Score: <strong>{{ report.total_score }}</strong> |
+                       Average: <strong>{{ "%.2f"|format(report.average_score) }}</strong> |
+                       Grade: <strong>{{ report.grade }}</strong> |
+                       Stream Position: <strong>{{ report.stream_position or "-" }}</strong> |
+                       Class Position: <strong>{{ report.class_position or "-" }}</strong>
+                    </p>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endfor %}
+
+            {% set term_reports = reports|selectattr("pupil_id","equalto",pupil.id)|selectattr("exam_id","in",term_exams|map(attribute="id")|list)|list %}
+            {% if term_reports %}
+              {% set general_remark = term_reports[0].general_remark %}
+              <div class="general-remark">
+                <strong>General Remark:</strong> {{ general_remark }}
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
   </div>
 
   <!-- ✅ Footer -->
