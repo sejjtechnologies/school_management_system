@@ -15,9 +15,11 @@
       min-height: 100vh;
     }
     .main-content {
-      flex: 1;
-      overflow-y: auto; /* ✅ vertical scroll */
-      padding-bottom: 40px; /* ✅ space before footer */
+      flex: 1 1 auto;
+      overflow-y: auto; /* vertical scroll */
+      padding: 20px 0 120px 0; /* add larger bottom padding to leave space before footer */
+      position: relative;
+      -webkit-overflow-scrolling: touch;
     }
     .school-header {
       text-align: center;
@@ -82,6 +84,12 @@
       display: block;
       margin: 0 auto 20px auto;
       text-align: center;
+      position: sticky; /* keep the button visible while scrolling */
+      top: 16px;
+      z-index: 10;
+      background: transparent;
+      padding-top: 8px;
+      padding-bottom: 8px;
     }
     footer {
       background: #283593;
