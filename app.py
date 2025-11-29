@@ -8,8 +8,9 @@ from routes.admin_routes import admin_routes
 from routes.secretary_routes import secretary_routes
 from routes.teacher_routes import teacher_routes   # ✅ Import teacher_routes
 from routes.teacher_manage_reports import teacher_manage_reports   # ✅ Import teacher_manage_reports
+from routes.reset_password import reset_password_routes  # ✅ Import reset password routes
 from dotenv import load_dotenv   # ✅ Import dotenv
-from sqlalchemy import text       # ✅ Import text for SQL execution
+from sqlalchemy import text
 
 # ✅ Load environment variables from .env file
 load_dotenv()
@@ -32,6 +33,14 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = (
     os.getenv("SQLALCHEMY_TRACK_MODIFICATIONS", "False") == "True"
 )
 
+# ✅ Configure SQLAlchemy engine options to handle SSL/Neon connections
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_pre_ping": True,  # ✅ Prevent "SSL connection has been closed unexpectedly"
+    "pool_size": 5,
+    "max_overflow": 10,
+    "pool_recycle": 1800  # Optional: recycle connections every 30 minutes
+}
+
 # ✅ Initialize DB
 db.init_app(app)
 
@@ -41,6 +50,7 @@ app.register_blueprint(admin_routes)
 app.register_blueprint(secretary_routes)
 app.register_blueprint(teacher_routes)            # ✅ Register teacher_routes
 app.register_blueprint(teacher_manage_reports)    # ✅ Register teacher_manage_reports
+app.register_blueprint(reset_password_routes)     # ✅ Register reset password routes
 
 @app.route("/")
 def index():

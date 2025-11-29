@@ -12,7 +12,7 @@ DB_URL = os.getenv("DATABASE_URL")
 # Admin user details (make sure this is consistent!)
 first_name = "Wilber"
 last_name = "Sejjusa"
-email = "ssejjtechnologies@gmail.com"
+email = "sejjtechnologies@gmail.com"
 raw_password = "sejjtech"
 hashed_password = generate_password_hash(raw_password)
 

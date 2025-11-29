@@ -13,48 +13,21 @@
       background-color: #f1f8e9;
       font-family: 'Segoe UI', sans-serif;
     }
-    .navbar {
-      background-color: #4a148c;
-    }
-    .navbar-brand {
-      color: #fff !important;
-    }
+    .navbar { background-color: #4a148c; }
+    .navbar-brand { color: #fff !important; }
     .back-btn {
-      background-color: #d32f2f;
-      color: #fff;
-      border: none;
-      font-size: 0.85rem;
-      padding: 4px 10px;
+      background-color: #d32f2f; color: #fff; border: none; font-size: 0.85rem; padding: 4px 10px;
     }
-    .back-btn:hover {
-      background-color: #b71c1c;
-    }
-    .form-label {
-      font-weight: 500;
-    }
-    .input-group-text {
-      background-color: #e0e0e0;
-      border: none;
-    }
-    .form-control {
-      font-size: 0.95rem;
-      padding: 0.5rem 0.75rem;
-    }
+    .back-btn:hover { background-color: #b71c1c; }
+    .form-label { font-weight: 500; }
+    .input-group-text { background-color: #e0e0e0; border: none; }
+    .form-control { font-size: 0.95rem; padding: 0.5rem 0.75rem; }
     .eye-toggle-wrapper {
-      background-color: #e0e0e0;
-      border: none;
-      padding: 0 0.75rem;
-      display: flex;
-      align-items: center;
-      cursor: pointer;
+      background-color: #e0e0e0; border: none; padding: 0 0.75rem; display: flex;
+      align-items: center; cursor: pointer;
     }
-    .eye-toggle-icon {
-      color: #00897b;
-      font-size: 1.1rem;
-    }
-    .eye-toggle-icon.visible {
-      color: #ef6c00;
-    }
+    .eye-toggle-icon { color: #00897b; font-size: 1.1rem; }
+    .eye-toggle-icon.visible { color: #ef6c00; }
   </style>
 </head>
 <body>
@@ -63,7 +36,6 @@
     <div class="container-fluid px-3">
       <a class="navbar-brand fw-bold" href="#"><i class="bi bi-pencil-square me-2"></i>Edit User</a>
       <div class="ms-auto">
-        <!-- ✅ Back button now links to admin dashboard safely -->
         <a href="{{ url_for('user_routes.admin_dashboard') }}" class="btn back-btn">
           <i class="bi bi-box-arrow-left me-1"></i>Back
         </a>
@@ -76,7 +48,7 @@
     <div class="row justify-content-center">
       <div class="col-md-8 col-lg-6">
 
-        <!-- ✅ Flash messages -->
+        <!-- Flash messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             {% for category, message in messages %}
@@ -96,6 +68,7 @@
               <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name }}" required />
             </div>
           </div>
+
           <div class="mb-3">
             <label for="last_name" class="form-label">Last Name</label>
             <div class="input-group">
@@ -103,6 +76,7 @@
               <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name }}" required />
             </div>
           </div>
+
           <div class="mb-3">
             <label for="email" class="form-label">Email Address</label>
             <div class="input-group">
@@ -110,6 +84,7 @@
               <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required />
             </div>
           </div>
+
           <div class="mb-3">
             <label for="password" class="form-label">New Password (optional)</label>
             <div class="input-group">
@@ -120,17 +95,19 @@
               </span>
             </div>
           </div>
+
           <div class="mb-3">
             <label for="role" class="form-label">Role</label>
             <div class="input-group">
               <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
-              <select class="form-select" id="role" name="role" required>
+              <select class="form-select" id="role" name="role" required onchange="handleRoleChange()">
                 {% for role in roles %}
-                <option value="{{ role.role_name }}" {% if role.id == user.role_id %}selected{% endif %}>{{ role.role_name }}</option>
+                  <option value="{{ role.role_name }}" {% if role.id == user.role_id %}selected{% endif %}>{{ role.role_name }}</option>
                 {% endfor %}
               </select>
             </div>
           </div>
+
           <div class="d-grid mt-4">
             <button type="submit" class="btn btn-success">
               <i class="bi bi-save me-2"></i>Update User
@@ -157,6 +134,22 @@
         icon.classList.add("bi-eye-slash");
       }
     }
+
+    function handleRoleChange() {
+      const roleSelect = document.getElementById("role");
+      const passwordInput = document.getElementById("password");
+      // Disable password field if user is Admin
+      if (roleSelect.value === "Admin") {
+        passwordInput.disabled = true;
+        passwordInput.placeholder = "Password cannot be changed for Admin";
+      } else {
+        passwordInput.disabled = false;
+        passwordInput.placeholder = "";
+      }
+    }
+
+    // Run once on page load
+    window.onload = handleRoleChange;
   </script>
 </body>
 </html>

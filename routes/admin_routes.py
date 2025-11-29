@@ -87,11 +87,20 @@ def edit_user(user_id):
         user.email = new_email
         user.role_id = role.id   # ✅ Always correct mapping
 
-        if password:
-            user.password = generate_password_hash(password)
+        # ✅ Handle password change
+        if user.role.role_name == "Admin":
+            if password:
+                flash("Admin password cannot be changed.", "warning")
+        else:
+            if password:
+                user.password = generate_password_hash(password)
+            db.session.commit()
+            flash("User updated successfully!", "success")
 
-        db.session.commit()
-        flash("User updated successfully!", "success")
+        # ✅ Commit changes for non-password fields
+        if user.role.role_name == "Admin" or not password:
+            db.session.commit()
+
         return redirect(url_for("admin_routes.manage_users"))
 
     return render_template("admin/edit_user.html", user=user, roles=roles)
