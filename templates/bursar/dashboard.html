@@ -23,20 +23,28 @@
       color: #fff !important;
     }
 
-    /* Footer placeholder for spacing */
+    /* Small logout button in navbar */
+    .navbar .logout-btn {
+      font-size: 0.9rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 5px;
+    }
+
+    /* Main scrollable content */
     main {
       padding-top: 20px;
       padding-bottom: 20px;
-      height: calc(100vh - 60px - 70px); /* full height minus navbar and footer */
+      height: calc(100vh - 60px - 70px); /* viewport height minus navbar and footer */
       overflow-y: auto;
+      margin-top: 60px; /* ensure content starts below fixed navbar */
     }
 
     /* Dashboard buttons */
     .dashboard-btn {
       width: 100%;
-      padding: 1.2rem;
+      padding: 1rem;
       margin-bottom: 1rem;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       font-weight: 500;
       border-radius: 10px;
       color: #fff;
@@ -47,7 +55,7 @@
       transition: transform 0.2s;
     }
     .dashboard-btn:hover {
-      transform: translateY(-3px);
+      transform: translateY(-2px);
       opacity: 0.9;
       text-decoration: none;
       color: #fff;
@@ -56,12 +64,12 @@
     .btn-dashboard-fees { background-color: #388e3c; }
     .btn-dashboard-invoices { background-color: #fbc02d; color: #000; }
     .btn-dashboard-expenses { background-color: #6a1b9a; }
-    .btn-dashboard-logout { background-color: #d32f2f; }
 
+    /* Mobile adjustments */
     @media (max-width: 576px) {
       .dashboard-btn {
-        font-size: 1rem;
-        padding: 1rem;
+        font-size: 0.95rem;
+        padding: 0.8rem;
       }
     }
   </style>
@@ -69,13 +77,18 @@
 <body>
   <!-- Navbar -->
   <nav class="navbar fixed-top navbar-expand-lg d-flex align-items-center">
-    <div class="container-fluid px-3">
+    <div class="container-fluid px-3 d-flex justify-content-between">
       <a class="navbar-brand fw-bold" href="#"><i class="bi bi-cash-coin me-2"></i>Bursar Dashboard</a>
+      <form action="{{ url_for('user_routes.logout') }}" method="get" class="d-inline">
+        <button type="submit" class="btn btn-danger logout-btn">
+          <i class="bi bi-box-arrow-right"></i> Logout
+        </button>
+      </form>
     </div>
   </nav>
 
   <!-- Main scrollable content -->
-  <main class="container my-3">
+  <main class="container">
     <div class="row g-3">
       <div class="col-12 col-md-6">
         <a href="#" class="dashboard-btn btn-dashboard-home">
@@ -95,11 +108,6 @@
       <div class="col-12 col-md-6">
         <a href="#" class="dashboard-btn btn-dashboard-expenses">
           <i class="bi bi-file-earmark-text"></i> Expenses / Disbursements
-        </a>
-      </div>
-      <div class="col-12">
-        <a href="#" class="dashboard-btn btn-dashboard-logout">
-          <i class="bi bi-box-arrow-right"></i> Logout
         </a>
       </div>
     </div>
