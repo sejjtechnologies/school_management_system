@@ -5,7 +5,7 @@ class Pupil(db.Model):
     __tablename__ = 'pupils'
 
     id = db.Column(db.Integer, primary_key=True)
-    pupil_id = db.Column(db.String(50), unique=True, nullable=True)  # optional unique identifier
+    pupil_id = db.Column(db.String(50), unique=True, nullable=True)
     admission_number = db.Column(db.String(50), unique=True, nullable=False)
     admission_date = db.Column(db.Date, nullable=False)
 
@@ -53,5 +53,67 @@ class Pupil(db.Model):
     marks = db.relationship("Mark", back_populates="pupil", lazy=True, cascade="all, delete-orphan")
     reports = db.relationship("Report", back_populates="pupil", lazy=True, cascade="all, delete-orphan")
 
+    # ✅ Relationship to payments
+    payments = db.relationship("Payment", back_populates="pupil", lazy=True, cascade="all, delete-orphan")
+
+    # -----------------------------
+    # Convenience properties
+    # -----------------------------
+    @property
+    def total_paid(self):
+        """Return total amount paid by the pupil across all payments."""
+        return sum(payment.amount_paid for payment in self.payments)
+
+    @property
+    def total_fees(self):
+        """Return total fees assigned to the pupil via all fee payments."""
+        return sum(payment.fee.amount for payment in self.payments if payment.fee)
+
+    @property
+    def balance(self):
+        """Return remaining balance the pupil owes."""
+        return self.total_fees - self.total_paid
+
     def __repr__(self):
         return f"<Pupil {self.first_name} {self.last_name} (Admission {self.admission_number})>"
+
+
+# -----------------------------
+# Fees Table
+# -----------------------------
+class Fee(db.Model):
+    __tablename__ = 'fees'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)  # e.g., Tuition, Lab Fee
+    amount = db.Column(db.Float, nullable=False)
+    term = db.Column(db.String(50), nullable=True)  # optional: Term 1, Term 2
+    description = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationship to payments
+    payments = db.relationship("Payment", back_populates="fee", lazy=True, cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<Fee {self.name} - ${self.amount:.2f}>"
+
+
+# -----------------------------
+# Payments Table
+# -----------------------------
+class Payment(db.Model):
+    __tablename__ = 'payments'
+
+    id = db.Column(db.Integer, primary_key=True)
+    pupil_id = db.Column(db.Integer, db.ForeignKey('pupils.id'), nullable=False)
+    fee_id = db.Column(db.Integer, db.ForeignKey('fees.id'), nullable=False)
+    amount_paid = db.Column(db.Float, nullable=False)
+    payment_date = db.Column(db.DateTime, default=datetime.utcnow)
+    payment_method = db.Column(db.String(50), nullable=True)  # e.g., Cash, Mobile Money, Bank
+
+    # Relationships
+    pupil = db.relationship("Pupil", back_populates="payments")
+    fee = db.relationship("Fee", back_populates="payments")
+
+    def __repr__(self):
+        return f"<Payment ${self.amount_paid:.2f} for Pupil {self.pupil_id} - Fee {self.fee_id}>"
