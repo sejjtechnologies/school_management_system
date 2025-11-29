@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from models.register_pupils import db, Pupil, Fee, Payment
-from models.class_model import Class  # ✅ Import Class model from its module
+from models.class_model import Class
+from models.stream_model import Stream
 
 bursar_routes = Blueprint("bursar_routes", __name__, template_folder="templates/bursar")
 
@@ -17,23 +18,25 @@ def dashboard():
 # -----------------------------
 @bursar_routes.route("/bursar/student-fees")
 def student_fees():
-    # Eager load class relationship to avoid extra queries
-    pupils = Pupil.query.options(db.joinedload(Pupil.class_)).order_by(Pupil.first_name).all()
+    pupils = Pupil.query.options(
+        db.joinedload(Pupil.class_),
+        db.joinedload(Pupil.stream)
+    ).order_by(Pupil.first_name).all()
 
     pupil_data = []
-    pupil_fees = {}  # dictionary to hold class fees per pupil
+    pupil_fees = {}
 
     for pupil in pupils:
-        # Convenience properties for totals
         pupil.total_paid_calculated = pupil.total_paid or 0
         pupil.total_fees_calculated = pupil.total_fees or 0
-        pupil.balance_calculated = pupil.balance or 0
+        calculated_balance = (pupil.total_fees or 0) - (pupil.total_paid or 0)
+        if pupil.balance != calculated_balance:
+            pupil.balance = calculated_balance
+            db.session.commit()
+        pupil.balance_calculated = pupil.balance
 
-        # fetch fees assigned to the pupil's class
-        if pupil.class_:
-            fees_for_class = Fee.query.filter_by(class_id=pupil.class_.id).all()
-        else:
-            fees_for_class = []
+        # Fees for this pupil's class
+        fees_for_class = Fee.query.filter_by(class_id=pupil.class_id).all() if pupil.class_ else []
 
         pupil_fees[pupil.id] = fees_for_class
         pupil_data.append({
@@ -43,11 +46,12 @@ def student_fees():
             "gender": pupil.gender,
             "dob": pupil.dob,
             "admission_number": pupil.admission_number,
-            "class_name": pupil.class_.name if pupil.class_ else "N/A",  # Pass class name
+            "class_name": pupil.class_.name if pupil.class_ else "N/A",
+            "stream_name": pupil.stream.name if pupil.stream else "N/A",
             "total_paid_calculated": pupil.total_paid_calculated,
             "total_fees_calculated": pupil.total_fees_calculated,
             "balance_calculated": pupil.balance_calculated,
-            "payments": pupil.payments
+            "payments": pupil.payments,
         })
 
     return render_template(
@@ -77,12 +81,16 @@ def add_payment(pupil_id):
         db.session.add(payment)
         db.session.commit()
 
+        # Update pupil balance
+        pupil.balance = (pupil.total_fees or 0) - sum([p.amount_paid for p in pupil.payments])
+        db.session.commit()
+
         flash(f"Payment of UGX {amount_paid:,.0f} added successfully for {pupil.first_name}.", "success")
     except Exception as e:
         db.session.rollback()
         flash(f"Error adding payment: {e}", "danger")
 
-    return redirect(url_for("bursar_routes.student_fees"))
+    return redirect(url_for("bursar_routes.edit_pupil_fees", pupil_id=pupil.id))
 
 
 # -----------------------------
@@ -97,15 +105,18 @@ def edit_payment(payment_id):
             payment.fee_id = int(request.form.get("fee_id"))
             payment.amount_paid = float(request.form.get("amount_paid"))
             payment.payment_method = request.form.get("payment_method", "Cash")
-
             db.session.commit()
+
+            # Update pupil balance
+            pupil.balance = (pupil.total_fees or 0) - sum([p.amount_paid for p in pupil.payments])
+            db.session.commit()
+
             flash(f"Payment updated successfully for {pupil.first_name}.", "success")
         except Exception as e:
             db.session.rollback()
             flash(f"Error updating payment: {e}", "danger")
-        return redirect(url_for("bursar_routes.student_fees"))
+        return redirect(url_for("bursar_routes.edit_pupil_fees", pupil_id=pupil.id))
 
-    # Fetch fees for pupil's class
     fees_for_class = Fee.query.filter_by(class_id=pupil.class_id).all()
     return render_template("bursar/edit_payment.html", payment=payment, fees=fees_for_class)
 
@@ -120,9 +131,88 @@ def delete_payment(payment_id):
     try:
         db.session.delete(payment)
         db.session.commit()
+
+        # Update pupil balance
+        pupil.balance = (pupil.total_fees or 0) - sum([p.amount_paid for p in pupil.payments])
+        db.session.commit()
+
         flash(f"Payment deleted successfully for {pupil.first_name}.", "success")
     except Exception as e:
         db.session.rollback()
         flash(f"Error deleting payment: {e}", "danger")
 
-    return redirect(url_for("bursar_routes.student_fees"))
+    return redirect(url_for("bursar_routes.edit_pupil_fees", pupil_id=pupil.id))
+
+
+# -----------------------------
+# 6️⃣ Update all payments for a single pupil (GET + POST)
+# -----------------------------
+@bursar_routes.route("/bursar/update-pupil-payments/<int:pupil_id>", methods=["GET", "POST"])
+def update_pupil_payments(pupil_id):
+    pupil = Pupil.query.get_or_404(pupil_id)
+
+    if request.method == "POST":
+        try:
+            for payment in pupil.payments:
+                amount_field = f"amount_{payment.id}"
+                method_field = f"method_{payment.id}"
+                if amount_field in request.form and method_field in request.form:
+                    payment.amount_paid = float(request.form.get(amount_field, 0))
+                    payment.payment_method = request.form.get(method_field, "Cash")
+            db.session.commit()
+
+            # Update pupil balance
+            pupil.balance = (pupil.total_fees or 0) - sum([p.amount_paid for p in pupil.payments])
+            db.session.commit()
+
+            flash(f"All payments updated successfully for {pupil.first_name}.", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error updating payments: {e}", "danger")
+
+        return redirect(url_for("bursar_routes.edit_pupil_fees", pupil_id=pupil.id))
+
+    # For GET, redirect to edit page
+    return redirect(url_for("bursar_routes.edit_pupil_fees", pupil_id=pupil.id))
+
+
+# -----------------------------
+# 7️⃣ Edit/Add payments for a single pupil (GET + POST)
+# -----------------------------
+@bursar_routes.route("/bursar/edit-pupil-fees/<int:pupil_id>", methods=["GET", "POST"])
+def edit_pupil_fees(pupil_id):
+    pupil = Pupil.query.get_or_404(pupil_id)
+    pupil_fees = Fee.query.filter_by(class_id=pupil.class_id).all() if pupil.class_ else []
+
+    if request.method == "POST":
+        try:
+            fee_id = int(request.form.get("fee_id"))
+            amount_paid = float(request.form.get("amount_paid"))
+            payment_method = request.form.get("payment_method", "Cash")
+
+            # Create new payment
+            payment = Payment(
+                pupil_id=pupil.id,
+                fee_id=fee_id,
+                amount_paid=amount_paid,
+                payment_method=payment_method
+            )
+            db.session.add(payment)
+            db.session.commit()
+
+            # Update pupil balance
+            pupil.balance = (pupil.total_fees or 0) - sum([p.amount_paid for p in pupil.payments])
+            db.session.commit()
+
+            flash(f"Payment of UGX {amount_paid:,.0f} added successfully for {pupil.first_name}.", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error adding payment: {e}", "danger")
+
+        return redirect(url_for("bursar_routes.edit_pupil_fees", pupil_id=pupil.id))
+
+    return render_template(
+        "bursar/edit_pupil_fees.html",
+        pupil=pupil,
+        pupil_fees=pupil_fees
+    )
