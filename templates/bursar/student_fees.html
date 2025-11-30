@@ -51,12 +51,14 @@
             <th>Student Name</th>
             <th>Class</th>
             <th>Stream</th>
-            <th>Tuition Fee</th>
-            <th>Activity Fee</th>
-            <th>Lab Fee</th>
-            <th>Exam Fee</th>
-            <th>Other Fee</th>
-            <th>Total Fee</th>
+            {% set fee_headers = [] %}
+            {% if pupils|length > 0 %}
+              {% set fee_headers = pupils[0].fees %}
+              {% for fee in fee_headers %}
+                <th>{{ fee.item_name }}</th>
+              {% endfor %}
+            {% endif %}
+            <th>Total Fee (UGX)</th>
             <th>Paid (UGX)</th>
             <th>Balance (UGX)</th>
             <th>Actions</th>
@@ -69,16 +71,21 @@
             <td>{{ pupil.first_name }} {{ pupil.last_name }}</td>
             <td>{{ pupil.class_name }}</td>
             <td>{{ pupil.stream_name }}</td>
-            <td>{{ "{:,.0f}".format(pupil.total_fees_calculated or 0) }}</td>
-            <td>{{ pupil.class_fee.activity_fee if pupil.class_fee else 0 }}</td>
-            <td>{{ pupil.class_fee.lab_fee if pupil.class_fee else 0 }}</td>
-            <td>{{ pupil.class_fee.exam_fee if pupil.class_fee else 0 }}</td>
-            <td>{{ pupil.class_fee.other_fee if pupil.class_fee else 0 }}</td>
-            <td>{{ "{:,.0f}".format(pupil.total_fees_calculated or 0) }}</td>
-            <td>{{ "{:,.0f}".format(pupil.total_paid_calculated or 0) }}</td>
-            <td>{{ "{:,.0f}".format(pupil.balance_calculated or 0) }}</td>
+
+            {% for fee in pupil.fees %}
+              {% set paid = pupil.payments | selectattr("reference", "equalto", fee.id|string) | map(attribute="amount_paid") | sum %}
+              <td>
+                {{ "{:,.0f}".format(fee.amount) }}<br>
+                <small class="text-success">Paid: {{ "{:,.0f}".format(paid) }}</small><br>
+                <small class="text-danger">Balance: {{ "{:,.0f}".format(fee.amount - paid) }}</small>
+              </td>
+            {% endfor %}
+
+            <td>{{ "{:,.0f}".format(pupil.total_required) }}</td>
+            <td>{{ "{:,.0f}".format(pupil.total_paid) }}</td>
+            <td>{{ "{:,.0f}".format(pupil.balance) }}</td>
             <td>
-              <a href="{{ url_for('bursar_routes.edit_pupil_fees', pupil_id=pupil.id) }}" class="btn btn-sm btn-primary">
+              <a href="{{ url_for('bursar_routes.view_pupil_fees_structure', pupil_id=pupil.id) }}" class="btn btn-sm btn-primary">
                 <i class="bi bi-pencil-square"></i> Manage Payments
               </a>
             </td>

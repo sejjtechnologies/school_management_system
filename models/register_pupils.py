@@ -1,6 +1,9 @@
-from models.user_models import db  # ✅ Use shared db instance
+from models.user_models import db
 from datetime import datetime
 
+# ============================================================
+# 1. PUPIL MODEL
+# ============================================================
 class Pupil(db.Model):
     __tablename__ = 'pupils'
 
@@ -9,7 +12,7 @@ class Pupil(db.Model):
     admission_number = db.Column(db.String(50), unique=True, nullable=False)
     admission_date = db.Column(db.Date, nullable=False)
 
-    # Student personal info
+    # Personal info
     first_name = db.Column(db.String(100), nullable=False)
     middle_name = db.Column(db.String(100), nullable=True)
     last_name = db.Column(db.String(100), nullable=False)
@@ -19,98 +22,96 @@ class Pupil(db.Model):
     place_of_birth = db.Column(db.String(100), nullable=True)
     photo = db.Column(db.String(200), nullable=True)
 
-    # Contact info
+    # Contacts
     home_address = db.Column(db.Text, nullable=False)
     phone = db.Column(db.String(20), nullable=False)
     email = db.Column(db.String(100), nullable=True)
     emergency_contact = db.Column(db.String(100), nullable=False)
     emergency_phone = db.Column(db.String(20), nullable=False)
 
-    # Guardian info
+    # Guardian
     guardian_name = db.Column(db.String(100), nullable=False)
     guardian_relationship = db.Column(db.String(50), nullable=False)
     guardian_occupation = db.Column(db.String(100), nullable=True)
     guardian_phone = db.Column(db.String(20), nullable=False)
     guardian_address = db.Column(db.String(200), nullable=True)
 
-    # Academic info
+    # Academic
     class_id = db.Column(db.Integer, db.ForeignKey('classes.id'), nullable=False)
     stream_id = db.Column(db.Integer, db.ForeignKey('streams.id'), nullable=True)
     previous_school = db.Column(db.String(100), nullable=True)
     roll_number = db.Column(db.String(50), nullable=True)
 
-    # System fields
     enrollment_status = db.Column(db.String(20), nullable=False)
     receipt_number = db.Column(db.String(50), unique=True, nullable=False)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # ✅ Relationships
-    class_ = db.relationship('Class', backref='pupils', lazy=True)
-    stream = db.relationship('Stream', backref='pupils', lazy=True)
+    # Relationships
+    class_ = db.relationship("Class", backref="pupils")
+    stream = db.relationship("Stream", backref="pupils")
+    payments = db.relationship("Payment", back_populates="pupil", cascade="all, delete-orphan")
 
-    # ✅ Relationships to marks and reports
-    marks = db.relationship("Mark", back_populates="pupil", lazy=True, cascade="all, delete-orphan")
-    reports = db.relationship("Report", back_populates="pupil", lazy=True, cascade="all, delete-orphan")
+    # ✅ Add back marks and reports relationships for exam tracking
+    marks = db.relationship("Mark", back_populates="pupil", cascade="all, delete-orphan")
+    reports = db.relationship("Report", back_populates="pupil", cascade="all, delete-orphan")
 
-    # ✅ Relationship to payments
-    payments = db.relationship("Payment", back_populates="pupil", lazy=True, cascade="all, delete-orphan")
+    # -------------------------
+    # Fee calculations
+    # -------------------------
+    @property
+    def class_fees(self):
+        """Returns list of required fee items for this pupil's class."""
+        return self.class_.fee_items if self.class_ else []
 
-    # -----------------------------
-    # Convenience properties
-    # -----------------------------
+    @property
+    def total_required(self):
+        """Sum of all fees for the pupil’s class."""
+        return sum(item.amount for item in self.class_fees)
+
     @property
     def total_paid(self):
-        return sum(payment.amount_paid for payment in self.payments)
-
-    @property
-    def total_fees(self):
-        return sum(payment.fee.amount for payment in self.payments if payment.fee)
+        """How much the pupil has paid."""
+        return sum(p.amount_paid for p in self.payments)
 
     @property
     def balance(self):
-        return self.total_fees - self.total_paid
+        """Remaining amount."""
+        return self.total_required - self.total_paid
 
     def __repr__(self):
-        return f"<Pupil {self.first_name} {self.last_name} (Admission {self.admission_number})>"
+        return f"<Pupil {self.first_name} {self.last_name}>"
 
-# -----------------------------
-# Fees Table
-# -----------------------------
-class Fee(db.Model):
-    __tablename__ = 'fees'
+# ============================================================
+# 2. CLASS FEES STRUCTURE
+# ============================================================
+class ClassFeeStructure(db.Model):
+    __tablename__ = "class_fees_structure"
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
+    class_id = db.Column(db.Integer, db.ForeignKey('classes.id'), nullable=False)
+    item_name = db.Column(db.String(255), nullable=False)
     amount = db.Column(db.Float, nullable=False)
-    term = db.Column(db.String(50), nullable=True)
-    description = db.Column(db.Text, nullable=True)
-    class_id = db.Column(db.Integer, db.ForeignKey('classes.id'), nullable=False)  # <-- Added
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relationship to payments
-    payments = db.relationship("Payment", back_populates="fee", lazy=True, cascade="all, delete-orphan")
-    class_ = db.relationship('Class', backref='fees', lazy=True)  # Optional convenience
+    class_ = db.relationship("Class", backref="fee_items")
 
     def __repr__(self):
-        return f"<Fee {self.name} - UGX {self.amount:,.0f} - Class ID {self.class_id}>"
+        return f"<FeeItem {self.item_name} - {self.amount}>"
 
-# -----------------------------
-# Payments Table
-# -----------------------------
+# ============================================================
+# 3. PAYMENTS TABLE
+# ============================================================
 class Payment(db.Model):
-    __tablename__ = 'payments'
+    __tablename__ = "payments"
 
     id = db.Column(db.Integer, primary_key=True)
     pupil_id = db.Column(db.Integer, db.ForeignKey('pupils.id'), nullable=False)
-    fee_id = db.Column(db.Integer, db.ForeignKey('fees.id'), nullable=False)
     amount_paid = db.Column(db.Float, nullable=False)
     payment_date = db.Column(db.DateTime, default=datetime.utcnow)
     payment_method = db.Column(db.String(50), nullable=True)
+    reference = db.Column(db.String(100), nullable=True)
 
-    # Relationships
     pupil = db.relationship("Pupil", back_populates="payments")
-    fee = db.relationship("Fee", back_populates="payments")
 
     def __repr__(self):
-        return f"<Payment UGX {self.amount_paid:,.0f} for Pupil {self.pupil_id} - Fee {self.fee_id}>"
+        return f"<Payment {self.amount_paid} for Pupil {self.pupil_id}>"
