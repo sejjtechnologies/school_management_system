@@ -52,7 +52,7 @@ class Pupil(db.Model):
     stream = db.relationship("Stream", backref="pupils")
     payments = db.relationship("Payment", back_populates="pupil", cascade="all, delete-orphan")
 
-    # ✅ Add back marks and reports relationships for exam tracking
+    # Exam tracking
     marks = db.relationship("Mark", back_populates="pupil", cascade="all, delete-orphan")
     reports = db.relationship("Report", back_populates="pupil", cascade="all, delete-orphan")
 
@@ -66,21 +66,19 @@ class Pupil(db.Model):
 
     @property
     def total_required(self):
-        """Sum of all fees for the pupil’s class."""
         return sum(item.amount for item in self.class_fees)
 
     @property
     def total_paid(self):
-        """How much the pupil has paid."""
         return sum(p.amount_paid for p in self.payments)
 
     @property
     def balance(self):
-        """Remaining amount."""
         return self.total_required - self.total_paid
 
     def __repr__(self):
         return f"<Pupil {self.first_name} {self.last_name}>"
+
 
 # ============================================================
 # 2. CLASS FEES STRUCTURE
@@ -98,20 +96,27 @@ class ClassFeeStructure(db.Model):
     def __repr__(self):
         return f"<FeeItem {self.item_name} - {self.amount}>"
 
+
 # ============================================================
-# 3. PAYMENTS TABLE
+# 3. PAYMENTS TABLE (UPDATED TO MATCH NEON)
 # ============================================================
 class Payment(db.Model):
     __tablename__ = "payments"
 
     id = db.Column(db.Integer, primary_key=True)
     pupil_id = db.Column(db.Integer, db.ForeignKey('pupils.id'), nullable=False)
+
+    # NEW: Matches Neon DB
+    fee_id = db.Column(db.Integer, db.ForeignKey('class_fees_structure.id'), nullable=False)
+
     amount_paid = db.Column(db.Float, nullable=False)
     payment_date = db.Column(db.DateTime, default=datetime.utcnow)
     payment_method = db.Column(db.String(50), nullable=True)
     reference = db.Column(db.String(100), nullable=True)
 
+    # Relationships
     pupil = db.relationship("Pupil", back_populates="payments")
+    fee_item = db.relationship("ClassFeeStructure")
 
     def __repr__(self):
-        return f"<Payment {self.amount_paid} for Pupil {self.pupil_id}>"
+        return f"<Payment {self.amount_paid} for Pupil {self.pupil_id}, Fee {self.fee_id}>"

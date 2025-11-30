@@ -11,7 +11,6 @@
 
   <style>
     :root { --vh: 1vh; --table-title-height: 56px; }
-    /* Layout foundation */
     html, body {
       height: 100%;
       margin: 0;
@@ -19,72 +18,63 @@
       font-family: 'Segoe UI', sans-serif;
       display: flex;
       flex-direction: column;
-      overflow: hidden; /* prevent double-scrolling on mobile */
+      overflow: hidden;
     }
 
-    /* Fixed navbar */
     .navbar {
       height: 60px;
-      background-color: #d32f2f; /* changed to red */
+      background-color: #d32f2f;
       flex-shrink: 0;
     }
 
-    /* Main content area sits below fixed-top navbar */
     main {
-      position: relative; /* allow absolutely positioned children to size to main */
+      position: relative;
       flex: 1 1 auto;
       display: flex;
       flex-direction: column;
-      padding: 0 15px 15px; /* remove top padding so content can reach navbar */
-      margin-top: 60px; /* matches fixed navbar height */
-      overflow: hidden; /* scrolling will happen in the table-container */
+      padding: 0 15px 15px;
+      margin-top: 60px;
+      overflow: hidden;
     }
 
-    /* Scrollable table region between navbar and footer */
     .table-container {
-      position: absolute; /* fill the main area so top/bottom are exact */
+      position: absolute;
       top: 0;
       left: 0;
       right: 0;
-      /* Use JS-driven --vh to calculate an accurate height on mobile */
       height: calc(var(--vh, 1vh) * 100 - 60px - 80px);
       min-height: calc(var(--vh, 1vh) * 100 - 60px - 80px);
       overflow-y: auto;
-      -webkit-overflow-scrolling: touch; /* smooth momentum scroll on iOS */
-      box-sizing: content-box; /* allow padding to increase scrollable area */
-
-      /* Reserve space for footer and handle mobile viewport correctly */
+      -webkit-overflow-scrolling: touch;
+      box-sizing: content-box;
       padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
     }
 
-    /* An explicit spacer placed after the table so the last row can scroll
-       comfortably above the fixed footer on all devices. */
     .table-end-spacer {
       height: calc(80px + env(safe-area-inset-bottom, 0px));
-      width: 1px; /* minimal width but counted in flow */
+      width: 1px;
       display: block;
     }
 
     .table-container table {
-      margin-bottom: 2px; /* tiny gap above footer */
+      margin-bottom: 2px;
     }
 
     .table-responsive {
       overflow-x: auto;
     }
 
-      table th, table td {
+    table th, table td {
       vertical-align: middle !important;
       white-space: nowrap;
       font-size: 0.875rem;
     }
 
-    /* Sticky green title row above the table headers */
     .table-title-row th {
       position: sticky;
       top: 0;
       z-index: 20;
-      background: #2e7d32; /* green */
+      background: #2e7d32;
       color: #fff;
       font-weight: 700;
       height: var(--table-title-height);
@@ -92,14 +82,12 @@
       text-align: left;
     }
 
-    /* Keep the normal header row sticky just below the title */
     .table-header-row th {
       position: sticky;
       top: var(--table-title-height);
       z-index: 15;
     }
 
-    /* Fixed footer overlay */
     footer {
       position: fixed;
       bottom: 0;
@@ -107,28 +95,21 @@
       width: 100%;
       height: 80px;
       z-index: 999;
-      /* Respect notches / safe area */
       padding-bottom: env(safe-area-inset-bottom, 0px);
-      background: #fff; /* ensure readable over content */
+      background: #fff;
     }
 
-    /* Mobile tweaks */
     @media (max-width: 768px) {
       table th, table td { font-size: 0.75rem; padding: 0.3rem; }
-      .table-container {
-        padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-      }
+      .table-container { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
     }
 
     @media (max-width: 576px) {
       main { padding: 8px; }
       table th, table td { font-size: 0.65rem; padding: 0.25rem; }
-      .table-container {
-        padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-      }
+      .table-container { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
     }
 
-    /* Responsive adjustments for the sticky green table title */
     @media (max-width: 768px) {
       :root { --table-title-height: 44px; }
       .table-title-row th {
@@ -219,6 +200,7 @@
             <td>{{ pupil.first_name }} {{ pupil.last_name }}</td>
             <td>{{ pupil.class_name }}</td>
             <td>{{ pupil.stream_name }}</td>
+
             {% for name in master_fee_list %}
               {% set fee = pupil.fees | selectattr("item_name", "equalto", name) | first %}
               {% if fee %}
@@ -232,12 +214,17 @@
                 <td></td>
               {% endif %}
             {% endfor %}
+
             <td>UGX {{ "{:,.0f}".format(pupil.total_required) }}</td>
             <td>UGX {{ "{:,.0f}".format(pupil.total_paid) }}</td>
             <td>UGX {{ "{:,.0f}".format(pupil.balance) }}</td>
+
+            <!-- UPDATED BUTTON HERE -->
             <td>
-              <a href="{{ url_for('bursar_routes.view_pupil_fees_structure', pupil_id=pupil.id) }}" class="btn btn-primary btn-sm">Manage</a>
+              <a href="{{ url_for('bursar_routes.enter_payment_page', pupil_id=pupil.id) }}" class="btn btn-primary btn-sm">Manage</a>
+
             </td>
+
           </tr>
         {% endfor %}
         </tbody>
