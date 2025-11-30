@@ -146,9 +146,10 @@
           <p>{{ total_pupils }}</p>
         </div>
       </div>
+      {% set color_list = ['card-color-2','card-color-3','card-color-4','card-color-5','card-color-6'] %}
       {% for class_name, count in class_counts.items() %}
       <div class="col-6 col-md-3">
-        <div class="stats-card {{ cycle('card-color-2','card-color-3','card-color-4','card-color-5','card-color-6') }} text-center">
+        <div class="stats-card {{ color_list[loop.index0 % (color_list|length)] }} text-center">
           <h6>{{ class_name }}</h6>
           <p>{{ count }}</p>
         </div>
