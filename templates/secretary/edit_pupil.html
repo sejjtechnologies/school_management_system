@@ -93,7 +93,7 @@
           </div>
           <div class="col-md-6">
             <label class="form-label">Pupil ID</label>
-            <input type="text" class="form-control" name="pupil_id" value="{{ pupil.pupil_id }}">
+            <input type="text" class="form-control" name="pupil_id" value="{{ pupil.pupil_id }}" readonly>
           </div>
 
           <!-- Names -->
@@ -178,7 +178,8 @@
             <label class="form-label">Guardian Address</label>
             <textarea class="form-control" name="guardian_address">{{ pupil.guardian_address }}</textarea>
           </div>
-                    <!-- Class & Stream -->
+
+          <!-- Class & Stream -->
           <div class="col-md-6">
             <label class="form-label">Class</label>
             <select class="form-select" name="class_id">
@@ -203,7 +204,7 @@
           </div>
           <div class="col-md-6">
             <label class="form-label">Roll Number</label>
-            <input type="text" class="form-control" name="roll_number" value="{{ pupil.roll_number }}">
+            <input type="text" class="form-control" name="roll_number" value="{{ pupil.roll_number }}" readonly>
           </div>
 
           <!-- Enrollment Status -->
