@@ -29,14 +29,15 @@
       flex-direction: column;
       padding: 15px;
       margin-top: 60px; /* navbar height */
-      overflow: hidden;
+      overflow-y: auto; /* allow vertical scrolling */
     }
 
     .table-container {
       flex: 1 1 auto;
       overflow-y: auto;
-      padding-bottom: 10px;
+      padding-bottom: 80px; /* match footer height */
       box-sizing: border-box;
+      height: calc(100vh - 60px - 80px); /* viewport minus navbar & footer */
     }
 
     .table-container table {
@@ -64,13 +65,13 @@
 
     @media (max-width: 768px) {
       table th, table td { font-size: 0.75rem; padding: 0.3rem; }
-      .table-container { padding-bottom: 15px; }
+      .table-container { padding-bottom: 80px; height: calc(100vh - 60px - 80px); }
     }
 
     @media (max-width: 576px) {
       main { padding: 8px; }
       table th, table td { font-size: 0.65rem; padding: 0.25rem; }
-      .table-container { padding-bottom: 20px; }
+      .table-container { padding-bottom: 80px; height: calc(100vh - 60px - 80px); }
     }
   </style>
 </head>
