@@ -28,13 +28,29 @@
       color: #fff;
       border: none;
       margin-right: 8px;
-      padding: 4px 10px;
-      font-size: 0.85rem;
-      line-height: 1.2;
+      padding: 6px 12px; /* slightly larger for better touch target */
+      font-size: 0.95rem; /* slightly larger text */
+      line-height: 1.25;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+    }
+    .back-btn i {
+      font-size: 1.05rem; /* slightly larger icon */
+      line-height: 1;
     }
     .back-btn:hover {
       background-color: #b71c1c;
       color: #fff;
+    }
+
+    /* Mobile: reduce slightly to ensure it fits small screens */
+    @media (max-width: 575.98px) {
+      .back-btn {
+        padding: 5px 10px;
+        font-size: 0.88rem;
+      }
+      .back-btn i { font-size: 0.95rem; }
     }
     main {
       flex: 1;
@@ -109,7 +125,7 @@
       </a>
       <div class="ms-auto d-flex align-items-center">
         <a href="{{ url_for('admin_routes.dashboard') }}" class="btn back-btn">
-          <i class="bi bi-house-door-fill me-1"></i>Back
+          <i class="bi bi-box-arrow-right me-1 text-white"></i>Back
         </a>
       </div>
     </div>
