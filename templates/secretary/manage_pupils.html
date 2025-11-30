@@ -90,14 +90,16 @@
     /* ✅ Card styles */
     .stats-card {
       border-radius: 8px;
-      padding: 12px;
+      padding: 10px;
       color: #fff;
-      margin-bottom: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      min-height: 70px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      min-height: 60px;
       display: flex;
       flex-direction: column;
       justify-content: center;
+      align-items: center;
+      text-align: center;
     }
     .stats-card h6 {
       margin: 0;
@@ -119,9 +121,30 @@
 
     /* Small adjustments for mobile to keep cards compact */
     @media (max-width: 575.98px) {
-      .stats-card { padding: 10px; min-height: 60px; }
-      .stats-card h6 { font-size: 0.85rem; }
-      .stats-card p { font-size: 1rem; }
+      .stats-card { padding: 8px; min-height: 52px; }
+      .stats-card h6 { font-size: 0.75rem; margin-bottom:4px; }
+      .stats-card p { font-size: 0.95rem; margin:0; }
+    }
+
+    /* Total pupils circle style (distinct, compact) */
+    .total-circle {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      padding: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    }
+    .total-circle h6 { margin: 0; font-size: 0.7rem; }
+    .total-circle p { margin: 0; font-size: 1.05rem; font-weight: 700; }
+
+    @media (max-width: 575.98px) {
+      .total-circle { width: 60px; height: 60px; }
+      .total-circle h6 { font-size: 0.65rem; }
+      .total-circle p { font-size: 0.95rem; }
     }
   </style>
 </head>
@@ -140,10 +163,10 @@
   <main class="container">
     <!-- ✅ Student counts in cards -->
     <div class="row mt-4">
-      <div class="col-6 col-md-3">
-        <div class="stats-card card-color-1 text-center">
-          <h6>Total Pupils</h6>
-          <p>{{ total_pupils }}</p>
+      <div class="col-6 col-md-3 d-flex justify-content-center">
+        <div class="stats-card card-color-1 total-circle text-center" aria-label="Total pupils">
+          <h6 class="mb-0">Total</h6>
+          <p class="mb-0">{{ total_pupils }}</p>
         </div>
       </div>
       {% set color_list = ['card-color-2','card-color-3','card-color-4','card-color-5','card-color-6'] %}
