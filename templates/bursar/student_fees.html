@@ -25,7 +25,7 @@
     /* Fixed navbar */
     .navbar {
       height: 60px;
-      background-color: #37474f;
+      background-color: #d32f2f; /* changed to red */
       flex-shrink: 0;
     }
 
@@ -161,6 +161,7 @@
   <div class="container-fluid px-3 d-flex justify-content-between">
     <a class="navbar-brand fw-bold text-white"><i class="bi bi-cash-coin me-2"></i>Bursar Dashboard</a>
     <a href="{{ url_for('bursar_routes.dashboard') }}" class="btn btn-warning btn-sm">
+      <i class="bi bi-house me-1"></i>
       <i class="bi bi-arrow-left-circle"></i> Back
     </a>
   </div>
