@@ -29,9 +29,13 @@
 
     /* Scrolling table area */
     .table-container {
-      max-height: calc(100vh - 60px - 110px);
+      height: calc(100vh - 60px - 110px); /* fixed height for scrolling */
       overflow-y: auto;
-      padding-bottom: 40px;
+      padding-bottom: 15px; /* space from footer */
+    }
+
+    .table-responsive {
+      overflow-x: auto;
     }
 
     table th, table td {
@@ -43,6 +47,10 @@
     /* Mobile adjustments */
     @media (max-width: 768px) {
       table th, table td { font-size: 0.75rem; padding: 0.3rem; }
+      .table-container {
+        height: calc(100vh - 60px - 120px); /* slightly more footer space on mobile */
+        padding-bottom: 12px;
+      }
     }
 
     @media (max-width: 576px) {
@@ -133,7 +141,6 @@
                 </td>
 
               {% else %}
-                <!-- class does NOT have this fee category: leave blank -->
                 <td></td>
               {% endif %}
             {% endfor %}
