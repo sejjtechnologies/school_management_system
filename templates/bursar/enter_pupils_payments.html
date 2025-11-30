@@ -18,7 +18,8 @@
     }
 
     body {
-      padding-top: 60px; /* Fixed navbar offset */
+      padding-top: 60px; /* Offset for fixed navbar */
+      font-size: 0.95rem;
     }
 
     .navbar {
@@ -27,14 +28,33 @@
     }
 
     .content-area {
-      flex: 1 0 auto; /* Take remaining space */
-      overflow-y: auto; /* Enable vertical scrolling */
+      flex: 1 0 auto;        /* Take remaining space */
+      overflow-y: auto;      /* Enable vertical scrolling */
       padding: 20px;
-      padding-bottom: 80px; /* Ensure space above footer */
+      padding-bottom: 120px; /* Space for footer + button */
     }
 
     footer {
       flex-shrink: 0;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 500px; /* Keep content centered and mobile-friendly */
+      margin: 0 auto 20px auto;
+    }
+
+    @media (max-width: 576px) {
+      .content-area {
+        padding: 15px;
+        padding-bottom: 140px; /* Extra space for footer on small screens */
+      }
+
+      .card-body input,
+      .card-body select,
+      .btn {
+        font-size: 0.9rem;
+      }
     }
   </style>
 </head>
@@ -42,7 +62,7 @@
 
 <!-- Fixed Top Navbar -->
 <nav class="navbar fixed-top navbar-dark d-flex align-items-center px-3">
-  <span class="navbar-brand mb-0 h4 text-white">
+  <span class="navbar-brand mb-0 h5 text-white">
     <i class="bi bi-cash-coin"></i> Enter Payment
   </span>
 
@@ -88,7 +108,6 @@
           <label class="form-label fw-bold">Select Fee Item</label>
           <select name="fee_id" class="form-select" required>
             <option value="">-- Choose Fee Item --</option>
-
             {% for item in pupil.class_fees %}
               <option value="{{ item.id }}">{{ item.item_name }} (UGX {{ "{:,.0f}".format(item.amount) }})</option>
             {% endfor %}
