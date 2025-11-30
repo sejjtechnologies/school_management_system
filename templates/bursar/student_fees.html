@@ -14,26 +14,22 @@
       background-color: #f1f8e9;
     }
 
-    /* Navbar */
     .navbar {
       height: 60px;
       background-color: #37474f;
     }
-    .navbar-brand { color: #fff !important; font-size: 1rem; }
-    .navbar .back-btn { font-size: 0.85rem; padding: 0.25rem 0.5rem; border-radius: 5px; }
 
-    /* Main content */
     main {
       margin-top: 60px;
-      margin-bottom: 80px; /* footer space */
+      margin-bottom: 100px; /* More space for footer */
       padding: 20px;
     }
 
-    /* Table scroll container */
+    /* Scroll area */
     .table-container {
-      max-height: calc(100vh - 60px - 80px - 40px); /* navbar + footer + padding */
+      max-height: calc(100vh - 60px - 100px);
       overflow-y: auto;
-      padding-bottom: 30px; /* leave good space above footer */
+      padding-bottom: 40px; /* good distance above footer */
     }
 
     table th, table td {
@@ -43,101 +39,118 @@
     }
 
     @media (max-width: 768px) {
-      table th, table td { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
-      .btn { font-size: 0.7rem; padding: 0.25rem 0.4rem; }
+      table th, table td { font-size: 0.75rem; padding: 0.35rem; }
     }
 
     @media (max-width: 576px) {
       main { padding: 10px; }
-      table th, table td { font-size: 0.65rem; padding: 0.2rem 0.3rem; }
-      .btn { font-size: 0.6rem; padding: 0.2rem 0.3rem; }
-      .navbar-brand { font-size: 0.9rem; }
+      table th, table td { font-size: 0.65rem; padding: 0.25rem; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Fixed Navbar -->
-  <nav class="navbar fixed-top navbar-expand-lg d-flex align-items-center">
-    <div class="container-fluid px-3 d-flex justify-content-between">
-      <a class="navbar-brand fw-bold" href="#"><i class="bi bi-cash-coin me-2"></i>Bursar Dashboard</a>
-      <a href="{{ url_for('bursar_routes.dashboard') }}" class="btn btn-warning back-btn">
-        <i class="bi bi-arrow-left-circle"></i> Back
-      </a>
-    </div>
-  </nav>
+<nav class="navbar fixed-top navbar-expand-lg d-flex align-items-center">
+  <div class="container-fluid px-3 d-flex justify-content-between">
+    <a class="navbar-brand fw-bold text-white" href="#">
+      <i class="bi bi-cash-coin me-2"></i> Bursar Dashboard
+    </a>
+    <a href="{{ url_for('bursar_routes.dashboard') }}" class="btn btn-warning btn-sm">
+      <i class="bi bi-arrow-left-circle"></i> Back
+    </a>
+  </div>
+</nav>
 
-  <main class="container">
-    <h2 class="mb-4">Student Fees Overview</h2>
+<main class="container">
+  <h2 class="mb-4">Student Fees Overview</h2>
 
-    <!-- Flash messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, msg in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            {{ msg }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, msg in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ msg }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
 
-    <div class="table-container">
-      <div class="table-responsive">
-        <table class="table table-striped table-bordered align-middle">
-          <thead class="table-dark">
-            <tr>
-              <th>#</th>
-              <th>Student Name</th>
-              <th>Class</th>
-              <th>Stream</th>
-              {% set fee_headers = [] %}
-              {% if pupils|length > 0 %}
-                {% set fee_headers = pupils[0].fees %}
-                {% for fee in fee_headers %}
-                  <th>{{ fee.item_name }}</th>
-                {% endfor %}
-              {% endif %}
-              <th>Total Fee</th>
-              <th>Paid</th>
-              <th>Balance</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for pupil in pupils %}
-            <tr>
-              <td>{{ loop.index }}</td>
-              <td>{{ pupil.first_name }} {{ pupil.last_name }}</td>
-              <td>{{ pupil.class_name }}</td>
-              <td>{{ pupil.stream_name }}</td>
+  <!-- Build a unified fee header -->
+  {% set master_fees = {} %}
+  {% for p in pupils %}
+    {% for f in p.fees %}
+      {% set _ = master_fees.update({f.id: f.item_name}) %}
+    {% endfor %}
+  {% endfor %}
 
-              {% for fee in pupil.fees %}
+  <div class="table-container">
+    <div class="table-responsive">
+      <table class="table table-striped table-bordered align-middle">
+        <thead class="table-dark">
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Class</th>
+          <th>Stream</th>
+
+          {% for id, item_name in master_fees.items() %}
+            <th>{{ item_name }}</th>
+          {% endfor %}
+
+          <th>Total Fee</th>
+          <th>Paid</th>
+          <th>Balance</th>
+          <th>Actions</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        {% for pupil in pupils %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ pupil.first_name }} {{ pupil.last_name }}</td>
+            <td>{{ pupil.class_name }}</td>
+            <td>{{ pupil.stream_name }}</td>
+
+            {% for fee_id, item_name in master_fees.items() %}
+              {% set fee = pupil.fees | selectattr("id", "equalto", fee_id) | first %}
+
+              {% if fee %}
                 {% set paid = pupil.payments | selectattr("reference", "equalto", fee.id|string) | map(attribute="amount_paid") | sum %}
                 <td>
                   {{ "{:,.0f}".format(fee.amount) }}<br>
                   <small class="text-success">Paid: {{ "{:,.0f}".format(paid) }}</small><br>
                   <small class="text-danger">Bal: {{ "{:,.0f}".format(fee.amount - paid) }}</small>
                 </td>
-              {% endfor %}
-
-              <td>{{ "{:,.0f}".format(pupil.total_required) }}</td>
-              <td>{{ "{:,.0f}".format(pupil.total_paid) }}</td>
-              <td>{{ "{:,.0f}".format(pupil.balance) }}</td>
-              <td>
-                <a href="{{ url_for('bursar_routes.view_pupil_fees_structure', pupil_id=pupil.id) }}" class="btn btn-sm btn-primary">
-                  <i class="bi bi-pencil-square"></i> Manage
-                </a>
-              </td>
-            </tr>
+              {% else %}
+                <td>
+                  0<br>
+                  <small class="text-success">Paid: 0</small><br>
+                  <small class="text-danger">Bal: 0</small>
+                </td>
+              {% endif %}
             {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </main>
 
-  {% include 'footer.html' %}
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+            <td>{{ "{:,.0f}".format(pupil.total_required) }}</td>
+            <td>{{ "{:,.0f}".format(pupil.total_paid) }}</td>
+            <td>{{ "{:,.0f}".format(pupil.balance) }}</td>
+
+            <td>
+              <a href="{{ url_for('bursar_routes.view_pupil_fees_structure', pupil_id=pupil.id) }}"
+                 class="btn btn-primary btn-sm">
+                Manage
+              </a>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+{% include 'footer.html' %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
