@@ -13,30 +13,27 @@
       font-family: 'Segoe UI', sans-serif;
       background-color: #f1f8e9;
     }
+
+    /* Navbar */
     .navbar {
       height: 60px;
       background-color: #37474f;
     }
     .navbar-brand { color: #fff !important; font-size: 1rem; }
-    .navbar .back-btn {
-      font-size: 0.85rem;
-      padding: 0.25rem 0.5rem;
-      border-radius: 5px;
-    }
+    .navbar .back-btn { font-size: 0.85rem; padding: 0.25rem 0.5rem; border-radius: 5px; }
 
+    /* Main content */
     main {
-      padding: 20px;
       margin-top: 60px;
-      height: calc(100vh - 60px - 80px); /* navbar + footer height */
-      display: flex;
-      flex-direction: column;
+      margin-bottom: 80px; /* footer space */
+      padding: 20px;
     }
 
-    /* Table container */
+    /* Table scroll container */
     .table-container {
-      flex: 1; /* take remaining space */
+      max-height: calc(100vh - 60px - 80px - 40px); /* navbar + footer + padding */
       overflow-y: auto;
-      padding-bottom: 20px; /* leave distance from footer */
+      padding-bottom: 30px; /* leave good space above footer */
     }
 
     table th, table td {
