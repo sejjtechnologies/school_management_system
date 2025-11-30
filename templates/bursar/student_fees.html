@@ -30,6 +30,7 @@
 
     /* Main content area sits below fixed-top navbar */
     main {
+      position: relative; /* allow absolutely positioned children to size to main */
       flex: 1 1 auto;
       display: flex;
       flex-direction: column;
@@ -40,16 +41,17 @@
 
     /* Scrollable table region between navbar and footer */
     .table-container {
-      flex: 1 1 auto;
+      position: absolute; /* fill the main area so top/bottom are exact */
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch; /* smooth momentum scroll on iOS */
       box-sizing: border-box;
 
       /* Reserve space for footer and handle mobile viewport correctly */
       padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-      height: calc(100dvh - 60px - 80px);
-      /* Fallbacks for older browsers: */
-      min-height: calc(100vh - 60px - 80px);
     }
 
     .table-container table {
@@ -84,8 +86,6 @@
       table th, table td { font-size: 0.75rem; padding: 0.3rem; }
       .table-container {
         padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-        height: calc(100dvh - 60px - 80px);
-        min-height: calc(100vh - 60px - 80px);
       }
     }
 
@@ -94,8 +94,6 @@
       table th, table td { font-size: 0.65rem; padding: 0.25rem; }
       .table-container {
         padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-        height: calc(100dvh - 60px - 80px);
-        min-height: calc(100vh - 60px - 80px);
       }
     }
   </style>
