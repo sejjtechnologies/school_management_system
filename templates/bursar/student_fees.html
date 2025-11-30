@@ -17,7 +17,6 @@
       flex-direction: column;
     }
 
-    /* Fixed top navbar */
     .navbar {
       height: 60px;
       background-color: #37474f;
@@ -25,19 +24,23 @@
     }
 
     main {
-      flex: 1 1 auto; /* take remaining vertical space */
+      flex: 1 1 auto;
       display: flex;
       flex-direction: column;
       padding: 15px;
+      margin-top: 60px; /* navbar height */
       overflow: hidden;
-      margin-top: 60px; /* navbar offset */
     }
 
-    /* Table scroll container with gap above footer */
     .table-container {
       flex: 1 1 auto;
       overflow-y: auto;
-      padding-bottom: 20px; /* small gap above footer */
+      padding-bottom: 10px;
+      box-sizing: border-box;
+    }
+
+    .table-container table {
+      margin-bottom: 2px; /* tiny gap above footer */
     }
 
     .table-responsive {
@@ -50,25 +53,24 @@
       font-size: 0.875rem;
     }
 
-    /* Footer fixed at bottom */
     footer {
-      flex-shrink: 0;
+      position: fixed;
+      bottom: 0;
+      left: 0;
       width: 100%;
-      height: 80px; /* adjust your actual footer height */
+      height: 80px;
       z-index: 999;
     }
 
-    /* Mobile adjustments */
     @media (max-width: 768px) {
       table th, table td { font-size: 0.75rem; padding: 0.3rem; }
-      main { padding: 10px; }
-      .table-container { padding-bottom: 25px; } /* slightly larger gap for mobile */
+      .table-container { padding-bottom: 15px; }
     }
 
     @media (max-width: 576px) {
-      table th, table td { font-size: 0.65rem; padding: 0.25rem; }
       main { padding: 8px; }
-      .table-container { padding-bottom: 30px; } /* mobile extra gap */
+      table th, table td { font-size: 0.65rem; padding: 0.25rem; }
+      .table-container { padding-bottom: 20px; }
     }
   </style>
 </head>
