@@ -23,25 +23,33 @@
       padding: 0.25rem 0.5rem;
       border-radius: 5px;
     }
+
     main {
       padding: 20px;
-      height: calc(100vh - 60px - 70px); /* Navbar + footer approx */
-      overflow-y: auto;
       margin-top: 60px;
+      height: calc(100vh - 60px - 80px); /* navbar + footer height */
+      display: flex;
+      flex-direction: column;
     }
+
+    /* Table container */
+    .table-container {
+      flex: 1; /* take remaining space */
+      overflow-y: auto;
+      padding-bottom: 20px; /* leave distance from footer */
+    }
+
     table th, table td {
       vertical-align: middle !important;
       font-size: 0.875rem;
       white-space: nowrap;
     }
-    .table-responsive {
-      max-height: calc(100vh - 140px); /* leave space for footer and header */
-      overflow-y: auto;
-    }
+
     @media (max-width: 768px) {
       table th, table td { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
       .btn { font-size: 0.7rem; padding: 0.25rem 0.4rem; }
     }
+
     @media (max-width: 576px) {
       main { padding: 10px; }
       table th, table td { font-size: 0.65rem; padding: 0.2rem 0.3rem; }
@@ -77,56 +85,58 @@
       {% endif %}
     {% endwith %}
 
-    <div class="table-responsive">
-      <table class="table table-striped table-bordered align-middle">
-        <thead class="table-dark">
-          <tr>
-            <th>#</th>
-            <th>Student Name</th>
-            <th>Class</th>
-            <th>Stream</th>
-            {% set fee_headers = [] %}
-            {% if pupils|length > 0 %}
-              {% set fee_headers = pupils[0].fees %}
-              {% for fee in fee_headers %}
-                <th>{{ fee.item_name }}</th>
+    <div class="table-container">
+      <div class="table-responsive">
+        <table class="table table-striped table-bordered align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th>#</th>
+              <th>Student Name</th>
+              <th>Class</th>
+              <th>Stream</th>
+              {% set fee_headers = [] %}
+              {% if pupils|length > 0 %}
+                {% set fee_headers = pupils[0].fees %}
+                {% for fee in fee_headers %}
+                  <th>{{ fee.item_name }}</th>
+                {% endfor %}
+              {% endif %}
+              <th>Total Fee</th>
+              <th>Paid</th>
+              <th>Balance</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for pupil in pupils %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ pupil.first_name }} {{ pupil.last_name }}</td>
+              <td>{{ pupil.class_name }}</td>
+              <td>{{ pupil.stream_name }}</td>
+
+              {% for fee in pupil.fees %}
+                {% set paid = pupil.payments | selectattr("reference", "equalto", fee.id|string) | map(attribute="amount_paid") | sum %}
+                <td>
+                  {{ "{:,.0f}".format(fee.amount) }}<br>
+                  <small class="text-success">Paid: {{ "{:,.0f}".format(paid) }}</small><br>
+                  <small class="text-danger">Bal: {{ "{:,.0f}".format(fee.amount - paid) }}</small>
+                </td>
               {% endfor %}
-            {% endif %}
-            <th>Total Fee</th>
-            <th>Paid</th>
-            <th>Balance</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for pupil in pupils %}
-          <tr>
-            <td>{{ loop.index }}</td>
-            <td>{{ pupil.first_name }} {{ pupil.last_name }}</td>
-            <td>{{ pupil.class_name }}</td>
-            <td>{{ pupil.stream_name }}</td>
 
-            {% for fee in pupil.fees %}
-              {% set paid = pupil.payments | selectattr("reference", "equalto", fee.id|string) | map(attribute="amount_paid") | sum %}
+              <td>{{ "{:,.0f}".format(pupil.total_required) }}</td>
+              <td>{{ "{:,.0f}".format(pupil.total_paid) }}</td>
+              <td>{{ "{:,.0f}".format(pupil.balance) }}</td>
               <td>
-                {{ "{:,.0f}".format(fee.amount) }}<br>
-                <small class="text-success">Paid: {{ "{:,.0f}".format(paid) }}</small><br>
-                <small class="text-danger">Bal: {{ "{:,.0f}".format(fee.amount - paid) }}</small>
+                <a href="{{ url_for('bursar_routes.view_pupil_fees_structure', pupil_id=pupil.id) }}" class="btn btn-sm btn-primary">
+                  <i class="bi bi-pencil-square"></i> Manage
+                </a>
               </td>
+            </tr>
             {% endfor %}
-
-            <td>{{ "{:,.0f}".format(pupil.total_required) }}</td>
-            <td>{{ "{:,.0f}".format(pupil.total_paid) }}</td>
-            <td>{{ "{:,.0f}".format(pupil.balance) }}</td>
-            <td>
-              <a href="{{ url_for('bursar_routes.view_pupil_fees_structure', pupil_id=pupil.id) }}" class="btn btn-sm btn-primary">
-                <i class="bi bi-pencil-square"></i> Manage
-              </a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     </div>
   </main>
 
