@@ -13,41 +13,53 @@
       margin: 0;
       padding: 0;
       background: #f1f8e9;
-      display: flex;
-      flex-direction: column;
-    }
-
-    body {
-      padding-top: 60px; /* Offset for fixed navbar */
+      overflow: hidden; /* Prevent body scroll, only content scrolls */
       font-size: 0.95rem;
     }
 
     .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
       height: 60px;
       background-color: #37474f;
+      z-index: 1000;
+    }
+
+    .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background-color: #37474f;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
     }
 
     .content-area {
-      flex: 1 0 auto;        /* Take remaining space */
-      overflow-y: auto;      /* Enable vertical scrolling */
+      position: absolute;
+      top: 60px;       /* below navbar */
+      bottom: 60px;    /* above footer */
+      left: 0;
+      right: 0;
+      overflow-y: auto; /* vertical scroll for main content */
       padding: 20px;
-      padding-bottom: 120px; /* Space for footer + button */
-    }
-
-    footer {
-      flex-shrink: 0;
     }
 
     .card {
       width: 100%;
-      max-width: 500px; /* Keep content centered and mobile-friendly */
-      margin: 0 auto 20px auto;
+      max-width: 600px;
+      margin: 0 auto;
     }
 
     @media (max-width: 576px) {
       .content-area {
         padding: 15px;
-        padding-bottom: 140px; /* Extra space for footer on small screens */
       }
 
       .card-body input,
@@ -61,7 +73,7 @@
 <body>
 
 <!-- Fixed Top Navbar -->
-<nav class="navbar fixed-top navbar-dark d-flex align-items-center px-3">
+<nav class="navbar navbar-dark d-flex align-items-center px-3">
   <span class="navbar-brand mb-0 h5 text-white">
     <i class="bi bi-cash-coin"></i> Enter Payment
   </span>
@@ -71,6 +83,7 @@
   </a>
 </nav>
 
+<!-- Scrollable Content -->
 <div class="content-area container">
 
   <!-- Page Title -->
@@ -139,7 +152,10 @@
 
 </div>
 
-{% include 'footer.html' %}
+<!-- Fixed Footer -->
+<div class="footer">
+  {% include 'footer.html' %}
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
