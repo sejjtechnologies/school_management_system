@@ -63,6 +63,8 @@
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       background-color: #fff;
+      box-sizing: content-box; /* allow padding to add scrollable space */
+      padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)); /* ensure large bottom gap */
     }
     th {
       background-color: #388e3c;
@@ -100,8 +102,8 @@
 
     /* Spacer so the last table row can scroll above the fixed footer */
     .table-end-spacer {
-      height: calc(80px + 12px + env(safe-area-inset-bottom, 0px));
-      width: 1px;
+      height: calc(120px + env(safe-area-inset-bottom, 0px));
+      width: 100%;
       display: block;
     }
     .search-bar {
