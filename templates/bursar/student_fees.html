@@ -224,17 +224,17 @@
               {% if fee %}
                 {% set paid = pupil.payments | selectattr("reference", "equalto", fee.id|string) | map(attribute="amount_paid") | sum %}
                 <td>
-                  {{ "{:,.0f}".format(fee.amount) }}<br>
-                  <small class="text-success">Paid: {{ "{:,.0f}".format(paid) }}</small><br>
-                  <small class="text-danger">Bal: {{ "{:,.0f}".format(fee.amount - paid) }}</small>
+                  UGX {{ "{:,.0f}".format(fee.amount) }}<br>
+                  <small class="text-success">Paid: UGX {{ "{:,.0f}".format(paid) }}</small><br>
+                  <small class="text-danger">Bal: UGX {{ "{:,.0f}".format(fee.amount - paid) }}</small>
                 </td>
               {% else %}
                 <td></td>
               {% endif %}
             {% endfor %}
-            <td>{{ "{:,.0f}".format(pupil.total_required) }}</td>
-            <td>{{ "{:,.0f}".format(pupil.total_paid) }}</td>
-            <td>{{ "{:,.0f}".format(pupil.balance) }}</td>
+            <td>UGX {{ "{:,.0f}".format(pupil.total_required) }}</td>
+            <td>UGX {{ "{:,.0f}".format(pupil.total_paid) }}</td>
+            <td>UGX {{ "{:,.0f}".format(pupil.balance) }}</td>
             <td>
               <a href="{{ url_for('bursar_routes.view_pupil_fees_structure', pupil_id=pupil.id) }}" class="btn btn-primary btn-sm">Manage</a>
             </td>
