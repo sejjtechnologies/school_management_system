@@ -26,26 +26,26 @@
       font-weight: bold;
     }
     .back-btn {
-      background-color: #1976d2; /* Blue */
-      color: #fff;
-      border: none;
-      padding: 6px 12px;
+      background-color: #ffffff; /* white background */
+      color: #222;
+      border: 1px solid #e0e0e0;
+      padding: 6px 18px; /* wider horizontally to appear larger without increasing height */
       border-radius: 6px;
-      font-size: 0.85rem;
+      font-size: 0.95rem; /* slightly larger text */
       font-weight: 600;
       display: inline-flex;
       align-items: center;
       text-decoration: none;
-      height: 32px; /* Small height */
+      height: 32px; /* keep same height */
     }
     .back-btn i {
-      margin-right: 6px;
-      font-size: 1rem;
-      color: #fff; /* White icon */
+      margin-right: 8px;
+      font-size: 1.15rem; /* slightly larger icon */
+      color: #d32f2f; /* red icon */
     }
     .back-btn:hover {
-      background-color: #1565c0;
-      color: #fff;
+      background-color: #fafafa;
+      color: #111;
     }
     .table-section {
       background: #fff;
@@ -113,8 +113,8 @@
       <a class="navbar-brand" href="#">
         <i class="bi bi-people-fill me-2"></i> Pupils Listing
       </a>
-      <a href="{{ url_for('teacher_routes.dashboard') }}" class="back-btn">
-        <i class="bi bi-house-door-fill"></i> Back
+      <a href="{{ url_for('teacher_routes.dashboard') }}" class="back-btn" title="Back to dashboard">
+        <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Back
       </a>
     </div>
   </nav>
@@ -137,6 +137,8 @@
                 <th>Class</th>
                 <th>Stream</th>
                 <th class="text-center">Combined Avg</th>
+                <th class="text-center">Grade</th>
+                <th class="text-center">Remark</th>
                 <th class="text-center">Stream Pos</th>
                 <th class="text-center">Class Pos</th>
               </tr>
@@ -157,28 +159,32 @@
                   {% set cs_raw = combined_stats.get(pupil.id) if combined_stats is defined else None %}
                   {% set cs = None %}
                   {% if cs_raw %}
-                    {% if cs_raw.combined_average is defined %}
+                    {% if 'combined_average' in cs_raw %}
                       {% set cs = cs_raw %}
                     {% else %}
-                      {# assume term-keyed dict, pick the first term's stats safely #}
-                      {% set _first = cs_raw.items()|list|first %}
-                      {% if _first %}
-                        {% set cs = _first[1] %}
+                      {% set _vals = cs_raw.values()|list %}
+                      {% if _vals %}
+                        {% set cs = _vals[0] %}
                       {% endif %}
                     {% endif %}
                   {% endif %}
 
-                  <td class="text-center">{{ cs.combined_average if cs is defined and cs else '-' }}</td>
+                  {# pick a representative report row for grade/remark fallbacks #}
+                  {% set rep = (reports|selectattr('pupil_id','equalto',pupil.id)|list)|first if reports is defined else None %}
+
+                  <td class="text-center">{{ (cs['combined_average'] if cs and ('combined_average' in cs) else (rep.combined_average if rep and rep.combined_average is defined else '-')) }}</td>
+                  <td class="text-center">{{ (cs['combined_grade'] if cs and ('combined_grade' in cs) else (rep.combined_grade if rep and rep.combined_grade is defined else '-')) }}</td>
+                  <td class="text-center">{{ (cs['general_remark'] if cs and ('general_remark' in cs) else (rep.general_remark if rep and rep.general_remark is defined else '-')) }}</td>
                   <td class="text-center">
-                    {% if cs is defined and cs and cs.stream_combined_position is defined %}
-                      {{ cs.stream_combined_position }} of {{ students_per_stream.get(pupil.stream_id, 0) if students_per_stream is defined else '-' }}
+                    {% if cs and ('stream_combined_position' in cs) %}
+                      {{ cs['stream_combined_position'] }} of {{ students_per_stream.get(pupil.stream_id, '-') if students_per_stream is defined else '-' }}
                     {% else %}
                       -
                     {% endif %}
                   </td>
                   <td class="text-center">
-                    {% if cs is defined and cs and cs.class_combined_position is defined %}
-                      {{ cs.class_combined_position }} of {{ students_per_class.get(pupil.class_id, 0) if students_per_class is defined else '-' }}
+                    {% if cs and ('class_combined_position' in cs) %}
+                      {{ cs['class_combined_position'] }} of {{ students_per_class.get(pupil.class_id, '-') if students_per_class is defined else '-' }}
                     {% else %}
                       -
                     {% endif %}
