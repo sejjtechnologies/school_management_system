@@ -8,10 +8,14 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet"/>
 
     <style>
+        html, body { height: 100%; }
         body {
             margin: 0;
             font-family: 'Segoe UI', Arial, sans-serif;
             background-color: #f5f7fa;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
         .navbar {
             position: fixed;
@@ -43,10 +47,15 @@
             background-color: #c82333;
             color: white;
         }
-        .content {
+        /* Main scroll container so content can scroll above fixed footer */
+        main.content.main-scroll {
             margin-top: 70px;
-            margin-bottom: 60px;
             padding: 15px;
+            flex: 1 1 auto;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            /* Reserve space for footer (48px) + 20px gap so final button isn't hidden */
+            padding-bottom: calc(48px + 20px);
         }
         h2 {
             font-size: 20px;
@@ -130,14 +139,7 @@
             flex: 1;
             min-width: 120px;
         }
-        .footer {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            background-color: #eee;
-            text-align: center;
-            padding: 10px;
-        }
+        /* Footer is provided by `footer.html` fragment (.site-footer) */
         /* Section title color scheme */
         .title-student { color: #2c7a7b; }
         .title-contact { color: #1d4ed8; }
@@ -155,7 +157,7 @@
         </a>
     </div>
 
-    <div class="content">
+    <main class="content main-scroll">
 
         <form action="/register-pupil" method="post" enctype="multipart/form-data">
 
@@ -326,12 +328,10 @@
                 </button>
             </div>
         </form>
-    </div>
+    </main>
 
     <!-- Footer include -->
-    <div class="footer">
-        {% include 'footer.html' %}
-    </div>
+    {% include 'footer.html' %}
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -373,39 +373,7 @@
     });
     </script>
 
-    <!-- Ensure content bottom padding matches footer height so final button isn't hidden -->
-    <script>
-    function adjustContentPadding() {
-        var footer = document.querySelector('.footer');
-        var content = document.querySelector('.content');
-        if (!footer || !content) return;
-        // extra space (px) between last element and footer
-        var extra = 24;
-        // compute footer height including margins
-        var footerHeight = footer.offsetHeight || 0;
-        // set padding-bottom so user can scroll past last element
-        content.style.paddingBottom = (footerHeight + extra) + 'px';
-    }
-
-    // Run on load and resize. Use a small debounce on resize.
-    document.addEventListener('DOMContentLoaded', adjustContentPadding);
-    var resizeTimer;
-    window.addEventListener('resize', function() {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(adjustContentPadding, 120);
-    });
-
-    // If footer content may change dynamically, observe size changes.
-    try {
-        var footerEl = document.querySelector('.footer');
-        if (window.ResizeObserver && footerEl) {
-            var ro = new ResizeObserver(function() { adjustContentPadding(); });
-            ro.observe(footerEl);
-        }
-    } catch (e) {
-        // ResizeObserver may not be available; it's fine to skip.
-    }
-    </script>
+    <!-- Per-page footer-padding script removed; footer fragment provides guarded site-wide script -->
 
 </body>
 </html>
