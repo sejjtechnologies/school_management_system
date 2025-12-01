@@ -61,8 +61,6 @@
     .report-footer-print .social{ display:flex; gap:6px; align-items:center; justify-content:flex-end }
     .report-footer-print .social a{ display:inline-block; width:18px; height:18px }
     .report-footer-print svg{ width:100%; height:100%; display:block }
-    /* override inline svg fills so icons are white on red background */
-    .report-footer-print svg * { fill: currentColor !important; stroke: none !important; }
 
     /* Card wrapper styles */
     .report-footer-print .footer-card {
@@ -98,8 +96,14 @@
     }
 
     .report-footer-print .footer-body .left, .report-footer-print .footer-body .right { display:flex; gap:8px; align-items:center }
-    .report-footer-print .footer-body .left .brand { color: #10243a }
-    .report-footer-print .footer-body .social a svg * { fill: #c62828 !important }
+    /* Make all footer text a navy/light-blue color (except social icons) */
+    .report-footer-print .footer-header, .report-footer-print .footer-body { color: #0b355f }
+    .report-footer-print .footer-body .contact a{ color: #0b355f }
+
+    /* Social icons: reduce size and force centered alignment without affecting footer height */
+    .report-footer-print .footer-body .social { width:56px; display:flex; align-items:center; justify-content:center }
+    .report-footer-print .footer-body .social a { width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center }
+    .report-footer-print .footer-body .social svg { width:14px; height:14px; display:block }
 
     /* Print-safe adjustments: keep footer compact and avoid forcing a new page */
     @media print{
@@ -115,50 +119,40 @@
   </style>
 
   <div class="footer-card">
-    <div class="footer-header">
-      <div class="brand">
-        <div class="school-name">Bright Future Primary School</div>
-        <div class="motto">Empowering Learners for Tomorrow</div>
-      </div>
-      <div style="font-size:10px;color:rgba(255,255,255,0.95)">Location: 12 Sunshine Ave, Central Town</div>
-    </div>
-    <div class="footer-body">
-      <div class="left">
-        <div class="logo" aria-hidden="true">
-          <svg viewBox="0 0 64 64" width="40" height="40" xmlns="http://www.w3.org/2000/svg">
-            <rect width="64" height="64" rx="6" fill="#fde293"/>
-            <g transform="translate(8,10)">
-              <path d="M4 30c6-6 12-6 18 0 6-6 12-6 18 0v8H4v-8z" fill="#fff"/>
-              <path d="M2 28c7-6 13-6 20 0" stroke="#0b3d91" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-              <circle cx="48" cy="8" r="6" fill="#ffb703" />
-            </g>
-          </svg>
-        </div>
+    <div class="footer-card">
+      <div class="footer-header">
         <div class="brand">
-          <div style="font-weight:700; font-size:11px; color:#10243a">Bright Future Primary School</div>
-          <div style="font-size:9px; color:#666">Empowering Learners for Tomorrow</div>
+          <div class="school-name">Bright Future Primary School</div>
+          <div class="motto">Empowering Learners for Tomorrow</div>
+        </div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.95)">Location: Entebbe-Wakiso, Uganda</div>
+      </div>
+      <div class="footer-body">
+        <div class="left">
+          <div class="brand">
+            <div style="font-weight:700; font-size:11px; color:#10243a">Bright Future Primary School</div>
+            <div style="font-size:9px; color:#666">Empowering Learners for Tomorrow</div>
+          </div>
+        </div>
+        <div class="right">
+          <div class="contact">
+            <div><strong>Email:</strong> <a href="mailto:brightfutureprimary@gmail.com?subject=School%20Report%20Enquiry">brightfutureprimary@gmail.com</a></div>
+            <div style="margin-top:4px"><strong>Phone:</strong> <a href="tel:0768936641">0768936641</a> / <a href="tel:0744137174">0744137174</a></div>
+          </div>
+          <div class="social" aria-label="social links">
+            <a href="https://www.linkedin.com/" title="LinkedIn" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4.98 3.5C4.98 4.88 3.87 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1 4.98 2.12 4.98 3.5zM.5 8h4V24h-4zM8.5 8h3.84v2.18h.05c.54-1.03 1.86-2.18 3.83-2.18 4.1 0 4.86 2.7 4.86 6.21V24h-4v-7.47c0-1.78-.03-4.07-2.48-4.07-2.48 0-2.86 1.93-2.86 3.94V24h-4z"/></svg>
+            </a>
+            <a href="https://www.facebook.com/" title="Facebook" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22 12a10 10 0 1 0-11.5 9.9v-7h-2.2v-2.9h2.2V9.1c0-2.2 1.3-3.4 3.2-3.4.9 0 1.8.16 1.8.16v2h-1c-1 0-1.3.62-1.3 1.3v1.6h2.3l-.37 2.9H14.7v7A10 10 0 0 0 22 12"/></svg>
+            </a>
+            <a href="https://wa.me/256768936641" title="WhatsApp" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.5 3.5A11 11 0 1 0 23 14.7L22 21l-6.3-1.6A11 11 0 0 0 20.5 3.5zM12 6.5c-2.6 0-4.7 2.1-4.7 4.7 0 .8.2 1.6.5 2.3l-.3 1.2 1.2-.3c.7.4 1.5.6 2.3.6 2.6 0 4.7-2.1 4.7-4.7S14.6 6.5 12 6.5z"/></svg>
+            </a>
+            <a href="https://twitter.com/" title="Twitter" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.46 6c-.77.35-1.6.58-2.46.69a4.28 4.28 0 0 0 1.88-2.37 8.55 8.55 0 0 1-2.71 1.04 4.26 4.26 0 0 0-7.26 3.88A12.09 12.09 0 0 1 3.15 4.6a4.26 4.26 0 0 0 1.32 5.69c-.63-.02-1.23-.2-1.75-.5v.05a4.26 4.26 0 0 0 3.42 4.18c-.46.12-.94.12-1.44.05a4.27 4.27 0 0 0 3.98 2.96A8.56 8.56 0 0 1 2 19.54a12.08 12.08 0 0 0 6.55 1.92c7.86 0 12.16-6.51 12.16-12.15 0-.19 0-.39-.01-.58A8.72 8.72 0 0 0 24 5.5a8.53 8.53 0 0 1-2.54.7z"/></svg>
+            </a>
+          </div>
         </div>
       </div>
-      <div class="right">
-        <div class="contact">
-          <div><strong>Email:</strong> <a href="mailto:brightfutureprimary@gmail.com?subject=School%20Report%20Enquiry">brightfutureprimary@gmail.com</a></div>
-          <div style="margin-top:4px"><strong>Phone:</strong> <a href="tel:0768936641">0768936641</a> / <a href="tel:0744137174">0744137174</a></div>
-        </div>
-        <div class="social" aria-label="social links">
-          <a href="https://www.linkedin.com/" title="LinkedIn" target="_blank" rel="noopener">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4.98 3.5C4.98 4.88 3.87 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1 4.98 2.12 4.98 3.5zM.5 8h4V24h-4zM8.5 8h3.84v2.18h.05c.54-1.03 1.86-2.18 3.83-2.18 4.1 0 4.86 2.7 4.86 6.21V24h-4v-7.47c0-1.78-.03-4.07-2.48-4.07-2.48 0-2.86 1.93-2.86 3.94V24h-4z"/></svg>
-          </a>
-          <a href="https://www.facebook.com/" title="Facebook" target="_blank" rel="noopener">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22 12a10 10 0 1 0-11.5 9.9v-7h-2.2v-2.9h2.2V9.1c0-2.2 1.3-3.4 3.2-3.4.9 0 1.8.16 1.8.16v2h-1c-1 0-1.3.62-1.3 1.3v1.6h2.3l-.37 2.9H14.7v7A10 10 0 0 0 22 12"/></svg>
-          </a>
-          <a href="https://wa.me/256768936641" title="WhatsApp" target="_blank" rel="noopener">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.5 3.5A11 11 0 1 0 23 14.7L22 21l-6.3-1.6A11 11 0 0 0 20.5 3.5zM12 6.5c-2.6 0-4.7 2.1-4.7 4.7 0 .8.2 1.6.5 2.3l-.3 1.2 1.2-.3c.7.4 1.5.6 2.3.6 2.6 0 4.7-2.1 4.7-4.7S14.6 6.5 12 6.5z"/></svg>
-          </a>
-          <a href="https://twitter.com/" title="Twitter" target="_blank" rel="noopener">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.46 6c-.77.35-1.6.58-2.46.69a4.28 4.28 0 0 0 1.88-2.37 8.55 8.55 0 0 1-2.71 1.04 4.26 4.26 0 0 0-7.26 3.88A12.09 12.09 0 0 1 3.15 4.6a4.26 4.26 0 0 0 1.32 5.69c-.63-.02-1.23-.2-1.75-.5v.05a4.26 4.26 0 0 0 3.42 4.18c-.46.12-.94.12-1.44.05a4.27 4.27 0 0 0 3.98 2.96A8.56 8.56 0 0 1 2 19.54a12.08 12.08 0 0 0 6.55 1.92c7.86 0 12.16-6.51 12.16-12.15 0-.19 0-.39-.01-.58A8.72 8.72 0 0 0 24 5.5a8.53 8.53 0 0 1-2.54.7z"/></svg>
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>

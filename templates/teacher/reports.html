@@ -67,14 +67,18 @@
     /* Print footer positioning to match report-card width and sit at bottom of printed page */
     @media print {
       .report-print-footer {
-        position: fixed;
-        bottom: 6mm;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 820px;
-        max-width: 92vw;
+        position: static !important;
+        margin-top: 6mm;
+        width: auto;
+        max-width: 100%;
       }
-      .report-card { margin-bottom: 36mm; }
+      .report-card {
+        margin-bottom: 6mm;
+      }
+      .footer-card {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
     }
     .pupil-info {
       font-size: 1rem;
