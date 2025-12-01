@@ -263,12 +263,49 @@
               {% if first_rep.combined_average is defined and first_rep.combined_average is not none %}
                 {% set combined_total = first_rep.combined_total %}
                 {% set combined_average = first_rep.combined_average %}
-                {% set combined_grade = first_rep.combined_grade if first_rep.combined_grade is defined else ("A" if combined_average >= 80 else ("B" if combined_average >= 60 else ("C" if combined_average >= 40 else "D"))) %}
-                {% set general_remark = first_rep.general_remark if first_rep.general_remark is defined else ("Outstanding performance overall" if combined_average >= 80 else ("Very good work overall" if combined_average >=70 else ("Good effort, keep improving" if combined_average>=60 else ("Fair performance, needs more focus" if combined_average>=50 else "Needs significant improvement"))))) %}
+                {# Combined grade: prefer provided, otherwise compute from combined_average #}
+                {% if first_rep.combined_grade is defined %}
+                  {% set combined_grade = first_rep.combined_grade %}
+                {% else %}
+                  {% if combined_average >= 80 %}
+                    {% set combined_grade = 'A' %}
+                  {% elif combined_average >= 60 %}
+                    {% set combined_grade = 'B' %}
+                  {% elif combined_average >= 40 %}
+                    {% set combined_grade = 'C' %}
+                  {% else %}
+                    {% set combined_grade = 'D' %}
+                  {% endif %}
+                {% endif %}
+
+                {# General remark: prefer provided, otherwise derive from combined_average #}
+                {% if first_rep.general_remark is defined and first_rep.general_remark %}
+                  {% set general_remark = first_rep.general_remark %}
+                {% else %}
+                  {% if combined_average >= 80 %}
+                    {% set general_remark = 'Outstanding performance overall' %}
+                  {% elif combined_average >= 70 %}
+                    {% set general_remark = 'Very good work overall' %}
+                  {% elif combined_average >= 60 %}
+                    {% set general_remark = 'Good effort, keep improving' %}
+                  {% elif combined_average >= 50 %}
+                    {% set general_remark = 'Fair performance, needs more focus' %}
+                  {% else %}
+                    {% set general_remark = 'Needs significant improvement' %}
+                  {% endif %}
+                {% endif %}
               {% else %}
                 {% set combined_total = term_reports|map(attribute="total_score")|sum %}
                 {% set combined_average = (term_reports|map(attribute="average_score")|sum) / term_reports|length %}
-                {% set combined_grade = ("A" if combined_average >= 80 else ("B" if combined_average >= 60 else ("C" if combined_average >= 40 else "D"))) %}
+                {% if combined_average >= 80 %}
+                  {% set combined_grade = 'A' %}
+                {% elif combined_average >= 60 %}
+                  {% set combined_grade = 'B' %}
+                {% elif combined_average >= 40 %}
+                  {% set combined_grade = 'C' %}
+                {% else %}
+                  {% set combined_grade = 'D' %}
+                {% endif %}
                 {% set general_remark = term_reports[0].general_remark %}
               {% endif %}
               <div class="combined-summary">
