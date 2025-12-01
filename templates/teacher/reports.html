@@ -125,22 +125,23 @@
     .stat-cards {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      margin-top: 12px;
+      gap: 6px;
+      margin-top: 10px;
       align-items: stretch;
     }
     .stat-card {
       background: #f5f5f5;
-      padding: 8px;
+      padding: 6px;
       border-radius: 6px;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: flex-start;
-      font-size: 0.9rem;
+      font-size: 0.82rem;
+      min-height: 44px;
     }
-    .stat-card .label { color: #333; font-weight: 600; }
-    .stat-card .value { margin-top: 4px; font-weight: 800; font-size: 1.05rem; padding: 4px 6px; border-radius:4px; color: #fff; }
+    .stat-card .label { color: #333; font-weight: 600; font-size:0.78rem }
+    .stat-card .value { margin-top: 4px; font-weight: 800; font-size: 0.95rem; padding: 2px 6px; border-radius:4px; color: #fff; line-height:1.1 }
     .val-total { background: #1976d2; }
     .val-average { background: #2e7d32; }
     .val-grade { background: #ef6c00; }
@@ -168,11 +169,11 @@
       body {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
-        font-size: 12px;
+        font-size: 10.5px;
       }
       @page {
         size: A4 portrait;
-        margin: 10mm;
+        margin: 8mm;
       }
       .school-header {
         background-color: #c62828 !important;
@@ -183,7 +184,7 @@
       .report-card {
         box-shadow: none;
         margin: 0;
-        padding: 8px;
+        padding: 6px;
         max-width: 100%;
         overflow: visible;
         page-break-inside: avoid;
@@ -199,9 +200,9 @@
       }
       footer {
         position: static;
-        margin-top: 6px;
-        padding: 6px;
-        font-size: 11px;
+        margin-top: 4px;
+        padding: 4px;
+        font-size: 10px;
       }
     }
     @media (max-width: 576px) {
@@ -216,7 +217,7 @@
 <body>
   <!-- ✅ School Header -->
   <div class="school-header">
-    <h2>Bright Future High School</h2>
+    <h2>Bright Future Primary School</h2>
     <p>Empowering Learners for Tomorrow</p>
   </div>
 
@@ -420,13 +421,12 @@
     </div>
   </div>
 
-  <!-- ✅ Footer -->
-  {% include 'footer.html' %}
+  <!-- on-screen footer removed; print footer will be included inside the report to keep it on the same page -->
 
   <!-- Print-only copy of footer inside report so printed report includes full footer on same page -->
   <div class="report-print-footer d-none d-print-block">
-    <div style="max-width:900px; margin:10px auto 0 auto; font-size:12px;">
-      {% include 'footer.html' %}
+    <div style="max-width:900px; margin:6px auto 0 auto; font-size:11px;">
+      {% include 'footer_print.html' %}
     </div>
   </div>
 
