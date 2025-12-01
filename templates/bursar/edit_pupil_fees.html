@@ -7,6 +7,12 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
   <style>
+    :root{
+      --vh: 1vh; /* JS will update */
+      --navbar-height: 60px;
+      --footer-height: 60px;
+      --footer-gap: 20px; /* desired gap above footer */
+    }
     html, body {
       height: 100%;
       margin: 0;
@@ -14,8 +20,9 @@
       background-color: #f1f8e9;
     }
     .navbar {
-      height: 60px;
+      height: var(--navbar-height);
       background-color: #dc3545;
+      z-index: 1100;
     }
     .navbar-brand { color: #fff !important; }
     .navbar .back-btn {
@@ -25,13 +32,25 @@
       background-color: #fff;
       color: #dc3545;
     }
+
+    /* Make main the scroll container so content never scrolls under the fixed navbar/footer.
+       Keep the Bootstrap `.container` width by wrapping the existing content inside it. */
     main {
-      padding-top: 20px;
-      padding-bottom: 120px; /* increased for scroll space */
-      min-height: calc(100vh - 60px);
+      position: fixed;
+      top: calc(var(--navbar-height));
+      left: 0;
+      right: 0;
+      bottom: calc(var(--footer-height) + var(--footer-gap));
       overflow-y: auto;
-      margin-top: 60px;
+      -webkit-overflow-scrolling: touch;
+      padding: 12px 16px;
+      box-sizing: border-box;
+      background-color: transparent;
     }
+
+    /* Add a little extra bottom padding so the last element can scroll clear of the footer. */
+    main > .container { padding-bottom: calc(var(--footer-gap) + 12px); }
+
     table th, table td {
       vertical-align: middle !important;
       font-size: 0.8rem;
@@ -44,7 +63,8 @@
       padding: 0.75rem;
     }
     @media (max-width: 576px) {
-      main { padding: 10px; }
+      main { padding: 8px 10px; }
+      main > .container { padding-bottom: calc(var(--footer-gap) + 10px); }
       .btn { font-size: 0.75rem; padding: 0.25rem 0.4rem; }
       table th, table td { font-size: 0.7rem; padding: 0.25rem; }
       .card.pupil-details { font-size: 0.75rem; }
@@ -64,7 +84,8 @@
     </div>
   </nav>
 
-  <main class="container">
+  <main>
+    <div class="container">
     <h2 class="mb-4">Manage Payments for {{ pupil.first_name }} {{ pupil.last_name }}</h2>
 
     <!-- Pupil Details -->
@@ -241,9 +262,37 @@
       </div>
     </div>
 
+    </div>
   </main>
 
   {% include 'footer.html' %}
+
+  <script>
+    (function setVhAndFooter(){
+      function updateVars(){
+        // set --vh as 1% of the window inner height
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', (vh) + 'px');
+
+        // If footer is included as a separate file, compute its height and set --footer-height
+        const footer = document.querySelector('footer');
+        if (footer) {
+          const h = footer.offsetHeight || 60;
+          document.documentElement.style.setProperty('--footer-height', h + 'px');
+        }
+      }
+      updateVars();
+      window.addEventListener('resize', updateVars);
+      window.addEventListener('orientationchange', updateVars);
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', updateVars);
+      }
+      // In case footer is injected later, observe body for added footer element
+      const ro = new MutationObserver(() => { if (document.querySelector('footer')) updateVars(); });
+      ro.observe(document.body, { childList: true, subtree: true });
+    })();
+  </script>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
