@@ -11,33 +11,31 @@ from models.stream_model import Stream
 
 secretary_routes = Blueprint("secretary_routes", __name__)
 
-# Utility: Generate next admission number (unique)
+# Utility: Generate next admission number (HPF001, HPF002, ...)
 def generate_admission_number():
-    year = datetime.now().year
-    last_pupil = Pupil.query.filter(extract("year", Pupil.admission_date) == year)\
-                             .order_by(Pupil.id.desc()).first()
-    if last_pupil and last_pupil.admission_number:
-        try:
-            last_number = int(last_pupil.admission_number.split("/")[-1])
-            next_number = last_number + 1
-        except ValueError:
-            next_number = 1
-    else:
-        next_number = 1
-    return f"Sh/sy/{year}/{str(next_number).zfill(3)}"
-
-# Utility: Generate next receipt number (unique)
-def generate_receipt_number():
     last_pupil = Pupil.query.order_by(Pupil.id.desc()).first()
-    if last_pupil and last_pupil.receipt_number and last_pupil.receipt_number.startswith("receip"):
+    if last_pupil and last_pupil.admission_number and last_pupil.admission_number.startswith("HPF"):
         try:
-            last_num = int(last_pupil.receipt_number.replace("receip", ""))
+            last_num = int(last_pupil.admission_number.replace("HPF", ""))
             next_num = last_num + 1
         except ValueError:
             next_num = 1
     else:
         next_num = 1
-    return f"receip{str(next_num).zfill(3)}"
+    return f"HPF{str(next_num).zfill(3)}"
+
+# Utility: Generate next receipt number (RCT-001, RCT-002, ...)
+def generate_receipt_number():
+    last_pupil = Pupil.query.order_by(Pupil.id.desc()).first()
+    if last_pupil and last_pupil.receipt_number and last_pupil.receipt_number.startswith("RCT-"):
+        try:
+            last_num = int(last_pupil.receipt_number.replace("RCT-", ""))
+            next_num = last_num + 1
+        except ValueError:
+            next_num = 1
+    else:
+        next_num = 1
+    return f"RCT-{str(next_num).zfill(3)}"
 
 # Utility: Generate next pupil_id (ID001, ID002, ...)
 def generate_pupil_id():
@@ -47,31 +45,23 @@ def generate_pupil_id():
             last_num = int(last_pupil.pupil_id.replace("ID", ""))
             next_num = last_num + 1
         except ValueError:
-            next_num = last_pupil.id + 1
+            next_num = 1
     else:
         next_num = 1
     return f"ID{str(next_num).zfill(3)}"
 
-# Utility: Generate roll/index number (SYY/001, SYY/002...)
+# Utility: Generate roll/index number (H25/001, H25/002, ...)
 def generate_roll_number(admission_date: datetime):
-    year_suffix = admission_date.strftime("%y")
-    month = admission_date.month
-
-    last_pupil = Pupil.query.filter(
-        extract("year", Pupil.admission_date) == admission_date.year,
-        extract("month", Pupil.admission_date) == month
-    ).order_by(Pupil.id.desc()).first()
-
-    if last_pupil and last_pupil.roll_number:
+    last_pupil = Pupil.query.order_by(Pupil.id.desc()).first()
+    if last_pupil and last_pupil.roll_number and last_pupil.roll_number.startswith("H25/"):
         try:
-            last_number = int(last_pupil.roll_number.split("/")[-1])
-            next_number = last_number + 1
+            last_num = int(last_pupil.roll_number.replace("H25/", ""))
+            next_num = last_num + 1
         except ValueError:
-            next_number = 1
+            next_num = 1
     else:
-        next_number = 1
-
-    return f"S{year_suffix}/{str(next_number).zfill(3)}"
+        next_num = 1
+    return f"H25/{str(next_num).zfill(3)}"
 
 # Utility: Save profile image
 def save_photo(file, pupil_id):
