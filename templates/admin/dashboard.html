@@ -146,5 +146,42 @@
 
   <!-- ✅ Fixed Footer -->
   {% include 'footer.html' %}
+  <script>
+    // Auto-dismiss alerts if they appear on this page (2 seconds) and allow immediate close via (x)
+    (function initAutoDismissAlerts(){
+      const ALERT_TIMEOUT = 2000;
+      function setupAlert(alert){
+        if (!alert || !alert.parentNode) return;
+        const btn = alert.querySelector('.btn-close');
+        if (btn) btn.addEventListener('click', ()=>{ try{ alert.remove(); }catch(e){ if(alert.parentNode) alert.parentNode.removeChild(alert); } });
+
+        alert.addEventListener('close.bs.alert', ()=>{ clearTimeout(alert._autoDismissTimer); });
+        alert.addEventListener('closed.bs.alert', ()=>{ clearTimeout(alert._autoDismissTimer); });
+
+        alert._autoDismissTimer = setTimeout(()=>{
+          try {
+            if (window.bootstrap && bootstrap.Alert) {
+              const inst = bootstrap.Alert.getOrCreateInstance(alert);
+              inst.close();
+            } else {
+              alert.classList.remove('show');
+              setTimeout(()=>{ if (alert.parentNode) alert.parentNode.removeChild(alert); }, 150);
+            }
+          } catch(e) { if (alert.parentNode) alert.parentNode.removeChild(alert); }
+        }, ALERT_TIMEOUT);
+      }
+
+      // initialize existing alerts
+      document.querySelectorAll('.alert').forEach(setupAlert);
+
+      // observe for dynamically added alerts
+      const mo = new MutationObserver(muts=>{
+        muts.forEach(m=>{
+          m.addedNodes.forEach(n=>{ if (n.nodeType===1 && n.matches && n.matches('.alert')) setupAlert(n); });
+        });
+      });
+      mo.observe(document.body, { childList: true, subtree: true });
+    })();
+  </script>
 </body>
 </html>

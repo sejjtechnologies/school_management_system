@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Create User</title>
+  <title>Admin, Create User</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
   <style>
@@ -224,6 +224,45 @@
           ro.observe(footerEl);
         }
       } catch (e) {}
+
+      // Auto-dismiss flash alerts after 2 seconds, or immediately when the close (x) is clicked.
+      (function initAutoDismissAlerts(){
+        const ALERT_TIMEOUT = 2000; // ms
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+          // if already removed, skip
+          if (!alert.parentNode) return;
+
+          // clicking the close button should remove immediately
+          const btn = alert.querySelector('.btn-close');
+          if (btn) {
+            btn.addEventListener('click', function(){
+              try { alert.remove(); } catch(e) { if (alert.parentNode) alert.parentNode.removeChild(alert); }
+            });
+          }
+
+          // also listen for Bootstrap dismiss events (if bootstrap JS is present)
+          alert.addEventListener('close.bs.alert', function(){ clearTimeout(alert._autoDismissTimer); });
+          alert.addEventListener('closed.bs.alert', function(){ clearTimeout(alert._autoDismissTimer); });
+
+          // set timeout to remove after ALERT_TIMEOUT
+          alert._autoDismissTimer = setTimeout(function(){
+            try {
+              // try to use Bootstrap's Alert if available
+              if (window.bootstrap && bootstrap.Alert) {
+                const inst = bootstrap.Alert.getOrCreateInstance(alert);
+                inst.close();
+              } else {
+                // fade out then remove
+                alert.classList.remove('show');
+                setTimeout(function(){ if (alert.parentNode) alert.parentNode.removeChild(alert); }, 150);
+              }
+            } catch (e) {
+              if (alert.parentNode) alert.parentNode.removeChild(alert);
+            }
+          }, ALERT_TIMEOUT);
+        });
+      })();
     });
   </script>
 </body>
