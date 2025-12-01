@@ -218,6 +218,24 @@
       </ul>
     </div>
 
+    <!-- How It Works Section -->
+    <div class="card-section system-card">
+      <h2><i class="bi bi-lightning-fill"></i> How It Works</h2>
+      <p>
+        The system follows simple role-based workflows so every user has clear responsibilities and permissions.
+      </p>
+      <ul>
+        <li><strong>Admin:</strong> creates role accounts (teachers, bursars, parents, headteacher, secretary) and manages permissions. Admins can help reset accounts or update user details.</li>
+        <li><strong>Secretary:</strong> logs in with the created credentials to register students, assign them to class & stream, and manage pupil records (edit/delete when needed). If a secretary forgets their password they can use the reset link or contact the admin for help.</li>
+        <li><strong>Teacher:</strong> after being assigned a class, logs in to enter marks, submit reports, track attendance and print or download detailed pupil reports.</li>
+        <li><strong>Bursar:</strong> records payments for pupils, generates receipts, tracks salaries and school expenses, and produces simple financial summaries.</li>
+        <li><strong>Parent:</strong> logs in to view their child's progress, download receipts and communicate with school staff where enabled.</li>
+      </ul>
+      <p>
+        These workflows are connected: the admin provisions accounts and assignments, the secretary registers pupils and links them to classes/streams, teachers and bursars operate on the assigned pupils, and parents access reports and receipts.
+      </p>
+    </div>
+
     <!-- Vision Section -->
     <div class="card-section vision-card">
       <h2><i class="bi bi-rocket-fill"></i> Vision & Roadmap</h2>
@@ -241,8 +259,15 @@
         Building this system has been a learning journey and a labour of love. Your feedback — whether a bug report, a request, or praise — is the most valuable way to help the project grow.
       </p>
       <p>
-        <strong>Email:</strong> <a href="mailto:atukwasewilber78@gmail.com">atukwasewilber78@gmail.com</a><br>
-        <strong>WhatsApp:</strong> <a href="https://wa.me/256768936641">+256 76 893 6641</a>
+        <strong>Email:</strong>
+        <a href="mailto:atukwasewilber78@gmail.com">atukwasewilber78@gmail.com</a>
+        &nbsp;|&nbsp;
+        <a href="mailto:sejjtechnologies@gmail.com">sejjtechnologies@gmail.com</a>
+        <br>
+        <strong>WhatsApp:</strong>
+        <a href="https://wa.me/256768936641">+256 76 893 6641</a>
+        &nbsp;|&nbsp;
+        <a href="https://wa.me/256744137174">+256 74 441 7174</a>
       </p>
       <p>
         <a href="mailto:atukwasewilber78@gmail.com?subject=Request%20a%20Pilot&body=Hello%20Wilber%2C%0A%0AI%27d%20like%20to%20discuss%20a%20pilot%20for%20your%20system%20at%20our%20organisation.%20Please%20get%20in%20touch.%0A%0ARegards%2C" class="btn btn-primary" style="border-radius:20px; padding:10px 18px;">
@@ -261,10 +286,38 @@
       <p style="color:#00796b;">
         If you’re evaluating this system for your organisation or project, I offer help with deployment, data migration and training. Reach out and we’ll plan a pilot together.
       </p>
+      <p>
+        <strong>Support & Hiring:</strong> The best way to support my work is to hire me for project work or retain me to customise and deploy this system for your organisation. I provide project scoping, deployment support, data migration and hands-on training. If you'd like to discuss rates or a pilot, click <a href="mailto:atukwasewilber78@gmail.com?subject=Hiring%20Inquiry">Request a Pilot</a> or message me on WhatsApp.
+      </p>
     </div>
   </main>
 
   {% include 'footer.html' %}
 
+<script>
+  // Ensure main has bottom padding to keep last card visible above fixed footer
+  (function ensureFooterGap(){
+    function update() {
+      var main = document.querySelector('main');
+      var footer = document.querySelector('footer');
+      if (!main) return;
+      var gap = 20; // desired gap in px
+      var footerH = footer ? footer.offsetHeight : 60;
+      main.style.paddingBottom = (footerH + gap + 24) + 'px';
+    }
+    update();
+    window.addEventListener('resize', function(){ setTimeout(update, 80); });
+    // observe footer changes
+    try {
+      var f = document.querySelector('footer');
+      if (f && window.ResizeObserver) {
+        new ResizeObserver(update).observe(f);
+      }
+    } catch(e){}
+    // also ensure if footer is injected later
+    var mo = new MutationObserver(function(m){ update(); });
+    mo.observe(document.body, {childList:true, subtree:true});
+  })();
+</script>
 </body>
 </html>
