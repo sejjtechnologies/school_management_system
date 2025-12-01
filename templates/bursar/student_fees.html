@@ -161,7 +161,6 @@
       {% endfor %}
     {% endif %}
   {% endwith %}
-
   {% set master_fee_list = [] %}
   {% for p in pupils %}
     {% for f in p.fees %}
@@ -221,8 +220,7 @@
 
             <!-- UPDATED BUTTON HERE -->
             <td>
-              <a href="{{ url_for('bursar_routes.enter_payment_page', pupil_id=pupil.id) }}" class="btn btn-primary btn-sm">Manage</a>
-
+              <a href="{{ url_for('bursar_routes.view_pupil_fees_structure', pupil_id=pupil.id) }}" class="btn btn-primary btn-sm">Manage</a>
             </td>
 
           </tr>

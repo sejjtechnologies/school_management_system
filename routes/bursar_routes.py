@@ -60,7 +60,7 @@ def enter_payment_page(pupil_id):
 
 
 # -------------------------------------------------------------
-# 4️⃣ ADD PAYMENT (fee_id included)
+# 4️⃣ ADD PAYMENT (fee_id included, with validation)
 # -------------------------------------------------------------
 @bursar_routes.route("/bursar/add-payment/<int:pupil_id>", methods=["POST"])
 def add_payment(pupil_id):
@@ -71,17 +71,33 @@ def add_payment(pupil_id):
         amount_paid = float(request.form.get("amount_paid"))
         payment_method = request.form.get("payment_method")
 
+        # Check if fee item exists
+        fee_item = ClassFeeStructure.query.get_or_404(fee_id)
+
+        # Calculate total already paid for this fee item
+        already_paid = sum(p.amount_paid for p in pupil.payments if p.fee_id == fee_id)
+
+        # Prevent adding payment if fully paid
+        if already_paid >= fee_item.amount:
+            flash(f"The fee item '{fee_item.item_name}' is already fully paid.", "warning")
+            return redirect(url_for("bursar_routes.view_pupil_fees_structure", pupil_id=pupil.id))
+
+        # Prevent overpayment
+        if already_paid + amount_paid > fee_item.amount:
+            flash(f"Payment exceeds required amount for '{fee_item.item_name}'.", "danger")
+            return redirect(url_for("bursar_routes.view_pupil_fees_structure", pupil_id=pupil.id))
+
         payment = Payment(
             pupil_id=pupil.id,
-            fee_id=fee_id,                   # ✔ Linked to specific fee item
+            fee_id=fee_id,
             amount_paid=amount_paid,
             payment_method=payment_method,
-            reference=str(fee_id)            # Optional – keeping for backwards compatibility
+            reference=str(fee_id)
         )
 
         db.session.add(payment)
         db.session.commit()
-        flash(f"Payment of UGX {amount_paid:,.0f} added successfully.", "success")
+        flash(f"Payment of UGX {amount_paid:,.0f} added successfully for {fee_item.item_name}.", "success")
 
     except Exception as e:
         db.session.rollback()

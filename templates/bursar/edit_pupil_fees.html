@@ -11,7 +11,7 @@
     .navbar { height: 60px; background-color: #37474f; }
     .navbar-brand { color: #fff !important; }
     .navbar .back-btn { font-size: 0.9rem; padding: 0.25rem 0.5rem; border-radius: 5px; }
-    main { padding-top: 20px; padding-bottom: 20px; height: calc(100vh - 60px - 70px); overflow-y: auto; margin-top: 60px; }
+    main { padding-top: 20px; padding-bottom: 80px; height: calc(100vh - 60px); overflow-y: auto; margin-top: 60px; }
     table th, table td { vertical-align: middle !important; }
     @media (max-width: 576px) { main { padding: 10px; } .btn { font-size: 0.85rem; padding: 0.3rem 0.5rem; } }
   </style>
@@ -22,7 +22,7 @@
   <nav class="navbar fixed-top navbar-expand-lg d-flex align-items-center">
     <div class="container-fluid px-3 d-flex justify-content-between">
       <a class="navbar-brand fw-bold" href="#"><i class="bi bi-cash-coin me-2"></i>Bursar Dashboard</a>
-      <a href="{{ request.referrer or url_for('bursar_routes.student_fees') }}" class="btn btn-warning back-btn">
+      <a href="javascript:history.back()" class="btn btn-warning back-btn">
         <i class="bi bi-arrow-left"></i> Back
       </a>
     </div>
@@ -30,6 +30,42 @@
 
   <main class="container">
     <h2 class="mb-4">Manage Payments for {{ pupil.first_name }} {{ pupil.last_name }}</h2>
+
+    <!-- Pupil Details -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Pupil Details</h5>
+        <p><strong>Full Name:</strong> {{ pupil.first_name }} {{ pupil.middle_name }} {{ pupil.last_name }}</p>
+        <p><strong>Admission Number:</strong> {{ pupil.admission_number }}</p>
+        <p><strong>Class:</strong> {{ pupil.class_.name if pupil.class_ else 'N/A' }}</p>
+        <p><strong>Stream:</strong> {{ pupil.stream.name if pupil.stream else 'N/A' }}</p>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="year" class="form-label">Year</label>
+            <select id="year" name="year" class="form-select">
+              {% for y in range(2020, 2031) %}
+                <option value="{{ y }}">{{ y }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label for="term" class="form-label">Term</label>
+            <select id="term" name="term" class="form-select">
+              <option value="Term 1">Term 1</option>
+              <option value="Term 2">Term 2</option>
+              <option value="Term 3">Term 3</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Balance Summary -->
+    <div class="alert alert-info">
+      <strong>Total Required:</strong> UGX {{ "{:,.0f}".format(total_required) }} |
+      <strong>Total Paid:</strong> UGX {{ "{:,.0f}".format(total_paid) }} |
+      <strong>Balance:</strong> <span class="fw-bold text-danger">UGX {{ "{:,.0f}".format(balance) }}</span>
+    </div>
 
     <!-- Flash messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -42,7 +78,6 @@
         {% endfor %}
       {% endif %}
     {% endwith %}
-
     <!-- Existing Payments Table -->
     <div class="table-responsive">
       <table class="table table-striped table-bordered align-middle">
@@ -60,16 +95,41 @@
           {% for payment in pupil.payments %}
           <tr>
             <td>{{ loop.index }}</td>
-            <td>{{ payment.fee_name }}</td>
+            <td>
+              {{ payment.fee_item.item_name }}
+              {% if paid_lookup[payment.fee_item.id] >= payment.fee_item.amount %}
+                <span class="text-success ms-1"><i class="bi bi-check-circle-fill"></i></span>
+              {% endif %}
+            </td>
             <td>{{ "{:,.0f}".format(payment.amount_paid or 0) }}</td>
             <td>{{ payment.payment_method }}</td>
             <td>{{ payment.payment_date.strftime('%Y-%m-%d') }}</td>
             <td>
-              <form action="{{ url_for('bursar_routes.delete_payment', payment_id=payment.id) }}" method="POST" class="d-inline">
-                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this payment?')">
-                  <i class="bi bi-trash"></i> Delete
-                </button>
-              </form>
+              <!-- Delete Button triggers modal -->
+              <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ payment.id }}">
+                <i class="bi bi-trash"></i> Delete
+              </button>
+
+              <!-- Confirmation Modal -->
+              <div class="modal fade" id="deleteModal{{ payment.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ payment.id }}" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                  <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                      <h5 class="modal-title" id="deleteModalLabel{{ payment.id }}">Confirm Delete</h5>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                      Are you sure you want to delete this payment of UGX {{ "{:,.0f}".format(payment.amount_paid or 0) }} for {{ payment.fee_item.item_name }}?
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                      <form action="{{ url_for('bursar_routes.delete_payment', payment_id=payment.id) }}" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </td>
           </tr>
           {% else %}
@@ -81,41 +141,68 @@
       </table>
     </div>
 
-    <!-- Add/Update Class Fees Form -->
-    <div class="card mt-4">
-      <div class="card-header bg-success text-white">Add / Update Fees</div>
+    <!-- Add Payment Form -->
+    <div class="card mt-4 mb-5">
+      <div class="card-header bg-success text-white">Add Payment</div>
       <div class="card-body">
-        <form action="{{ url_for('bursar_routes.edit_pupil_fees', pupil_id=pupil.id) }}" method="POST">
+        <form action="{{ url_for('bursar_routes.add_payment', pupil_id=pupil.id) }}" method="POST">
           <div class="row mb-3">
             <div class="col-md-6">
-              <label>Tuition Fee (UGX)</label>
-              <input type="number" class="form-control" name="tuition_fee" value="{{ class_fee.tuition_fee if class_fee else 0 }}" min="0" required>
+              <label>Select Fee Item</label>
+              <select name="fee_id" class="form-select" required>
+                <option value="">-- Choose Fee Item --</option>
+                {% for item in pupil.class_fees %}
+                  {% set paid = paid_lookup[item.id] %}
+                  {% if paid >= item.amount %}
+                    <option value="{{ item.id }}" disabled>
+                      {{ item.item_name }} (UGX {{ "{:,.0f}".format(item.amount) }}) ✅ Paid
+                    </option>
+                  {% else %}
+                    <option value="{{ item.id }}">
+                      {{ item.item_name }} (UGX {{ "{:,.0f}".format(item.amount) }})
+                    </option>
+                  {% endif %}
+                {% endfor %}
+              </select>
             </div>
             <div class="col-md-6">
-              <label>Activity Fee (UGX)</label>
-              <input type="number" class="form-control" name="activity_fee" value="{{ class_fee.activity_fee if class_fee else 0 }}" min="0" required>
+              <label>Amount Paid (UGX)</label>
+              <input type="number" class="form-control" name="amount_paid" min="0" required>
             </div>
           </div>
 
           <div class="row mb-3">
             <div class="col-md-6">
-              <label>Lab Fee (UGX)</label>
-              <input type="number" class="form-control" name="lab_fee" value="{{ class_fee.lab_fee if class_fee else 0 }}" min="0" required>
+              <label>Payment Method</label>
+              <select name="payment_method" class="form-select" required>
+                <option>Cash</option>
+                <option>Mobile Money</option>
+                <option>Bank Deposit</option>
+                <option>Cheque</option>
+              </select>
             </div>
             <div class="col-md-6">
-              <label>Exam Fee (UGX)</label>
-              <input type="number" class="form-control" name="exam_fee" value="{{ class_fee.exam_fee if class_fee else 0 }}" min="0" required>
+              <label>Year</label>
+              <select name="year" class="form-select" required>
+                {% for y in range(2020, 2031) %}
+                  <option value="{{ y }}">{{ y }}</option>
+                {% endfor %}
+              </select>
             </div>
           </div>
 
           <div class="row mb-3">
             <div class="col-md-6">
-              <label>Other Fee (UGX)</label>
-              <input type="number" class="form-control" name="other_fee" value="{{ class_fee.other_fee if class_fee else 0 }}" min="0">
+              <label>Term</label>
+              <select name="term" class="form-select" required>
+                <option value="Term 1">Term 1</option>
+                <option value="Term 2">Term 2</option>
+                <option value="Term 3">Term 3</option>
+              </select>
             </div>
           </div>
 
-          <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> Save / Update Fees</button>
+          <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> Save Payment</button>
         </form>
       </div>
     </div>
