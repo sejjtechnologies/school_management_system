@@ -62,23 +62,23 @@
     .report-footer-print .social a{ display:inline-block; width:18px; height:18px }
     .report-footer-print svg{ width:100%; height:100%; display:block }
 
-    /* Card wrapper styles */
+    /* Card wrapper styles (smaller footprint for print so it fits remaining page space) */
     .report-footer-print .footer-card {
       width: 100%;
-      max-width: 820px;
+      max-width: 760px;
       margin: 0 auto;
-      border-radius: 6px;
+      border-radius: 4px;
       overflow: hidden;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-      page-break-inside: avoid; /* prevent card from splitting across pages */
-      break-inside: avoid;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      /* allow browser flexibility to place the footer in remaining space */
+      break-inside: auto;
       -webkit-print-color-adjust: exact;
     }
 
     .report-footer-print .footer-header {
       background: #c62828;
       color: #fff;
-      padding: 6px 10px;
+      padding: 4px 8px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -87,12 +87,12 @@
     .report-footer-print .footer-body {
       background: #ffffff;
       color: #10243a;
-      padding: 8px 10px;
+      padding: 6px 8px;
       display: flex;
       justify-content: space-between;
-      gap: 10px;
+      gap: 8px;
       align-items: center;
-      font-size: 9.5px;
+      font-size: 9px;
     }
 
     .report-footer-print .footer-body .left, .report-footer-print .footer-body .right { display:flex; gap:8px; align-items:center }
@@ -101,25 +101,26 @@
     .report-footer-print .footer-body .contact a{ color: #0b355f }
 
     /* Social icons: reduce size and force centered alignment without affecting footer height */
-    .report-footer-print .footer-body .social { width:56px; display:flex; align-items:center; justify-content:center }
-    .report-footer-print .footer-body .social a { width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center }
-    .report-footer-print .footer-body .social svg { width:14px; height:14px; display:block }
+    .report-footer-print .footer-body .social { width:48px; display:flex; align-items:center; justify-content:center }
+    .report-footer-print .footer-body .social a { width:14px; height:14px; display:inline-flex; align-items:center; justify-content:center }
+    .report-footer-print .footer-body .social svg { width:12px; height:12px; display:block }
 
     /* Print-safe adjustments: keep footer compact and avoid forcing a new page */
     @media print{
-      .report-footer-print{ font-size:9.25px; padding:4px 6px; border-top-width:1px }
-      .report-footer-print .brand .school-name{ font-size:11px }
-      .report-footer-print .brand .motto{ font-size:8.5px }
-      .report-footer-print .contact{ font-size:9px }
-      .report-footer-print { bottom: 6mm; }
-      .report-footer-print .logo { display:inline-block; width:36px; height:36px }
+      .report-footer-print{ font-size:9px; padding:2px 4px; border-top-width:1px }
+      .report-footer-print .brand .school-name{ font-size:10px }
+      .report-footer-print .brand .motto{ font-size:8px }
+      .report-footer-print .contact{ font-size:8.5px }
+      .report-footer-print .logo { display:inline-block; width:28px; height:28px }
       /* Ensure the background prints; many browsers need print-color-adjust to honor background colors */
       .report-footer-print { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      /* Reduce density so footer can fit remaining page space */
+      .report-footer-print .footer-header { padding: 3px 6px }
+      .report-footer-print .footer-body { padding: 4px 6px }
     }
   </style>
 
   <div class="footer-card">
-    <div class="footer-card">
       <div class="footer-header">
         <div class="brand">
           <div class="school-name">Bright Future Primary School</div>

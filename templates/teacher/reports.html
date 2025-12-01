@@ -432,12 +432,12 @@
       }
       .report-print-footer {
         position: static !important;
-        margin-top: 6mm;
+        margin-top: 0 !important;
         width: auto;
         max-width: 100%;
       }
-      /* Keep a small bottom margin on the report card so the footer sits immediately after it */
-      .report-card { margin-bottom: 6mm; }
+      /* Remove extra bottom margin so the footer can occupy any remaining space */
+      .report-card { margin-bottom: 0; }
     }
   </style>
 </body>
