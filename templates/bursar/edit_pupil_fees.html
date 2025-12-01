@@ -15,7 +15,7 @@
     }
     .navbar {
       height: 60px;
-      background-color: #dc3545; /* red background */
+      background-color: #dc3545;
     }
     .navbar-brand { color: #fff !important; }
     .navbar .back-btn {
@@ -27,7 +27,7 @@
     }
     main {
       padding-top: 20px;
-      padding-bottom: 100px; /* extra space above footer */
+      padding-bottom: 120px; /* increased for scroll space */
       min-height: calc(100vh - 60px);
       overflow-y: auto;
       margin-top: 60px;
@@ -141,23 +141,21 @@
             <td>{{ payment.payment_method }}</td>
             <td>{{ payment.payment_date.strftime('%Y-%m-%d') }}</td>
             <td>
-              <!-- Delete Button triggers modal -->
-              <button type="button" class="btn btn-danger btn-sm p-1" data-bs-toggle="modal" data-bs-target="#deleteModal{{ payment.id }}">
+              <button type="button" class="btn btn-danger btn-sm px-2 py-1" data-bs-toggle="modal" data-bs-target="#deleteModal{{ payment.id }}">
                 <i class="bi bi-trash"></i>
               </button>
 
-              <!-- Confirmation Modal -->
               <div class="modal fade" id="deleteModal{{ payment.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ payment.id }}" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                   <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
+                    <div class="modal-header bg-danger text-white py-2">
                       <h6 class="modal-title" id="deleteModalLabel{{ payment.id }}">Confirm Delete</h6>
                       <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
+                    <div class="modal-body small">
                       Are you sure you want to delete this payment of UGX {{ "{:,.0f}".format(payment.amount_paid or 0) }} for {{ payment.fee_item.item_name }}?
                     </div>
-                    <div class="modal-footer">
+                    <div class="modal-footer py-2">
                       <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                       <form action="{{ url_for('bursar_routes.delete_payment', payment_id=payment.id) }}" method="POST" class="d-inline">
                         <button type="submit" class="btn btn-danger btn-sm">Delete</button>
@@ -238,7 +236,7 @@
             </div>
           </div>
 
-          <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-save"></i> Save Payment</button>
+          <button type="submit" class="btn btn-success btn-sm mt-2"><i class="bi bi-save"></i> Save Payment</button>
         </form>
       </div>
     </div>
