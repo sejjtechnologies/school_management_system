@@ -1,10 +1,14 @@
 <!-- Footer fragment: include in templates with `{% raw %}{% include 'footer.html' %}{% endraw %}` -->
 <style>
   .site-footer {
+    /* colors configurable */
+    --email-color: #ffd54f; /* warm/yellow for email links */
+    --contact-color: #cfe9ff; /* light blue for contact links */
+
     background: #0a58ca;
     color: #ffffff;
-    padding: 0 20px;
-    height: 60px;
+    padding: 0 16px;
+    height: 48px; /* reduced height to better fit mobile */
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -16,22 +20,25 @@
     font-family: "Comic Sans MS", 'Comic Sans', 'Segoe UI', Arial, sans-serif;
   }
   .site-footer .footer-left {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
-    line-height: 1.3;
+    line-height: 1.2;
   }
-  .site-footer .footer-left a {
-    color: #ffffff;
-    text-decoration: none;
-    margin: 0 4px;
-    font-size: 15px;
-  }
-  .site-footer .footer-left a:hover { color: #d1e7ff; text-decoration: underline; }
-  .site-footer .footer-right a { color: #ffffff; margin: 0 8px; font-size: 20px; text-decoration: none; transition: 0.3s ease; }
-  .site-footer .footer-right a:hover { color: #d1e7ff; transform: scale(1.2); }
+  .site-footer .footer-left a { text-decoration: none; margin: 0 4px; font-size: 14px; }
+  .site-footer .footer-left a.email-link { color: var(--email-color); }
+  .site-footer .footer-left a.email-link:hover { filter: brightness(1.15); text-decoration: underline; }
+  .site-footer .footer-left a.contact-link { color: var(--contact-color); }
+  .site-footer .footer-left a.contact-link:hover { filter: brightness(1.15); text-decoration: underline; }
+  .site-footer .footer-left a.contact-sms { color: var(--contact-color); margin-left: 6px; font-size: 14px; text-decoration: none; }
+  .site-footer .footer-left a.contact-sms i { vertical-align: middle; }
+
+  .site-footer .footer-right a { color: #ffffff; margin: 0 6px; font-size: 18px; text-decoration: none; transition: 0.18s ease; }
+  .site-footer .footer-right a:hover { color: #d1e7ff; transform: scale(1.12); }
+
   @media (max-width: 600px) {
-    .site-footer { height: auto; padding: 10px; flex-direction: column; text-align: center; gap: 8px; }
-    .site-footer .footer-right a { font-size: 22px; }
+    .site-footer { height: auto; padding: 8px; flex-direction: column; text-align: center; gap: 6px; }
+    .site-footer .footer-right a { font-size: 20px; }
+    .site-footer .footer-left { font-size: 13px; }
   }
 </style>
 
@@ -39,19 +46,24 @@
   <div class="footer-left">
     © 2025 School Management System v1.0<br>
     Emails:
-    <a href="mailto:sejjtechnologies@gmail.com">sejjtechnologies@gmail.com</a> |
-    <a href="mailto:sejj78w@gmail.com">sejj78w@gmail.com</a><br>
+    <a class="email-link" href="mailto:sejjtechnologies@gmail.com">sejjtechnologies@gmail.com</a> |
+    <a class="email-link" href="mailto:sejjtechnologies@gmail.com">sejjtechnologies@gmail.com</a><br>
     Contacts:
-    <a href="tel:+256768936641">0768936641</a> /
-    <a href="tel:+256706669148">0744137174</a> (Calls & WhatsApp)
+    <a class="contact-link" href="tel:+256768936641">0768936641</a>
+    <a class="contact-sms" href="sms:+256768936641" title="SMS 0768936641"><i class="bi bi-chat-dots-fill"></i></a>
+    /
+    <a class="contact-link" href="tel:+256706669148">0744137174</a>
+    <a class="contact-sms" href="sms:+256706669148" title="SMS 0744137174"><i class="bi bi-chat-dots-fill"></i></a>
+    <span> (Calls & WhatsApp)</span>
   </div>
 
   <div class="footer-right">
-    <a href="#" title="Facebook"><i class="bi bi-facebook"></i></a>
-    <a href="#" title="Twitter"><i class="bi bi-twitter"></i></a>
-    <a href="#" title="Instagram"><i class="bi bi-instagram"></i></a>
-    <a href="#" title="LinkedIn"><i class="bi bi-linkedin"></i></a>
-    <a href="https://wa.me/256768936641" title="WhatsApp"><i class="bi bi-whatsapp"></i></a>
-    <a href="#" title="TikTok"><i class="bi bi-music-note-beamed"></i></a>
+    <a href="https://facebook.com/sejjtechnologies" title="Facebook" target="_blank" rel="noopener noreferrer"><i class="bi bi-facebook"></i></a>
+    <a href="https://twitter.com/sejjtechnologies" title="Twitter" target="_blank" rel="noopener noreferrer"><i class="bi bi-twitter"></i></a>
+    <a href="https://instagram.com/sejjtechnologies" title="Instagram" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram"></i></a>
+    <a href="https://www.linkedin.com/company/sejjtechnologies" title="LinkedIn" target="_blank" rel="noopener noreferrer"><i class="bi bi-linkedin"></i></a>
+    <a href="https://wa.me/256768936641" title="WhatsApp" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i></a>
+    <!-- Replaced music icon with a message/chat icon linked to SMS to your primary contact -->
+    <a href="sms:+256768936641" title="Message"><i class="bi bi-chat-dots"></i></a>
   </div>
 </footer>
