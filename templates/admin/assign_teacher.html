@@ -52,11 +52,13 @@
       }
       .back-btn i { font-size: 0.95rem; }
     }
-    main {
-      flex: 1;
+    main.main-scroll {
+      flex: 1 1 auto;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       padding-top: 70px;
-      padding-bottom: 80px;
+      /* Reserve footer (48px) + 20px gap so last card/table is visible above footer */
+      padding-bottom: calc(48px + 20px);
     }
     .card-header {
       background-color: #283593;
@@ -132,7 +134,7 @@
   </nav>
 
   <!-- ✅ Scrollable Main Section -->
-  <main class="container my-4">
+  <main class="container my-4 main-scroll">
     <div class="row gy-4">
       <!-- Left Side: Form -->
       <div class="col-12 col-md-4">
@@ -291,6 +293,41 @@
         muts.forEach(m=>{ m.addedNodes.forEach(n=>{ if (n.nodeType===1 && n.matches && n.matches('.alert')) setupAlert(n); }); });
       });
       mo.observe(document.body, { childList: true, subtree: true });
+    })();
+
+    // Ensure `main.main-scroll` reserves space above the fixed footer.
+    (function setMainPaddingForFooter(){
+      function updatePadding(){
+        try {
+          const mains = document.querySelectorAll('main.main-scroll');
+          const footer = document.querySelector('.site-footer');
+          const gap = 20; // px gap above footer
+          const footerHeight = footer ? footer.offsetHeight : 48;
+          mains.forEach(m => {
+            m.style.paddingBottom = (footerHeight + gap) + 'px';
+          });
+          document.documentElement.style.setProperty('--footer-height', footerHeight + 'px');
+        } catch(e) { /* ignore */ }
+      }
+
+      window.addEventListener('load', updatePadding);
+      window.addEventListener('resize', updatePadding);
+      if (window.visualViewport) {
+        visualViewport.addEventListener('resize', updatePadding);
+        visualViewport.addEventListener('scroll', updatePadding);
+      }
+
+      // Observe footer size changes if supported
+      const f = document.querySelector('.site-footer');
+      if (f && window.ResizeObserver) {
+        try {
+          const ro = new ResizeObserver(updatePadding);
+          ro.observe(f);
+        } catch(e) { /* ignore */ }
+      }
+
+      // Run shortly after script load in case elements exist.
+      setTimeout(updatePadding, 50);
     })();
   </script>
 </body>

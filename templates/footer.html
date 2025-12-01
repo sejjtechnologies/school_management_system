@@ -46,8 +46,8 @@
   <div class="footer-left">
     © 2025 School Management System v1.0<br>
     Emails:
-    <a class="email-link" href="mailto:sejjtechnologies@gmail.com">sejjtechnologies@gmail.com</a> |
-    <a class="email-link" href="mailto:sejjtechnologies@gmail.com">sejjtechnologies@gmail.com</a><br>
+    <a class="email-link" href="https://mail.google.com/mail/?view=cm&fs=1&to=sejjtechnologies@gmail.com" target="_blank" rel="noopener noreferrer">sejjtechnologies@gmail.com</a> |
+    <a class="email-link" href="https://mail.google.com/mail/?view=cm&fs=1&to=atukwasewilber78@gmail.com" target="_blank" rel="noopener noreferrer">atukwasewilber78@gmail.com</a><br>
     Contacts:
     <a class="contact-link" href="tel:+256768936641">0768936641</a>
     <a class="contact-sms" href="sms:+256768936641" title="SMS 0768936641"><i class="bi bi-chat-dots-fill"></i></a>
@@ -67,3 +67,39 @@
     <a href="sms:+256768936641" title="Message"><i class="bi bi-chat-dots"></i></a>
   </div>
 </footer>
+
+<script>
+  // Site-wide: adjust `main.main-scroll` padding to account for fixed footer.
+  if (!window.__sejj_footer_padding_initialized) {
+    window.__sejj_footer_padding_initialized = true;
+    (function setMainPaddingForFooter(){
+      function updatePadding(){
+        try {
+          const mains = document.querySelectorAll('main.main-scroll');
+          const footer = document.querySelector('.site-footer');
+          const gap = 20; // px gap above footer
+          const footerHeight = footer ? footer.offsetHeight : 48;
+          mains.forEach(m => { m.style.paddingBottom = (footerHeight + gap) + 'px'; });
+          document.documentElement.style.setProperty('--footer-height', footerHeight + 'px');
+        } catch(e) { /* ignore */ }
+      }
+
+      window.addEventListener('load', updatePadding);
+      window.addEventListener('resize', updatePadding);
+      if (window.visualViewport) {
+        visualViewport.addEventListener('resize', updatePadding);
+        visualViewport.addEventListener('scroll', updatePadding);
+      }
+
+      const f = document.querySelector('.site-footer');
+      if (f && window.ResizeObserver) {
+        try {
+          const ro = new ResizeObserver(updatePadding);
+          ro.observe(f);
+        } catch(e) { /* ignore */ }
+      }
+
+      setTimeout(updatePadding, 50);
+    })();
+  }
+</script>
