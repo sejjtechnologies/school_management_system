@@ -139,6 +139,79 @@ def manage_pupils_reports():
 
     # Prepare subject count for averaging across combined exams
     subjects = Subject.query.all()
+
+    # Build students per stream and class for this pupil's class
+    pupils_in_class = Pupil.query.filter_by(class_id=pupil.class_id).all()
+    students_per_stream = {}
+    for p in pupils_in_class:
+        students_per_stream[p.stream_id] = students_per_stream.get(p.stream_id, 0) + 1
+    students_per_class = {pupil.class_id: len(pupils_in_class)}
+
+    # Compute class_stats for terms observed in this pupil's reports
+    class_stats = {}
+    exam_ids_all = [e.id for e in exams] if exams else []
+    if exam_ids_all:
+        all_exams = Exam.query.filter(Exam.id.in_(exam_ids_all)).all()
+        term_groups = {}
+        for ex in all_exams:
+            term_groups.setdefault(ex.term, []).append(ex.id)
+
+        subject_count = len(subjects) if subjects else 0
+        for term, exam_ids_in_term in term_groups.items():
+            # determine weights
+            exams_objs = Exam.query.filter(Exam.id.in_(exam_ids_in_term)).all()
+            weights = {}
+            for ex in exams_objs:
+                name = (ex.name or "").lower()
+                if "mid" in name:
+                    weights[ex.id] = 0.4
+                elif "end" in name or "end term" in name or "end_term" in name:
+                    weights[ex.id] = 0.6
+                else:
+                    weights[ex.id] = None
+            assigned_sum = sum(w for w in weights.values() if w)
+            none_count = sum(1 for w in weights.values() if w is None)
+            if none_count > 0:
+                remaining = max(0.0, 1.0 - assigned_sum)
+                per_none = remaining / none_count if none_count else 0
+                for k in weights.keys():
+                    if weights[k] is None:
+                        weights[k] = per_none
+            elif assigned_sum == 0 and len(weights) > 0:
+                for k in weights.keys():
+                    weights[k] = 1.0 / len(weights)
+
+            # compute combined averages for classmates
+            combined_map = {}
+            for p in pupils_in_class:
+                reps = Report.query.filter(Report.pupil_id == p.id, Report.exam_id.in_(exam_ids_in_term)).all()
+                if not reps:
+                    continue
+                weighted_total = 0.0
+                for r in reps:
+                    w = weights.get(r.exam_id, 0)
+                    weighted_total += (r.total_score or 0) * w
+                denom = subject_count if subject_count else 1
+                combined_avg = round((weighted_total / denom), 2)
+                combined_map[p.id] = combined_avg
+
+            if combined_map:
+                class_average = round(sum(combined_map.values()) / len(combined_map), 2)
+            else:
+                class_average = None
+
+            ranked = sorted(combined_map.items(), key=lambda kv: kv[1], reverse=True)
+            class_positions = {pid: idx+1 for idx, (pid, _) in enumerate(ranked)}
+
+            stream_pids = [p.id for p in pupils_in_class if p.stream_id == pupil.stream_id and p.id in combined_map]
+            stream_ranked = sorted(stream_pids, key=lambda pid: combined_map.get(pid, 0), reverse=True)
+            stream_positions = {pid: idx+1 for idx, pid in enumerate(stream_ranked)}
+
+            class_stats[term] = {
+                'class_average': class_average,
+                'class_positions': class_positions,
+                'stream_positions': stream_positions
+            }
     subject_count = len(subjects) if subjects else 0
 
     # Build term -> exam ids mapping for all exams observed
