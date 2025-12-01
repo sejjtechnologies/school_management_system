@@ -62,6 +62,18 @@
       -webkit-overflow-scrolling: touch;
       overflow-y: auto;
     }
+    /* Print footer positioning to match report-card width and sit at bottom of printed page */
+    @media print {
+      .report-print-footer {
+        position: fixed;
+        bottom: 10mm;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 900px;
+        max-width: 90vw;
+      }
+      .report-card { margin-bottom: 45mm; }
+    }
     .pupil-info {
       font-size: 1rem;
       margin-bottom: 15px;
@@ -109,6 +121,30 @@
       margin: 0;
       font-weight: 500;
     }
+    /* Small stat cards for totals/grade/avg/remark */
+    .stat-cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+      align-items: stretch;
+    }
+    .stat-card {
+      background: #f5f5f5;
+      padding: 8px;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      font-size: 0.9rem;
+    }
+    .stat-card .label { color: #333; font-weight: 600; }
+    .stat-card .value { margin-top: 4px; font-weight: 800; font-size: 1.05rem; padding: 4px 6px; border-radius:4px; color: #fff; }
+    .val-total { background: #1976d2; }
+    .val-average { background: #2e7d32; }
+    .val-grade { background: #ef6c00; }
+    .val-remark { background: #6a1b9a; }
     .download-btn {
       display: block;
       margin: 0 auto 20px auto;
@@ -168,6 +204,13 @@
         font-size: 11px;
       }
     }
+    @media (max-width: 576px) {
+      .stat-cards { grid-template-columns: repeat(2, 1fr); gap:6px; }
+      .stat-card { padding:6px; font-size:0.85rem; }
+      .stat-card .value { font-size:1rem; }
+      .report-card { padding:12px; margin:12px 8px; }
+      .subject-table th, .subject-table td { padding:6px 4px; font-size:0.78rem; }
+    }
   </style>
 </head>
 <body>
@@ -190,11 +233,33 @@
     <div class="report-card">
       <h3 class="text-center text-primary">Progress Report</h3>
       <div class="pupil-info">
-        <p><strong>Pupil Name:</strong> {{ pupil.first_name }} {{ pupil.last_name }}</p>
+          <p><strong>Pupil Name:</strong> {{ pupil.first_name }} {{ pupil.last_name }}</p>
+          {% if teacher %}
+            <p><strong>Teacher:</strong> {{ teacher.first_name }} {{ teacher.last_name }}</p>
+          {% endif %}
         <p><strong>Class:</strong> {{ class_name }} | <strong>Stream:</strong> {{ stream_name }}</p>
         {% if exams %}
           <p><strong>Academic Year:</strong> {{ exams[0].year }}</p>
         {% endif %}
+      </div>
+      {# Stat cards: show combined total/avg/grade/remark if available for quick glance #}
+      <div class="stat-cards">
+        <div class="stat-card">
+          <div class="label">Total Score</div>
+          <div class="value val-total">{{ combined_total if combined_total is defined else (reports|map(attribute='total_score')|sum) }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Average</div>
+          <div class="value val-average">{{ "%.2f"|format(combined_average) if combined_average is defined else ("%.2f"|format((reports|map(attribute='average_score')|sum) / (reports|length if reports|length else 1))) }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Grade</div>
+          <div class="value val-grade">{{ combined_grade if combined_grade is defined else (reports[0].grade if reports else '-') }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">General Remark</div>
+          <div class="value val-remark">{{ general_remark if general_remark is defined else (reports[0].general_remark if reports and reports[0].general_remark else '-') }}</div>
+        </div>
       </div>
             {% for term in [1,2,3] %}
         {% set term_exams = exams|selectattr("term","equalto",term)|list %}
@@ -212,16 +277,25 @@
                     <thead>
                       <tr>
                         <th>Subject</th>
-                        <th>Mark</th>
+                        <th class="text-center">Mark</th>
+                        <th class="text-center">Max</th>
+                        <th class="text-center">%</th>
                         <th>Remark</th>
                       </tr>
                     </thead>
                     <tbody>
+                      {% set _abbr = { 'Social Studies':'SST', 'Science':'SCIE', 'Mathematics':'MTC', 'English':'ENG', 'Mathematics':'MTC', 'Geography':'GEO', 'History':'HIS' } %}
                       {% for mark in marks if mark.exam_id == exam.id and mark.pupil_id == pupil.id %}
                         {% set subject = subjects|selectattr("id","equalto",mark.subject_id)|first %}
+                        {% set subj_name = subject.name if subject is defined else 'Subject' %}
+                        {% set subj_abbr = _abbr.get(subj_name, subj_name[:4]|upper) %}
+                        {% set max_mark = subject.max_mark if subject is defined and subject.max_mark is defined else 100 %}
+                        {% set pct = (mark.score / max_mark * 100) if max_mark else 0 %}
                         <tr>
-                          <td>{{ subject.name }}</td>
-                          <td>{{ mark.score }}</td>
+                          <td>{{ subj_abbr }}</td>
+                          <td class="text-center">{{ mark.score }}</td>
+                          <td class="text-center">{{ max_mark }}</td>
+                          <td class="text-center">{{ "%.1f"|format(pct) }}%</td>
                           <td>
                             {% if mark.score >= 80 %}
                               Excellent
@@ -244,8 +318,8 @@
                     <p>Total Score: <strong>{{ report.total_score }}</strong> |
                        Average: <strong>{{ "%.2f"|format(report.average_score) }}</strong> |
                        Grade: <strong>{{ report.grade }}</strong> |
-                       Stream Position: <strong>{{ report.stream_position or "-" }}</strong> |
-                       Class Position: <strong>{{ report.class_position or "-" }}</strong>
+                       Stream Position: <strong>{{ report.stream_position or report.stream_combined_position or "-" }}</strong> of {{ students_per_stream.get(pupil.stream_id, '-') }} |
+                       Class Position: <strong>{{ report.class_position or report.combined_position or "-" }}</strong> of {{ students_per_class.get(pupil.class_id, '-') }}
                     </p>
                   </div>
                 {% endfor %}
@@ -325,6 +399,19 @@
                 <p style="background:#f8bbd0; padding:6px; border-radius:4px;">
                   General Remark: <em>{{ general_remark }}</em>
                 </p>
+                <!-- Class performance summary -->
+                <div style="grid-column: 1 / -1; margin-top:8px; font-size:0.9rem;">
+                  <strong>Class average:</strong>
+                  {% if class_stats.get(term) and class_stats[term].class_average is not none %}
+                    {{ class_stats[term].class_average }} |
+                    <strong>Your Class Position:</strong>
+                    {{ class_stats[term].class_positions.get(pupil.id, '-') }} of {{ students_per_class.get(pupil.class_id, '-') }} |
+                    <strong>Your Stream Position:</strong>
+                    {{ class_stats[term].stream_positions.get(pupil.id, '-') }} of {{ students_per_stream.get(pupil.stream_id, '-') }}
+                  {% else %}
+                    <span class="text-muted">No class aggregate data available for this term.</span>
+                  {% endif %}
+                </div>
               </div>
             {% endif %}
           </div>
@@ -337,18 +424,34 @@
   {% include 'footer.html' %}
 
   <!-- Print-only copy of footer inside report so printed report includes full footer on same page -->
-  <div class="report-print-footer d-none d-print-block" style="max-width:900px; margin:10px auto 0 auto; font-size:12px;">
-    <div style="background:#283593; color:#fff; padding:8px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
-      <div>
-        <strong>Bright Future High School</strong><br>
-        <small>Contact: <a href="tel:+1234567890" style="color:#fff; text-decoration:underline;">+1234567890</a> • <a href="mailto:sejjtechnologies@gmail.com" style="color:#fff; text-decoration:underline;">sejjtechnologies@gmail.com</a></small>
-      </div>
-      <div style="display:flex; gap:8px; align-items:center;">
-        <a href="https://facebook.com" style="color:#fff; text-decoration:none; font-size:1.05rem;"><i class="bi bi-facebook"></i></a>
-        <a href="https://twitter.com" style="color:#fff; text-decoration:none; font-size:1.05rem;"><i class="bi bi-twitter"></i></a>
-        <a href="https://instagram.com" style="color:#fff; text-decoration:none; font-size:1.05rem;"><i class="bi bi-instagram"></i></a>
-      </div>
+  <div class="report-print-footer d-none d-print-block">
+    <div style="max-width:900px; margin:10px auto 0 auto; font-size:12px;">
+      {% include 'footer.html' %}
     </div>
   </div>
+
+  <style>
+    /* Ensure the included footer (from footer.html) prints as a static block matching report width */
+    @media print {
+      .report-print-footer footer, .report-print-footer .site-footer {
+        position: static !important;
+        bottom: auto !important;
+        left: auto !important;
+        right: auto !important;
+        width: 100% !important;
+        display: block !important;
+      }
+      .report-print-footer {
+        position: fixed;
+        bottom: 6mm;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 900px;
+        max-width: 90vw;
+      }
+      /* Ensure report-card leaves space for the footer and doesn't push it to next page */
+      .report-card { margin-bottom: 50mm; }
+    }
+  </style>
 </body>
 </html>
