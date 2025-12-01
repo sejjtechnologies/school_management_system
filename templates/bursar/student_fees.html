@@ -220,14 +220,9 @@
           >
             <td>{{ loop.index }}</td>
             <td>{{ pupil.first_name }} {{ pupil.last_name }}</td>
-            <td title="{{ pupil.admission_number }}">
+            <td>
               {% if pupil.admission_number %}
-                {% set adm = pupil.admission_number|string %}
-                {% if adm|length > 8 %}
-                  {{ adm[:3] }}...{{ adm[-4:] }}
-                {% else %}
-                  {{ adm }}
-                {% endif %}
+                {{ pupil.admission_number }}
               {% else %}
                 -
               {% endif %}
