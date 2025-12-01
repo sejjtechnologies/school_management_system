@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{ pupil.first_name }} {{ pupil.last_name }} - Report Card</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
   <style>
+    :root { --footer-height: 48px; }
     html, body { height: 100%; }
     body {
       background-color: #f4f6f9;
@@ -21,7 +23,9 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       /* Reserve space for footer (48px) + 20px gap so last content is visible above footer */
-      padding-bottom: calc(48px + 20px);
+      padding-bottom: calc(var(--footer-height, 48px) + 20px);
+      /* Keep a small gap between header and content when scrolling */
+      padding-top: 20px;
     }
     .school-header {
       text-align: center;
@@ -53,6 +57,10 @@
       box-shadow: 0 3px 8px rgba(0,0,0,0.1);
       max-width: 900px;
       page-break-inside: avoid;
+      /* Make the card scrollable if it exceeds available viewport space, leaving room for header and footer + 20px gap */
+      max-height: calc(100vh - 60px - var(--footer-height, 48px) - 20px);
+      -webkit-overflow-scrolling: touch;
+      overflow-y: auto;
     }
     .pupil-info {
       font-size: 1rem;
@@ -117,31 +125,47 @@
       right: 0;
     }
     @media print {
+      /* Compact print layout that tries to fit the whole report on a single A4 page.
+         Reduces paddings, font-sizes and prevents page-breaks inside important blocks.
+      */
       .download-btn { display: none; }
       body {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+        font-size: 12px;
       }
       @page {
-        size: A4;
-        margin: 1cm;
+        size: A4 portrait;
+        margin: 10mm;
+      }
+      .school-header {
+        background-color: #c62828 !important;
+        color: #fff !important;
+        height: auto;
+        padding: 6px 8px;
       }
       .report-card {
         box-shadow: none;
         margin: 0;
-        padding: 15px;
+        padding: 8px;
+        max-width: 100%;
+        overflow: visible;
+        page-break-inside: avoid;
       }
-      .school-header {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-        background-color: #c62828 !important;
-        color: #fff !important;
-        height: auto;
-        padding: 10px;
+      /* Hide the on-screen footer and use the print-only footer inside the report card */
+      footer { display: none !important; }
+      .term-section, .combined-summary {
+        page-break-inside: avoid;
+      }
+      .report-card, .main-content {
+        overflow: visible !important;
+        max-height: none !important;
       }
       footer {
         position: static;
-        margin-top: 20px;
+        margin-top: 6px;
+        padding: 6px;
+        font-size: 11px;
       }
     }
   </style>
@@ -234,25 +258,31 @@
                 |selectattr("exam_id","in",term_exams|map(attribute="id")|list)
                 |list %}
             {% if term_reports %}
-              {% set total_score = term_reports|map(attribute="total_score")|sum %}
-              {% set average_score = (term_reports|map(attribute="average_score")|sum) / term_reports|length %}
-              {% set general_remark = term_reports[0].general_remark %}
+              {# Prefer backend-provided combined values (set by routes) when available #}
+              {% set first_rep = term_reports[0] %}
+              {% if first_rep.combined_average is defined and first_rep.combined_average is not none %}
+                {% set combined_total = first_rep.combined_total %}
+                {% set combined_average = first_rep.combined_average %}
+                {% set combined_grade = first_rep.combined_grade if first_rep.combined_grade is defined else ("A" if combined_average >= 80 else ("B" if combined_average >= 60 else ("C" if combined_average >= 40 else "D"))) %}
+                {% set general_remark = first_rep.general_remark if first_rep.general_remark is defined else ("Outstanding performance overall" if combined_average >= 80 else ("Very good work overall" if combined_average >=70 else ("Good effort, keep improving" if combined_average>=60 else ("Fair performance, needs more focus" if combined_average>=50 else "Needs significant improvement"))))) %}
+              {% else %}
+                {% set combined_total = term_reports|map(attribute="total_score")|sum %}
+                {% set combined_average = (term_reports|map(attribute="average_score")|sum) / term_reports|length %}
+                {% set combined_grade = ("A" if combined_average >= 80 else ("B" if combined_average >= 60 else ("C" if combined_average >= 40 else "D"))) %}
+                {% set general_remark = term_reports[0].general_remark %}
+              {% endif %}
               <div class="combined-summary">
                 <!-- ✅ First row -->
                 <p style="background:#bbdefb; padding:6px; border-radius:4px;">
-                  Total Score: <strong>{{ total_score }}</strong>
+                  Total Score: <strong>{{ combined_total }}</strong>
                 </p>
                 <p style="background:#c8e6c9; padding:6px; border-radius:4px;">
-                  Average: <strong>{{ "%.2f"|format(average_score) }}</strong>
+                  Average: <strong>{{ "%.2f"|format(combined_average) }}</strong>
                 </p>
                 <!-- ✅ Second row -->
                 <p style="background:#ffe0b2; padding:6px; border-radius:4px;">
                   Grade: <strong>
-                    {% if average_score >= 80 %} A
-                    {% elif average_score >= 60 %} B
-                    {% elif average_score >= 40 %} C
-                    {% else %} D
-                    {% endif %}
+                    {{ combined_grade }}
                   </strong>
                 </p>
                 <p style="background:#f8bbd0; padding:6px; border-radius:4px;">
@@ -268,5 +298,20 @@
 
   <!-- ✅ Footer -->
   {% include 'footer.html' %}
+
+  <!-- Print-only copy of footer inside report so printed report includes full footer on same page -->
+  <div class="report-print-footer d-none d-print-block" style="max-width:900px; margin:10px auto 0 auto; font-size:12px;">
+    <div style="background:#283593; color:#fff; padding:8px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <strong>Bright Future High School</strong><br>
+        <small>Contact: <a href="tel:+1234567890" style="color:#fff; text-decoration:underline;">+1234567890</a> • <a href="mailto:sejjtechnologies@gmail.com" style="color:#fff; text-decoration:underline;">sejjtechnologies@gmail.com</a></small>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <a href="https://facebook.com" style="color:#fff; text-decoration:none; font-size:1.05rem;"><i class="bi bi-facebook"></i></a>
+        <a href="https://twitter.com" style="color:#fff; text-decoration:none; font-size:1.05rem;"><i class="bi bi-twitter"></i></a>
+        <a href="https://instagram.com" style="color:#fff; text-decoration:none; font-size:1.05rem;"><i class="bi bi-instagram"></i></a>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

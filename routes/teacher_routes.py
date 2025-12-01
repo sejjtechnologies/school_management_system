@@ -235,6 +235,80 @@ def generate_report(pupil_id, term, year, exam_name):
     stream_position = [r.pupil_id for r in stream_reports].index(pupil_id) + 1 if stream_reports else 0
     class_position = [r.pupil_id for r in class_reports].index(pupil_id) + 1 if class_reports else 0
 
+    # Also compute combined-term stats (e.g., Midterm + End_Term) for this term/year
+    exam_ids_in_term = [e.id for e in Exam.query.filter_by(term=term, year=year).all()]
+    subjects = Subject.query.all()
+    subject_count = len(subjects) if subjects else 0
+
+    # pupils in same class (we rank across class and stream)
+    pupils_in_class = Pupil.query.filter_by(class_id=pupil.class_id).all()
+
+    combined_totals = {}
+    # Weighted combination: Midterm = 40%, End_Term = 60%
+    exams_objs = Exam.query.filter(Exam.id.in_(exam_ids_in_term)).all()
+    weights = {}
+    for ex in exams_objs:
+        name = (ex.name or "").lower()
+        if "mid" in name:
+            weights[ex.id] = 0.4
+        elif "end" in name or "end term" in name or "end_term" in name:
+            weights[ex.id] = 0.6
+        else:
+            weights[ex.id] = None
+
+    assigned_sum = sum(w for w in weights.values() if w)
+    none_count = sum(1 for w in weights.values() if w is None)
+    if none_count > 0:
+        remaining = max(0.0, 1.0 - assigned_sum)
+        per_none = remaining / none_count if none_count else 0
+        for k in weights.keys():
+            if weights[k] is None:
+                weights[k] = per_none
+    elif assigned_sum == 0 and len(weights) > 0:
+        for k in weights.keys():
+            weights[k] = 1.0 / len(weights)
+
+    for p in pupils_in_class:
+        reps = Report.query.filter(Report.pupil_id == p.id, Report.exam_id.in_(exam_ids_in_term)).all()
+        if not reps:
+            continue
+        weighted_total = 0.0
+        for r in reps:
+            w = weights.get(r.exam_id, 0)
+            weighted_total += (r.total_score or 0) * w
+
+        denom = subject_count if subject_count else 1
+        combined_avg = round((weighted_total / denom), 2)
+        combined_totals[p.id] = {
+            'combined_total': round(weighted_total, 2),
+            'combined_average': combined_avg
+        }
+
+    # Assign combined positions within class and within stream
+    # Class-level ranking
+    class_ranked = sorted(combined_totals.keys(), key=lambda pid: combined_totals[pid]['combined_average'], reverse=True)
+    class_positions = {pid: idx+1 for idx, pid in enumerate(class_ranked)}
+
+    # Stream-level ranking (within class)
+    stream_pupils = [p.id for p in pupils_in_class if p.stream_id == pupil.stream_id]
+    stream_ranked = sorted([pid for pid in stream_pupils if pid in combined_totals], key=lambda pid: combined_totals[pid]['combined_average'], reverse=True)
+    stream_positions = {pid: idx+1 for idx, pid in enumerate(stream_ranked)}
+
+    # Attach combined stats into a dict for the template
+    combined_stats = {}
+    for pid, stats in combined_totals.items():
+        stats['class_combined_position'] = class_positions.get(pid)
+        stats['stream_combined_position'] = stream_positions.get(pid)
+        stats['combined_grade'] = calculate_grade(stats['combined_average'])
+        stats['general_remark'] = calculate_general_remark(stats['combined_average'])
+        combined_stats[pid] = stats
+
+    # counts
+    students_per_stream = {}
+    students_per_class = {pupil.class_id: len(pupils_in_class)}
+    for p in pupils_in_class:
+        students_per_stream[p.stream_id] = students_per_stream.get(p.stream_id, 0) + 1
+
     print("DEBUG: Rendering template teacher/manage_pupils_reports.html")
     return render_template("teacher/manage_pupils_reports.html",
                            reports=[report] if report else [],
@@ -246,7 +320,10 @@ def generate_report(pupil_id, term, year, exam_name):
                            stream_position=stream_position,
                            class_position=class_position,
                            class_name=class_name,
-                           stream_name=stream_name)
+                           stream_name=stream_name,
+                           combined_stats=combined_stats,
+                           students_per_stream=students_per_stream,
+                           students_per_class=students_per_class)
 
 
 def calculate_grade(avg):

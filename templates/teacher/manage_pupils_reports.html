@@ -10,7 +10,7 @@
     html, body { height: 100%; }
     body {
       margin: 0;
-      padding-top: 60px;
+      padding-top: 60px; /* navbar height */
       background-color: #f9f9f9;
       font-family: 'Segoe UI', sans-serif;
       display: flex;
@@ -67,28 +67,42 @@
     }
     @media (max-width: 576px) {
       table th, table td {
-        font-size: 0.75rem;
-        padding: 4px;
+        font-size: 0.68rem;
+        padding: 3px 6px;
       }
       .navbar-brand {
-        font-size: 0.9rem;
+        font-size: 0.88rem;
       }
       .back-btn {
-        font-size: 0.75rem;
-        padding: 4px 10px;
+        font-size: 0.72rem;
+        padding: 3px 8px;
         height: 28px;
       }
       .back-btn i {
         font-size: 0.9rem;
       }
+      .table-section {
+        padding: 10px;
+      }
+      /* On small screens limit table visible height and allow inner vertical scrolling for the table only.
+         This keeps the page scrollable while ensuring the table doesn't push the footer to a new page.
+      */
+      .table-responsive {
+        max-height: calc(100vh - 60px - var(--footer-height,48px) - 100px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
     }
+
     /* Make main area a scroll container so content can scroll above fixed footer */
     main.main-scroll {
       flex: 1 1 auto;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      /* Reserve space for footer (48px) + 20px gap so last row is visible above footer */
-      padding-bottom: calc(48px + 20px);
+      /* Reserve space for footer (measured via --footer-height) + 20px gap so last row is visible above footer */
+      padding-bottom: calc(var(--footer-height, 48px) + 20px);
+      /* Keep a small gap between navbar and content when scrolling */
+      padding-top: 20px;
     }
   </style>
 </head>
@@ -122,6 +136,9 @@
                 <th>Pupil Name</th>
                 <th>Class</th>
                 <th>Stream</th>
+                <th class="text-center">Combined Avg</th>
+                <th class="text-center">Stream Pos</th>
+                <th class="text-center">Class Pos</th>
               </tr>
             </thead>
             <tbody>
@@ -136,6 +153,36 @@
                   <!-- ✅ Display class and stream names passed from route -->
                   <td>{{ pupil.class_name }}</td>
                   <td>{{ pupil.stream_name }}</td>
+                  {# Combined stats may be passed as {pid: {term: {...}}} or {pid: {...}} - handle both shapes #}
+                  {% set cs_raw = combined_stats.get(pupil.id) if combined_stats is defined else None %}
+                  {% set cs = None %}
+                  {% if cs_raw %}
+                    {% if cs_raw.combined_average is defined %}
+                      {% set cs = cs_raw %}
+                    {% else %}
+                      {# assume term-keyed dict, pick the first term's stats (most recent may be desired) #}
+                      {% for tkey, tstats in cs_raw.items() %}
+                        {% set cs = tstats %}
+                        {% break %}
+                      {% endfor %}
+                    {% endif %}
+                  {% endif %}
+
+                  <td class="text-center">{{ cs.combined_average if cs is defined and cs else '-' }}</td>
+                  <td class="text-center">
+                    {% if cs is defined and cs and cs.stream_combined_position is defined %}
+                      {{ cs.stream_combined_position }} of {{ students_per_stream.get(pupil.stream_id, 0) if students_per_stream is defined else '-' }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                  <td class="text-center">
+                    {% if cs is defined and cs and cs.class_combined_position is defined %}
+                      {{ cs.class_combined_position }} of {{ students_per_class.get(pupil.class_id, 0) if students_per_class is defined else '-' }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
                 </tr>
               {% endfor %}
             </tbody>

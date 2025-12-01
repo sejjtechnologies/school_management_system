@@ -107,79 +107,156 @@ def manage_pupils_reports():
 
     db.session.commit()
 
-    # ✅ Assign positions for each exam
-    for exam_id in set([r.exam_id for r in reports]):
-        stream_reports = Report.query.join(Pupil).filter(
-            Report.exam_id == exam_id,
-            Pupil.stream_id.isnot(None)
-        ).order_by(Report.total_score.desc()).all()
-
-        for idx, r in enumerate(stream_reports, start=1):
-            r.stream_position = idx
-
-        class_reports = Report.query.join(Pupil).filter(
-            Report.exam_id == exam_id
-        ).order_by(Report.total_score.desc()).all()
-
-        for idx, r in enumerate(class_reports, start=1):
-            r.class_position = idx
-
-    db.session.commit()
-
-    # ✅ Compute combined term performance and positions
-    for pupil in assigned_pupils:
-        pupil_reports = Report.query.filter(Report.pupil_id == pupil.id).all()
-        if not pupil_reports:
-            continue
-
-        exam_ids = [r.exam_id for r in pupil_reports]
-        exams = Exam.query.filter(Exam.id.in_(exam_ids)).all()
-
-        term_groups = {}
-        for exam in exams:
-            term_groups.setdefault(exam.term, []).append(exam.id)
-
-        for term, exam_ids_in_term in term_groups.items():
-            term_reports = [r for r in pupil_reports if r.exam_id in exam_ids_in_term]
-            if not term_reports:
-                continue
-
-            avg_term_score = sum([r.average_score for r in term_reports]) / len(term_reports)
-            general_remark = calculate_general_remark(avg_term_score)
-
-            # ✅ Attach combined term performance to each report in that term
-            for r in term_reports:
-                r.general_remark = general_remark
-                r.combined_average = avg_term_score
-                r.combined_grade = calculate_grade(avg_term_score)
-
-            # ✅ Calculate combined position across the whole class
-            class_reports_for_term = Report.query.join(Pupil).filter(
-                Report.exam_id.in_(exam_ids_in_term),
-                Pupil.class_id == pupil.class_id
-            ).all()
-
-            # Compute combined totals for each pupil in the class
-            combined_scores = {}
-            for rep in class_reports_for_term:
-                combined_scores.setdefault(rep.pupil_id, []).append(rep.total_score)
-
-            combined_totals = [
-                (pid, sum(scores)) for pid, scores in combined_scores.items()
-            ]
-            combined_totals.sort(key=lambda x: x[1], reverse=True)
-
-            # Assign combined positions
-            for idx, (pid, total) in enumerate(combined_totals, start=1):
-                for rep in class_reports_for_term:
-                    if rep.pupil_id == pid:
-                        rep.combined_position = idx
-
-    db.session.commit()
-
+    # ------------------------
+    # Assign positions per exam (class and stream) and compute combined term results
+    # ------------------------
     exam_ids = list(set([r.exam_id for r in reports]))
+
+    # Assign per-exam positions: for each exam, compute positions within each class and within each stream
+    class_ids = set(p.class_id for p in assigned_pupils)
+    for exam_id in exam_ids:
+        for class_id in class_ids:
+            # class-level ranking
+            class_reports = Report.query.join(Pupil).filter(
+                Report.exam_id == exam_id,
+                Pupil.class_id == class_id
+            ).order_by(Report.total_score.desc()).all()
+            for idx, r in enumerate(class_reports, start=1):
+                r.class_position = idx
+
+            # stream-level ranking within the class
+            stream_ids = set(p.stream_id for p in assigned_pupils if p.class_id == class_id and p.stream_id)
+            for stream_id in stream_ids:
+                stream_reports = Report.query.join(Pupil).filter(
+                    Report.exam_id == exam_id,
+                    Pupil.class_id == class_id,
+                    Pupil.stream_id == stream_id
+                ).order_by(Report.total_score.desc()).all()
+                for idx, r in enumerate(stream_reports, start=1):
+                    r.stream_position = idx
+
+    db.session.commit()
+
+    # Prepare subject count for averaging across combined exams
+    subjects = Subject.query.all()
+    subject_count = len(subjects) if subjects else 0
+
+    # Build term -> exam ids mapping for all exams observed
+    all_exams = Exam.query.filter(Exam.id.in_(exam_ids)).all()
+    term_groups = {}
+    for ex in all_exams:
+        term_groups.setdefault(ex.term, []).append(ex.id)
+
+    # Combined results per term: compute combined_total and combined_average per pupil,
+    # then assign combined positions within class and within stream.
+    combined_stats = {}  # pupil_id -> { term -> stats }
+
+    for term, exam_ids_in_term in term_groups.items():
+        # gather combined totals for pupils who have reports in these exams
+        combined_totals = {}
+        for pupil in assigned_pupils:
+            reps = Report.query.filter(
+                Report.pupil_id == pupil.id,
+                Report.exam_id.in_(exam_ids_in_term)
+            ).all()
+            if not reps:
+                continue
+            # Weighted combination: Midterm = 40%, End_Term = 60%
+            # Fetch exam objects for this term to determine weights per exam id
+            exams_objs = Exam.query.filter(Exam.id.in_(exam_ids_in_term)).all()
+            # Build initial weights based on exam name heuristics
+            weights = {}
+            for ex in exams_objs:
+                name = (ex.name or "").lower()
+                if "mid" in name:
+                    weights[ex.id] = 0.4
+                elif "end" in name or "end term" in name or "end_term" in name:
+                    weights[ex.id] = 0.6
+                else:
+                    weights[ex.id] = None
+
+            # Normalize weights: assign equal share to any unassigned exams, or fallback to equal weights
+            assigned_sum = sum(w for w in weights.values() if w)
+            none_count = sum(1 for w in weights.values() if w is None)
+            if none_count > 0:
+                remaining = max(0.0, 1.0 - assigned_sum)
+                per_none = remaining / none_count if none_count else 0
+                for k, v in list(weights.items()):
+                    if v is None:
+                        weights[k] = per_none
+            elif assigned_sum == 0 and len(weights) > 0:
+                # No explicit mid/end detected; fall back to equal weighting
+                for k in weights.keys():
+                    weights[k] = 1.0 / len(weights)
+
+            # Compute weighted total across exams for this pupil
+            weighted_total = 0.0
+            for r in reps:
+                w = weights.get(r.exam_id, 0)
+                weighted_total += (r.total_score or 0) * w
+
+            # combined average per subject = weighted_total / subject_count
+            denom = subject_count if subject_count else 1
+            combined_avg = weighted_total / denom
+            combined_totals[pupil.id] = {
+                'combined_total': round(weighted_total, 2),
+                'combined_average': round(combined_avg, 2)
+            }
+
+        # Assign combined positions within each class and stream
+        # Class-level combined positions
+        for class_id in class_ids:
+            # pupils in this class who have combined totals
+            class_pupil_ids = [pid for pid in combined_totals.keys() if Pupil.query.get(pid).class_id == class_id]
+            # sort by combined_average desc
+            ranked = sorted(class_pupil_ids, key=lambda pid: combined_totals[pid]['combined_average'], reverse=True)
+            for pos, pid in enumerate(ranked, start=1):
+                combined_totals[pid]['class_combined_position'] = pos
+
+            # Streams in this class
+            stream_ids = set(p.stream_id for p in assigned_pupils if p.class_id == class_id and p.stream_id)
+            for stream_id in stream_ids:
+                stream_pids = [pid for pid in class_pupil_ids if Pupil.query.get(pid).stream_id == stream_id]
+                ranked_stream = sorted(stream_pids, key=lambda pid: combined_totals[pid]['combined_average'], reverse=True)
+                for pos, pid in enumerate(ranked_stream, start=1):
+                    combined_totals[pid]['stream_combined_position'] = pos
+
+        # Store combined stats back into reports for each pupil and exam in this term
+        for pid, stats in combined_totals.items():
+            # general remark and combined grade
+            gen_remark = calculate_general_remark(stats['combined_average'])
+            combined_grade = calculate_grade(stats['combined_average'])
+
+            # update all Report rows for this pupil in the term exams
+            reps = Report.query.filter(
+                Report.pupil_id == pid,
+                Report.exam_id.in_(exam_ids_in_term)
+            ).all()
+            for rep in reps:
+                rep.combined_total = stats['combined_total']
+                rep.combined_average = stats['combined_average']
+                rep.combined_grade = combined_grade
+                rep.general_remark = gen_remark
+                rep.combined_position = stats.get('class_combined_position')
+                rep.stream_combined_position = stats.get('stream_combined_position')
+
+        # persist for this term
+        db.session.commit()
+
+        # save combined_stats snapshot for template use
+        for pid, stats in combined_totals.items():
+            combined_stats.setdefault(pid, {})[term] = stats
+
+    # Finally prepare lists for template rendering
     subjects = Subject.query.all()
     exams = Exam.query.filter(Exam.id.in_(exam_ids)).all()
+
+    # counts for template: students per stream and per class
+    students_per_stream = {}
+    students_per_class = {}
+    for p in assigned_pupils:
+        students_per_stream[p.stream_id] = students_per_stream.get(p.stream_id, 0) + 1
+        students_per_class[p.class_id] = students_per_class.get(p.class_id, 0) + 1
 
     return render_template(
         "teacher/manage_pupils_reports.html",
@@ -187,7 +264,10 @@ def manage_pupils_reports():
         pupils=assigned_pupils,
         reports=reports,
         subjects=subjects,
-        exams=exams
+        exams=exams,
+        combined_stats=combined_stats,
+        students_per_stream=students_per_stream,
+        students_per_class=students_per_class
     )
 
 
