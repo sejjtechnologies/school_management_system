@@ -160,11 +160,11 @@
                     {% if cs_raw.combined_average is defined %}
                       {% set cs = cs_raw %}
                     {% else %}
-                      {# assume term-keyed dict, pick the first term's stats (most recent may be desired) #}
-                      {% for tkey, tstats in cs_raw.items() %}
-                        {% set cs = tstats %}
-                        {% break %}
-                      {% endfor %}
+                      {# assume term-keyed dict, pick the first term's stats safely #}
+                      {% set _first = cs_raw.items()|list|first %}
+                      {% if _first %}
+                        {% set cs = _first[1] %}
+                      {% endif %}
                     {% endif %}
                   {% endif %}
 
