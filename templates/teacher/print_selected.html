@@ -12,7 +12,7 @@
     body {
       font-family: 'Poppins', Arial, sans-serif;
       font-size: 0.68rem;
-      background: #f5f5f5;
+      background: #d0f0c0; /* GREEN PAGE BACKGROUND */
       margin: 0;
     }
 
@@ -52,23 +52,27 @@
     @media (max-width: 576px) {
       .page-bg { padding: 6px; }
       .school-footer { font-size: 0.55rem !important; padding: 6px !important; }
-      .school-nav h2 { font-size: 0.95rem; }
+      .school-nav h2 { font-size: 1.1rem; }
+      .report-card h5 { font-size: 0.75rem; }
+      .badge-grade { font-size:0.50rem; padding:2px 3px; }
+      .pos-badge { font-size:0.48rem; padding:1px 3px; }
+      table th, table td { font-size:0.6rem; padding: 2px 3px; }
     }
 
     .report-card {
       background: #fff;
       border: 1px solid #e0e0e0;
-      padding: 10px;
+      padding: 8px;
       border-radius: 6px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      margin-bottom: 10px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
 
-    /* === UPDATED NAV HEIGHT + FONT SIZES === */
+    /* NAV + FOOTER */
     .school-nav {
       background:#c62828;
       color:#fff;
-      height:70px;            /* increased */
+      height:70px;
       border-radius:4px;
       display:flex;
       align-items:center;
@@ -78,69 +82,52 @@
     }
 
     .school-nav h2 {
-      font-size: 1.25rem;     /* bigger school name */
+      font-size: 1.3rem;
       font-weight: 700;
       margin: 0;
     }
 
     .school-nav .motto {
-      font-size: 0.80rem;     /* bigger motto */
+      font-size: 0.85rem;
       margin-top: -4px;
     }
 
-    /* === UPDATED FOOTER HEIGHT === */
     .school-footer {
       background:#263238;
       color:#fff;
-      height: 60px;           /* increased */
+      height: 60px;
       padding: 8px 12px;
       border-radius:4px;
-      font-size:0.72rem;
+      font-size:0.70rem;
       display:flex;
       justify-content:space-between;
       align-items:center;
       margin-top: 8px;
     }
 
-    .badge-grade {
-      padding: 2px 4px;
-      border-radius: 4px;
-      color:#fff;
-      font-weight:600;
-      font-size:0.58rem;
-    }
-
+    /* BADGES */
+    .badge-grade { padding: 2px 4px; border-radius: 4px; color:#fff; font-weight:600; font-size:0.58rem; }
     .grade-A { background:#2e7d32 }
     .grade-B { background:#0288d1 }
     .grade-C { background:#f9a825 }
     .grade-D { background:#fb8c00 }
     .grade-E { background:#d32f2f }
 
-    .pos-badge {
-      background:#6a1b9a;
-      color:#fff;
-      padding:2px 4px;
-      border-radius:4px;
-      font-size:0.55rem;
-      font-weight:600;
-    }
+    .pos-badge { background:#6a1b9a; color:#fff; padding:2px 4px; border-radius:4px; font-size:0.55rem; font-weight:600; }
 
-    .remark-box {
-      background:#fff8e1;
-      border-left: 3px solid #ffca28;
-      padding: 6px;
-      border-radius: 4px;
-      font-size: 0.65rem;
-    }
+    .remark-box { background:#fff8e1; border-left: 3px solid #ffca28; padding: 6px; border-radius: 4px; font-size: 0.65rem; }
+    .class-teacher { color: #e57373; font-size: 0.65rem; font-weight:600; margin-top:6px }
 
-    .class-teacher { color: #e57373; font-size: 0.65rem; font-weight:600; margin-top:8px }
+    /* TABLE */
+    table th, table td { text-align:center; vertical-align:middle; }
+    table th:first-child, table td:first-child { text-align:left; }
+    table { width: 100%; border-collapse: collapse; margin-bottom:4px; }
 
-    h5 { font-size: 0.85rem; }
+    h5 { font-size: 0.85rem; margin-bottom:4px; }
   </style>
 </head>
 
 <body>
-
   <div class="page-bg">
 
     <div class="school-nav">
@@ -157,10 +144,9 @@
 
     <!-- PRINTABLE PUPIL DETAILS -->
     <div class="card p-2 mb-3">
-      <h5 class="mb-1">{{ pupil.first_name }} {{ pupil.middle_name }} {{ pupil.last_name }}</h5>
+      <h5>{{ pupil.first_name }} {{ pupil.middle_name }} {{ pupil.last_name }}</h5>
       <div class="text-muted">Adm: {{ pupil.admission_number }}</div>
       <div class="text-muted">Class: {{ pupil.class_name }} | Stream: {{ pupil.stream_name }}</div>
-
       {% if class_teacher %}
       <div class="text-muted"><strong>Class Teacher:</strong> {{ class_teacher.first_name }} {{ class_teacher.last_name }}</div>
       {% endif %}
@@ -169,42 +155,39 @@
     {% for ex in exams %}
     <div class="report-card">
 
-      <div class="report-header d-flex justify-content-between flex-wrap mb-2">
-        <h5 class="mb-0">{{ ex.name }} - Term {{ ex.term }} / {{ ex.year }}</h5>
-
+      <div class="d-flex justify-content-between flex-wrap mb-2">
+        <h5 class="mb-0">{{ ex.name }} - Term {{ ex.term }}/{{ ex.year }}</h5>
         <div class="text-end">
           {% set rep = (reports | selectattr('exam_id','equalto', ex.id) | list).0 %}
           {% set stats = exam_stats.get(ex.id) %}
-
-          <div><strong>Total:</strong> {{ rep.total_score }} / {{ subjects|length * 100 }}</div>
-          <div><strong>Avg:</strong> {{ rep.average_score }}</div>
-          <div><strong>Grade:</strong>
-            <span class="badge-grade grade-{{ rep.grade }}">{{ rep.grade }}</span>
-          </div>
-
+          <div>Total: {{ rep.total_score }} / {{ subjects|length * 100 }}</div>
+          <div>Avg: {{ rep.average_score }}</div>
+          <div>Grade: <span class="badge-grade grade-{{ rep.grade }}">{{ rep.grade }}</span></div>
           {% if stats %}
-          <div><span class="pos-badge">Stream: {{ stats.stream_position }} / {{ stats.stream_total }}</span></div>
+          <div><span class="pos-badge">Stream: {{ stats.stream_position }}/{{ stats.stream_total }}</span></div>
           {% endif %}
         </div>
       </div>
 
-      <table class="table table-sm report-table">
+      <!-- TABLE with abbreviation + separating column -->
+      <table class="table table-sm">
         <thead>
           <tr>
-            <th>Subject</th>
-            <th class="text-end">Score</th>
-            <th class="text-end">Grade</th>
+            <th>Subj</th>
+            <th>Pupil</th>
+            <th>Max</th>
+            <th>Grade</th>
           </tr>
         </thead>
-
         <tbody>
           {% set marks = marks_by_exam.get(ex.id, []) %}
           {% for subj in subjects %}
           {% set m = (marks | selectattr('subject_id','equalto',subj.id) | list).0 %}
           <tr>
-            <td>{{ subj.name }}</td>
-            <td class="text-end">{{ m.score if m else "-" }}{% if m %} / 100{% endif %}</td>
-            <td class="text-end">
+            <td>{{ subj.abbr|default(subj.name[:3]) }}</td>
+            <td>{{ m.score if m else "-" }}</td>
+            <td>100</td>
+            <td>
               {% if m %}
                 {% set sc=m.score %}
                 <span class="badge-grade grade-{% if sc>=80 %}A{% elif sc>=70 %}B{% elif sc>=60 %}C{% elif sc>=50 %}D{% else %}E{% endif %}">
@@ -216,26 +199,19 @@
           {% endfor %}
         </tbody>
       </table>
-
     </div>
     {% endfor %}
 
     {% if combined %}
     <div class="report-card">
       <h5>Combined Summary</h5>
-
       <p><strong>Combined Total:</strong> {{ combined.combined_total }}</p>
       <p><strong>Average:</strong> {{ combined.combined_average }}</p>
-      <p><strong>Final Grade:</strong>
-        <span class="badge-grade grade-{{ combined.combined_grade }}">{{ combined.combined_grade }}</span>
-      </p>
-
+      <p><strong>Final Grade:</strong> <span class="badge-grade grade-{{ combined.combined_grade }}">{{ combined.combined_grade }}</span></p>
       {% if class_position %}
-      <p><span class="pos-badge">Class Position: {{ class_position }} / {{ class_total }}</span></p>
+      <p><span class="pos-badge">Class Pos: {{ class_position }}/{{ class_total }}</span></p>
       {% endif %}
-
       <div class="remark-box"><strong>Remark:</strong> {{ combined.general_remark }}</div>
-
       {% if class_teacher %}
       <div class="class-teacher">Class Teacher: {{ class_teacher.first_name }} {{ class_teacher.last_name }}</div>
       {% endif %}
