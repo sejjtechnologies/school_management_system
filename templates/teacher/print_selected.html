@@ -12,7 +12,7 @@
     body {
       font-family: 'Times New Roman', serif;
       font-size: 0.75rem;
-      background: #d0f0c0; /* Green page background */
+      background: #d0f0c0;
       margin: 0;
     }
 
@@ -41,7 +41,7 @@
     .school-nav {
       background:#c62828;
       color:#fff;
-      height:100px;
+      height:80px;
       border-radius:4px;
       display:flex;
       flex-direction: column;
@@ -51,24 +51,25 @@
       margin-bottom:10px;
       font-family: Georgia, serif;
       flex-shrink: 0;
-      padding-top: 8px;
-      padding-bottom: 8px;
+      padding-top: 5px;
+      padding-bottom: 5px;
     }
 
     .school-nav h2 {
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       font-weight: bold;
       margin: 0;
     }
 
     .school-nav .motto {
-      font-size: 1rem;
+      font-size: 0.9rem;
       margin-top: 2px;
       color: #ffeb3b;
     }
 
     .school-nav .contact-socials {
       display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
       width: 100%;
       max-width: 800px;
@@ -78,20 +79,24 @@
       color: #fff;
     }
 
-    .contact-left {
-      text-align: left;
+    .contact-left, .contact-right {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
     }
 
-    .contact-right {
-      text-align: right;
+    .contact-left span, .contact-right a {
+      white-space: nowrap;
     }
 
-    .social-icons a {
-      margin-left: 6px;
-      margin-right: 6px;
+    .contact-right a {
       color: #fff;
       font-size: 0.8rem;
       text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 2px;
     }
 
     .report-card {
@@ -127,6 +132,13 @@
     table th, table td { text-align:center; vertical-align:middle; font-size:0.70rem; }
     table th:first-child, table td:first-child { text-align:left; }
     table { width: 100%; border-collapse: collapse; margin-bottom:4px; }
+
+    @media (max-width: 480px) {
+      .school-nav h2 { font-size: 1.2rem; }
+      .school-nav .motto { font-size: 0.75rem; }
+      .school-nav .contact-socials { font-size: 0.6rem; gap: 4px; padding: 0 5px; }
+      .contact-right a { font-size: 0.7rem; margin: 0 2px; }
+    }
   </style>
 </head>
 
@@ -141,10 +153,10 @@
         <div class="contact-left">
           <span>Location: Entebbe, Wakiso</span> |
           <span>Box: 12345</span> |
-          <span>Call: 0768936641 / 0744137174</span>
+          <span>Call: 0768936641 / 0744137174</span> |
+          <span>Email: info@hopefulfutureps.org</span>
         </div>
         <div class="contact-right social-icons">
-          <a href="mailto:info@hopefulfutureps.org"><i class="bi bi-envelope-fill"></i></a>
           <a href="#"><i class="bi bi-whatsapp"></i></a>
           <a href="#"><i class="bi bi-facebook"></i></a>
           <a href="#"><i class="bi bi-linkedin"></i></a>
