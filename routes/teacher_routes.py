@@ -6,6 +6,14 @@ from models.teacher_assignment_models import TeacherAssignment
 from models.register_pupils import Pupil
 from models.marks_model import Subject, Exam, Mark, Report
 from utils.grades import calculate_grade, calculate_general_remark
+from models.attendance_model import Attendance
+from models.attendance_log import AttendanceLog
+from models.period_confirmation import PeriodConfirmation
+import csv
+import io
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from datetime import datetime, timedelta
+import json
 
 # Blueprint registered as "teacher_routes"
 teacher_routes = Blueprint("teacher_routes", __name__, url_prefix="/teacher")
@@ -345,3 +353,336 @@ def debug_templates():
     return "<h2>Templates Flask can see:</h2><ul>" + "".join(
         f"<li>{t}</li>" for t in sorted(templates)
     ) + "</ul>"
+
+
+@teacher_routes.route('/attendance', methods=['GET', 'POST'])
+def attendance_view():
+    teacher, redirect_resp = _require_teacher()
+    if redirect_resp:
+        return redirect_resp
+
+    # GET: render roster for a class and week
+    if request.method == 'GET':
+        class_id = request.args.get('class_id', type=int)
+        start = request.args.get('start')
+        # compute week_dates (configurable days: default Mon-Sat)
+        if start:
+            try:
+                start_date = datetime.strptime(start, '%Y-%m-%d').date()
+            except Exception:
+                start_date = None
+        else:
+            start_date = None
+        # allow 5 or 6 day view; default to 6 (Mon-Sat)
+        days = request.args.get('days', default=6, type=int)
+        if days not in (5, 6):
+            days = 6
+
+        # fetch teacher assignments; if no class_id provided, load pupils across all assignments
+        assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
+        selected_stream = None
+
+        # default start_date to this week's Monday if not provided and compute week_dates
+        if not start_date:
+            today = datetime.today().date()
+            start_date = today - timedelta(days=today.weekday())
+        week_dates = [start_date + timedelta(days=i) for i in range(days)]
+
+        pupils = []
+        att_map = {}
+
+        if class_id:
+            # ensure teacher is assigned to this class
+            assigned = any(a.class_id == class_id for a in assignments)
+            if not assigned:
+                flash('You are not assigned to this class', 'danger')
+                return redirect(url_for('teacher_routes.dashboard'))
+
+            pupils = Pupil.query.filter_by(class_id=class_id).order_by(Pupil.last_name).all()
+            pupil_ids = [p.id for p in pupils]
+
+            if pupil_ids:
+                rows = Attendance.query.filter(Attendance.pupil_id.in_(pupil_ids), Attendance.date.between(week_dates[0], week_dates[-1])).all()
+                for r in rows:
+                    att_map[(r.pupil_id, r.date.isoformat())] = r
+
+            # check confirmation status for this period (class-level)
+            confirmation = PeriodConfirmation.query.filter_by(
+                class_id=class_id,
+                start_date=week_dates[0],
+                period_type='week',
+                days=days
+            ).first()
+            confirmed = bool(confirmation)
+        else:
+            # no specific class selected: load pupils across all assignments for this teacher
+            pupils = []
+            for a in assignments:
+                ps = Pupil.query.filter_by(class_id=a.class_id, stream_id=a.stream_id).order_by(Pupil.last_name).all()
+                pupils.extend(ps)
+            pupil_ids = [p.id for p in pupils]
+            if pupil_ids:
+                rows = Attendance.query.filter(Attendance.pupil_id.in_(pupil_ids), Attendance.date.between(week_dates[0], week_dates[-1])).all()
+                for r in rows:
+                    att_map[(r.pupil_id, r.date.isoformat())] = r
+            confirmed = False
+
+        return render_template('teacher/attendance_roster.html', assignments=assignments, pupils=pupils, week_dates=week_dates, att_map=att_map, confirmed=confirmed if class_id else False, selected_class_id=class_id, selected_stream=selected_stream)
+
+    # POST: bulk upsert attendance (expects JSON payload)
+    try:
+        payload = request.get_json(force=True)
+    except Exception:
+        payload = None
+
+    if not payload:
+        flash('Invalid attendance payload', 'danger')
+        return redirect(url_for('teacher_routes.dashboard'))
+
+    class_id = int(payload.get('class_id')) if payload.get('class_id') else None
+    entries = payload.get('entries', [])
+    confirm_period = bool(payload.get('confirm_period', False))
+
+    # permission check
+    assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
+    if class_id and not any(a.class_id == class_id for a in assignments):
+        return (json.dumps({'error':'not allowed'}), 403, {'Content-Type':'application/json'})
+
+    # Prepare list of dicts for insert
+    to_insert = []
+    for e in entries:
+        try:
+            pid = int(e.get('pupil_id'))
+            dt_raw = e.get('date')
+            # expect 'YYYY-MM-DD' from frontend; normalize to date object
+            dt_obj = datetime.strptime(dt_raw, '%Y-%m-%d').date()
+            status = (e.get('status') or 'absent').lower()
+            if status not in ('present', 'absent', 'late', 'leave'):
+                status = 'absent'
+        except Exception:
+            continue
+        entry_class = int(e.get('class_id')) if e.get('class_id') else class_id
+        entry_stream = int(e.get('stream_id')) if e.get('stream_id') else None
+        to_insert.append({
+            'pupil_id': pid,
+            'class_id': entry_class,
+            'stream_id': entry_stream,
+            'date': dt_obj,
+            'status': status,
+            'reason': e.get('reason') or None,
+            'recorded_by': teacher.id,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow()
+        })
+
+    # Audit: fetch existing attendance for these pupil/date keys and create logs for changes
+    keys = [(item['pupil_id'], item['date']) for item in to_insert]
+    existing = {}
+    if keys:
+        pupil_ids = list({k[0] for k in keys})
+        dates = [k[1] for k in keys]
+        rows = Attendance.query.filter(Attendance.pupil_id.in_(pupil_ids), Attendance.date.in_(dates)).all()
+        for r in rows:
+            existing[(r.pupil_id, r.date.isoformat())] = r
+
+    logs = []
+    for item in to_insert:
+        key = (item['pupil_id'], item['date'].isoformat())
+        ex = existing.get(key)
+        old_status = ex.status if ex else None
+        new_status = item['status']
+        if old_status != new_status:
+            logs.append(AttendanceLog(
+                attendance_id=ex.id if ex else None,
+                pupil_id=item['pupil_id'],
+                date=item['date'],
+                old_status=old_status,
+                new_status=new_status,
+                changed_by=teacher.id,
+                reason=item.get('reason')
+            ))
+
+    if logs:
+        db.session.bulk_save_objects(logs)
+        db.session.flush()
+
+    if to_insert:
+        stmt = pg_insert(Attendance.__table__).values(to_insert)
+        upsert = stmt.on_conflict_do_update(
+            index_elements=['pupil_id', 'date'],
+            set_={
+                'status': stmt.excluded.status,
+                'reason': stmt.excluded.reason,
+                'recorded_by': stmt.excluded.recorded_by,
+                'updated_at': datetime.utcnow()
+            }
+        )
+        db.session.execute(upsert)
+        db.session.commit()
+
+
+    return (json.dumps({'ok':True}), 200, {'Content-Type':'application/json'})
+
+
+@teacher_routes.route('/attendance/export')
+def attendance_export():
+    teacher, redirect_resp = _require_teacher()
+    if redirect_resp:
+        return redirect_resp
+
+    class_id = request.args.get('class_id', type=int)
+    start = request.args.get('start')
+    period = request.args.get('period', 'week')  # 'week' or 'month'
+
+    # basic permission check
+    assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
+    if class_id and not any(a.class_id == class_id for a in assignments):
+        flash('Not allowed', 'danger')
+        return redirect(url_for('teacher_routes.dashboard'))
+
+    try:
+        if start:
+            start_date = datetime.strptime(start, '%Y-%m-%d').date()
+        else:
+            today = datetime.today().date()
+            start_date = today - timedelta(days=today.weekday())
+    except Exception:
+        flash('Invalid date', 'danger')
+        return redirect(url_for('teacher_routes.dashboard'))
+
+    if period == 'week':
+        # respect days parameter if provided (default Mon-Sat -> 6 days)
+        days = request.args.get('days', default=6, type=int)
+        if days not in (5, 6):
+            days = 6
+        end_date = start_date + timedelta(days=days-1)
+    else:
+        # month: use first day of month
+        end_date = (start_date.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+
+    # fetch attendance
+    rows = Attendance.query.join(Pupil).filter(
+        Pupil.class_id == class_id,
+        Attendance.date.between(start_date, end_date)
+    ).order_by(Pupil.last_name, Attendance.date).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Pupil ID', 'First Name', 'Last Name', 'Date', 'Status', 'Reason'])
+    for r in rows:
+        pupil = Pupil.query.get(r.pupil_id)
+        writer.writerow([r.pupil_id, pupil.first_name if pupil else '', pupil.last_name if pupil else '', r.date.isoformat(), r.status, r.reason or ''])
+
+    resp = output.getvalue()
+    filename = f"attendance_{class_id}_{start_date.isoformat()}_{period}.csv"
+    return (resp, 200, {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': f'attachment; filename={filename}'
+    })
+
+
+@teacher_routes.route('/attendance/summary')
+def attendance_summary():
+    teacher, redirect_resp = _require_teacher()
+    if redirect_resp:
+        return redirect_resp
+
+    class_id = request.args.get('class_id', type=int)
+    start = request.args.get('start')
+    period = request.args.get('period', 'week')
+
+    try:
+        if start:
+            start_date = datetime.strptime(start, '%Y-%m-%d').date()
+        else:
+            today = datetime.today().date()
+            start_date = today - timedelta(days=today.weekday())
+    except Exception:
+        return json.dumps({'error':'invalid date'}), 400, {'Content-Type':'application/json'}
+
+    if period == 'week':
+        days = request.args.get('days', default=6, type=int)
+        if days not in (5, 6):
+            days = 6
+        end_date = start_date + timedelta(days=days-1)
+    else:
+        end_date = (start_date.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+
+    # permission
+    assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
+    if class_id and not any(a.class_id == class_id for a in assignments):
+        return json.dumps({'error':'not allowed'}), 403, {'Content-Type':'application/json'}
+
+    pupils = Pupil.query.filter_by(class_id=class_id).order_by(Pupil.last_name).all()
+    pupil_ids = [p.id for p in pupils]
+
+    # aggregate
+    data = []
+    for p in pupils:
+        counts = {
+            'present': 0,
+            'absent': 0,
+            'late': 0,
+            'leave': 0
+        }
+        rows = Attendance.query.filter_by(pupil_id=p.id).filter(Attendance.date.between(start_date, end_date)).all()
+        for r in rows:
+            if r.status in counts:
+                counts[r.status] += 1
+        data.append({'pupil_id': p.id, 'name': f"{p.first_name} {p.last_name}", 'counts': counts})
+
+    return json.dumps({'start': start_date.isoformat(), 'end': end_date.isoformat(), 'data': data}), 200, {'Content-Type':'application/json'}
+
+
+@teacher_routes.route('/attendance/confirm', methods=['POST'])
+def attendance_confirm():
+    teacher, redirect_resp = _require_teacher()
+    if redirect_resp:
+        return redirect_resp
+
+    try:
+        payload = request.get_json(force=True)
+    except Exception:
+        payload = None
+
+    if not payload:
+        return json.dumps({'error':'invalid payload'}), 400, {'Content-Type':'application/json'}
+
+    class_id = int(payload.get('class_id')) if payload.get('class_id') else None
+    start = payload.get('start')
+    period = payload.get('period', 'week')
+    days = int(payload.get('days', 6))
+    confirm = bool(payload.get('confirm', True))
+
+    if not class_id or not start:
+        return json.dumps({'error':'missing params'}), 400, {'Content-Type':'application/json'}
+
+    # permission
+    assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
+    if class_id and not any(a.class_id == class_id for a in assignments):
+        return json.dumps({'error':'not allowed'}), 403, {'Content-Type':'application/json'}
+
+    try:
+        start_date = datetime.strptime(start, '%Y-%m-%d').date()
+    except Exception:
+        return json.dumps({'error':'invalid date'}), 400, {'Content-Type':'application/json'}
+
+    if period == 'week':
+        end_date = start_date + timedelta(days=days-1)
+    else:
+        end_date = (start_date.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+
+    existing = PeriodConfirmation.query.filter_by(class_id=class_id, start_date=start_date, period_type=period, days=days).first()
+    if confirm:
+        if existing:
+            # already confirmed
+            return json.dumps({'ok':True, 'confirmed':True}), 200, {'Content-Type':'application/json'}
+        pc = PeriodConfirmation(class_id=class_id, start_date=start_date, end_date=end_date, period_type=period, days=days, confirmed_by=teacher.id, confirmed_at=datetime.utcnow())
+        db.session.add(pc)
+        db.session.commit()
+        return json.dumps({'ok':True, 'confirmed':True}), 200, {'Content-Type':'application/json'}
+    else:
+        if existing:
+            db.session.delete(existing)
+            db.session.commit()
+        return json.dumps({'ok':True, 'confirmed':False}), 200, {'Content-Type':'application/json'}
