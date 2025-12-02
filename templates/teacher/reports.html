@@ -445,8 +445,10 @@
       .report-card {
         display: flex;
         flex-direction: column;
-        /* Try to fill the printable viewport while leaving room for page margins/header */
-        min-height: calc(100vh - 60mm);
+          /* Try to fill the printable viewport while leaving room for page margins/header.
+            Increased slightly so the embedded footer moves lower on the page but stays
+            within the same printed page on most devices. */
+          min-height: calc(100vh - 72mm);
       }
       /* Push the embedded print-footer to the bottom of the card */
       .report-card .report-card-footer { margin-top: auto; }

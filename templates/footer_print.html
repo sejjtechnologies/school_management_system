@@ -76,13 +76,27 @@
     }
 
     .report-footer-print .footer-header {
-      background: #c62828;
-      color: #fff;
-      padding: 4px 8px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
+      /* Make entire footer card blue with white text/icons */
+      .report-footer-print .footer-card { background: #0b4a86; }
+      .report-footer-print .footer-header {
+        background: transparent;
+        color: #ffffff;
+        padding: 6px 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .report-footer-print .footer-body {
+        background: transparent;
+        color: #ffffff;
+        padding: 8px 10px;
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: center;
+        font-size: 9px;
+      }
 
     .report-footer-print .footer-body {
       background: #ffffff;
@@ -96,14 +110,16 @@
     }
 
     .report-footer-print .footer-body .left, .report-footer-print .footer-body .right { display:flex; gap:8px; align-items:center }
-    /* Make all footer text a navy/light-blue color (except social icons) */
-    .report-footer-print .footer-header, .report-footer-print .footer-body { color: #0b355f }
-    .report-footer-print .footer-body .contact a{ color: #0b355f }
+      /* Force white text across the footer */
+      .report-footer-print .footer-header, .report-footer-print .footer-body { color: #ffffff }
+      .report-footer-print .footer-body .contact a{ color: #ffffff; text-decoration: none }
 
     /* Social icons: reduce size and force centered alignment without affecting footer height */
     .report-footer-print .footer-body .social { width:48px; display:flex; align-items:center; justify-content:center }
     .report-footer-print .footer-body .social a { width:14px; height:14px; display:inline-flex; align-items:center; justify-content:center }
     .report-footer-print .footer-body .social svg { width:12px; height:12px; display:block }
+      /* Ensure inline SVG icons render white */
+      .report-footer-print svg path { fill: #ffffff !important }
 
     /* Print-safe adjustments: keep footer compact and avoid forcing a new page */
     @media print{
