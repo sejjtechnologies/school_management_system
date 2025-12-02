@@ -11,7 +11,7 @@
   <style>
     body {
       font-family: 'Poppins', Arial, sans-serif;
-      font-size: 0.70rem;
+      font-size: 0.68rem;
       background: #f5f5f5;
       margin: 0;
     }
@@ -45,41 +45,30 @@
         transform-origin: top left;
       }
 
-      /* Hide only the things we don't want */
       .hide-print { display: none !important; }
-
-      .report-card {
-        page-break-inside: avoid !important;
-      }
+      .report-card { page-break-inside: avoid !important; }
     }
 
     /* Responsive adjustments */
     @media (max-width: 576px) {
-      .page-bg {
-        padding: 6px;
-      }
-      .school-footer {
-        font-size: 0.55rem !important;
-        padding: 6px !important;
-      }
-      .school-nav h2 {
-        font-size: 0.95rem;
-      }
+      .page-bg { padding: 6px; }
+      .school-footer { font-size: 0.55rem !important; padding: 6px !important; }
+      .school-nav h2 { font-size: 0.95rem; }
     }
 
     .report-card {
       background: #fff;
       border: 1px solid #e0e0e0;
-      padding: 15px;
-      border-radius: 7px;
-      margin-bottom: 15px;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 12px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
     .school-nav {
       background:#c62828;
       color:#fff;
-      height:60px;
+      height:60px; /* KEPT as you requested */
       border-radius:4px;
       display:flex;
       align-items:center;
@@ -91,38 +80,50 @@
     .school-footer {
       background:#263238;
       color:#fff;
-      height: 55px;
-      padding: 6px 12px;
+      height: 50px;
+      padding: 5px 10px;
       border-radius:4px;
-      font-size:0.70rem;
+      font-size:0.65rem;
       display:flex;
       justify-content:space-between;
       align-items:center;
-      margin-top: 10px;
+      margin-top: 8px;
     }
 
-    .badge-grade { padding: 4px 6px; border-radius: 5px; color:#fff; font-weight:600; }
+    /* Smaller grade badges */
+    .badge-grade {
+      padding: 2px 4px;
+      border-radius: 4px;
+      color:#fff;
+      font-weight:600;
+      font-size:0.58rem;
+    }
+
     .grade-A { background:#2e7d32 }
     .grade-B { background:#0288d1 }
     .grade-C { background:#f9a825 }
     .grade-D { background:#fb8c00 }
     .grade-E { background:#d32f2f }
 
+    /* Option A small position badge */
     .pos-badge {
       background:#6a1b9a;
       color:#fff;
-      padding:4px 8px;
-      border-radius:5px;
+      padding:2px 4px;
+      border-radius:4px;
+      font-size:0.55rem;
       font-weight:600;
     }
 
     .remark-box {
       background:#fff8e1;
-      border-left: 4px solid #ffca28;
-      padding: 8px;
+      border-left: 3px solid #ffca28;
+      padding: 6px;
       border-radius: 4px;
-      font-size: 0.70rem;
+      font-size: 0.65rem;
     }
+
+    h5 { font-size: 0.85rem; }
   </style>
 </head>
 
@@ -130,21 +131,18 @@
 
   <div class="page-bg">
 
-    <!-- ✅ Header MUST print → removed no-print -->
     <div class="school-nav">
       <div style="text-align:center">
         <h2 class="m-0">HOPEFUL FUTURE PRIMARY SCHOOL</h2>
         <div style="font-size:0.70rem">Nurturing Minds, Shaping Futures</div>
       </div>
 
-      <!-- Buttons hidden on print -->
       <div class="top-actions hide-print" style="position:absolute; right:8px;">
         <button class="btn btn-primary btn-sm" onclick="downloadDoc()">Download .doc</button>
         <button class="btn btn-primary btn-sm" onclick="savePdf()">Save as PDF</button>
       </div>
     </div>
 
-    <!-- Pupil info card hidden on print -->
     <div class="card p-2 mb-3 hide-print">
       <h5 class="mb-1">{{ pupil.first_name }} {{ pupil.middle_name }} {{ pupil.last_name }}</h5>
       <div class="text-muted">Adm: {{ pupil.admission_number }}</div>
@@ -211,7 +209,9 @@
 
       <p><strong>Combined Total:</strong> {{ combined.combined_total }}</p>
       <p><strong>Average:</strong> {{ combined.combined_average }}</p>
-      <p><strong>Final Grade:</strong> <span class="badge-grade grade-{{ combined.combined_grade }}">{{ combined.combined_grade }}</span></p>
+      <p><strong>Final Grade:</strong>
+        <span class="badge-grade grade-{{ combined.combined_grade }}">{{ combined.combined_grade }}</span>
+      </p>
 
       {% if class_position %}
       <p><span class="pos-badge">Class Position: {{ class_position }} / {{ class_total }}</span></p>
@@ -221,7 +221,6 @@
     </div>
     {% endif %}
 
-    <!-- ✅ Footer MUST print → removed no-print -->
     <div class="school-footer">
       <div>Contacts: 0744137174 | 0768936641</div>
       <div>Email: info@hopefulfutureps.org | Entebbe - Wakiso</div>
