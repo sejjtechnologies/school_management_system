@@ -227,55 +227,58 @@ def manage_pupils_reports():
 
     for term, exam_ids_in_term in term_groups.items():
         # gather combined totals for pupils who have reports in these exams
+        # NOTE: compute across the whole class (all pupils in each class), not only those
+        # assigned to this teacher, so positions are class-wide.
         combined_totals = {}
-        for pupil in assigned_pupils:
-            reps = Report.query.filter(
-                Report.pupil_id == pupil.id,
-                Report.exam_id.in_(exam_ids_in_term)
-            ).all()
-            if not reps:
-                continue
-            # Weighted combination: Midterm = 40%, End_Term = 60%
-            # Fetch exam objects for this term to determine weights per exam id
-            exams_objs = Exam.query.filter(Exam.id.in_(exam_ids_in_term)).all()
-            # Build initial weights based on exam name heuristics
-            weights = {}
-            for ex in exams_objs:
-                name = (ex.name or "").lower()
-                if "mid" in name:
-                    weights[ex.id] = 0.4
-                elif "end" in name or "end term" in name or "end_term" in name:
-                    weights[ex.id] = 0.6
-                else:
-                    weights[ex.id] = None
+        # fetch exam objects for this term once
+        exams_objs = Exam.query.filter(Exam.id.in_(exam_ids_in_term)).all()
+        # Build initial weights based on exam name heuristics
+        weights_template = {}
+        for ex in exams_objs:
+            name = (ex.name or "").lower()
+            if "mid" in name:
+                weights_template[ex.id] = 0.4
+            elif "end" in name or "end term" in name or "end_term" in name:
+                weights_template[ex.id] = 0.6
+            else:
+                weights_template[ex.id] = None
 
-            # Normalize weights: assign equal share to any unassigned exams, or fallback to equal weights
-            assigned_sum = sum(w for w in weights.values() if w)
-            none_count = sum(1 for w in weights.values() if w is None)
-            if none_count > 0:
-                remaining = max(0.0, 1.0 - assigned_sum)
-                per_none = remaining / none_count if none_count else 0
-                for k, v in list(weights.items()):
-                    if v is None:
-                        weights[k] = per_none
-            elif assigned_sum == 0 and len(weights) > 0:
-                # No explicit mid/end detected; fall back to equal weighting
-                for k in weights.keys():
-                    weights[k] = 1.0 / len(weights)
+        # Normalize weights template: assign equal share to any unassigned exams, or fallback to equal weights
+        assigned_sum = sum(w for w in weights_template.values() if w)
+        none_count = sum(1 for w in weights_template.values() if w is None)
+        if none_count > 0:
+            remaining = max(0.0, 1.0 - assigned_sum)
+            per_none = remaining / none_count if none_count else 0
+            for k in list(weights_template.keys()):
+                if weights_template[k] is None:
+                    weights_template[k] = per_none
+        elif assigned_sum == 0 and len(weights_template) > 0:
+            for k in weights_template.keys():
+                weights_template[k] = 1.0 / len(weights_template)
 
-            # Compute weighted total across exams for this pupil
-            weighted_total = 0.0
-            for r in reps:
-                w = weights.get(r.exam_id, 0)
-                weighted_total += (r.total_score or 0) * w
+        # For each class that the teacher is assigned to, compute combined averages for all pupils in that class
+        for class_id in class_ids:
+            pupils_in_class_full = Pupil.query.filter_by(class_id=class_id).all()
+            for pupil in pupils_in_class_full:
+                reps = Report.query.filter(
+                    Report.pupil_id == pupil.id,
+                    Report.exam_id.in_(exam_ids_in_term)
+                ).all()
+                if not reps:
+                    continue
+                # Compute weighted total across exams for this pupil
+                weighted_total = 0.0
+                for r in reps:
+                    w = weights_template.get(r.exam_id, 0)
+                    weighted_total += (r.total_score or 0) * w
 
-            # combined average per subject = weighted_total / subject_count
-            denom = subject_count if subject_count else 1
-            combined_avg = weighted_total / denom
-            combined_totals[pupil.id] = {
-                'combined_total': round(weighted_total, 2),
-                'combined_average': round(combined_avg, 2)
-            }
+                # combined average per subject = weighted_total / subject_count
+                denom = subject_count if subject_count else 1
+                combined_avg = weighted_total / denom
+                combined_totals[pupil.id] = {
+                    'combined_total': round(weighted_total, 2),
+                    'combined_average': round(combined_avg, 2)
+                }
 
         # Assign combined positions within each class and stream
         # Class-level combined positions
@@ -326,11 +329,14 @@ def manage_pupils_reports():
     exams = Exam.query.filter(Exam.id.in_(exam_ids)).all()
 
     # counts for template: students per stream and per class
+    # Count pupils across the whole class(es) (not only those assigned to this teacher)
     students_per_stream = {}
     students_per_class = {}
-    for p in assigned_pupils:
-        students_per_stream[p.stream_id] = students_per_stream.get(p.stream_id, 0) + 1
-        students_per_class[p.class_id] = students_per_class.get(p.class_id, 0) + 1
+    for class_id in set(p.class_id for p in assigned_pupils):
+        pupils_in_class_full = Pupil.query.filter_by(class_id=class_id).all()
+        students_per_class[class_id] = len(pupils_in_class_full)
+        for p in pupils_in_class_full:
+            students_per_stream[p.stream_id] = students_per_stream.get(p.stream_id, 0) + 1
 
     return render_template(
         "teacher/manage_pupils_reports.html",

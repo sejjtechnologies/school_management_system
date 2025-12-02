@@ -92,6 +92,12 @@
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
       }
+      /* make table rows very compact on very small screens (keep all columns visible) */
+      table th, table td {
+        font-size: 0.6rem;
+        padding: 2px 4px;
+        line-height: 1;
+      }
     }
 
     /* Make main area a scroll container so content can scroll above fixed footer */
@@ -128,7 +134,7 @@
       <input type="text" id="searchInput" class="form-control search-box" placeholder="Search pupils by name, class, or stream...">
 
       {% if pupils %}
-        <div class="table-responsive">
+        <div class="table-responsive" style="overflow-x:auto; white-space:nowrap;">
           <table class="table table-striped table-bordered align-middle" id="pupilTable">
             <thead>
               <tr>
@@ -183,6 +189,7 @@
                     {% endif %}
                   </td>
                   <td class="text-center">
+                    {# Prefer class-wide position from class_stats if available via combined_stats snapshot #}
                     {% if cs and ('class_combined_position' in cs) %}
                       {{ cs['class_combined_position'] }} of {{ students_per_class.get(pupil.class_id, '-') if students_per_class is defined else '-' }}
                     {% else %}
