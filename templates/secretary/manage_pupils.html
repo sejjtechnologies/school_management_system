@@ -186,9 +186,9 @@
       padding: 8px 0;
     }
     .search-fixed .input-group {
-      max-width: 520px;
+      max-width: 720px;
       width: 100%;
-      margin-left: auto;
+      margin: 0; /* left-align inside .container so it appears above the cards */
     }
     .search-bar-fixed {
       border-radius: 28px !important;
@@ -233,7 +233,7 @@
   <!-- Fixed Search Bar -->
   <div class="search-fixed">
     <div class="container d-flex">
-      <div class="input-group ms-auto">
+      <div class="input-group">
         <span class="input-group-text"><i class="bi bi-search"></i></span>
         <input id="searchInput" type="text" class="form-control search-bar-fixed" placeholder="Search pupils by name, class, or stream..." aria-label="Search pupils">
         <button id="clearSearch" class="btn search-clear-btn ms-2" type="button" title="Clear search"><i class="bi bi-x-lg"></i></button>
@@ -404,14 +404,31 @@
     (function(){
       var input = document.getElementById('searchInput');
       var clearBtn = document.getElementById('clearSearch');
+
+      // columns to consider (0-based td indices)
+      var searchCols = [1,2,3,4,5,6,9,11,12,13,21,22,24,16];
+
+      function rowMatches(row, query) {
+        if (!query) return true;
+        var tds = row.querySelectorAll('td');
+        var pieces = [];
+        searchCols.forEach(function(i){
+          if (tds[i]) pieces.push(tds[i].textContent.trim().toLowerCase());
+        });
+        var hay = pieces.join(' ');
+        return hay.indexOf(query) !== -1;
+      }
+
       function applyFilter() {
-        var filter = input.value.toLowerCase();
+        var q = input ? input.value.trim().toLowerCase() : '';
         var rows = document.querySelectorAll('#pupilTable tbody tr');
         rows.forEach(function(row) {
-          var text = row.textContent.toLowerCase();
-          row.style.display = text.includes(filter) ? '' : 'none';
+          // keep header/empty rows visible if they don't have tds
+          if (!row.querySelectorAll('td').length) return;
+          row.style.display = rowMatches(row, q) ? '' : 'none';
         });
       }
+
       if (input) {
         input.addEventListener('keyup', applyFilter);
         input.addEventListener('input', applyFilter);
