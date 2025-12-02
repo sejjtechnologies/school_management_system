@@ -23,7 +23,7 @@
       margin: auto;
     }
 
-    /* Fit on one A4 page */
+    /* Print setup */
     @page {
       size: A4 portrait;
       margin: 6mm;
@@ -41,33 +41,27 @@
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
         overflow: hidden;
-        transform: scale(0.92);      /* shrink content */
+        transform: scale(0.92);
         transform-origin: top left;
       }
 
-      .no-print { display: none !important; }
+      /* Hide only the things we don't want */
+      .hide-print { display: none !important; }
 
       .report-card {
         page-break-inside: avoid !important;
       }
     }
 
-    /* Auto adjust for small screens */
+    /* Responsive adjustments */
     @media (max-width: 576px) {
       .page-bg {
         padding: 6px;
       }
-
-      .report-card {
-        padding: 10px !important;
-      }
-
       .school-footer {
         font-size: 0.55rem !important;
-        height: auto;
         padding: 6px !important;
       }
-
       .school-nav h2 {
         font-size: 0.95rem;
       }
@@ -80,58 +74,6 @@
       border-radius: 7px;
       margin-bottom: 15px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-      max-height: auto;
-    }
-
-    .report-header {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-    }
-
-    .report-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      border-radius: 6px;
-      overflow: hidden;
-    }
-
-    .report-table th {
-      background: #283593;
-      color: white;
-      padding: 8px;
-      font-size: 0.70rem;
-    }
-
-    .report-table td {
-      padding: 8px;
-      border-bottom: 1px solid #eee;
-      font-size: 0.70rem;
-    }
-
-    .badge-grade { padding: 4px 6px; border-radius: 5px; color:#fff; font-weight:600; }
-    .grade-A { background:#2e7d32 }
-    .grade-B { background:#0288d1 }
-    .grade-C { background:#f9a825 }
-    .grade-D { background:#fb8c00 }
-    .grade-E { background:#d32f2f }
-
-    .pos-badge {
-      background:#6a1b9a;
-      color:#fff;
-      padding:4px 8px;
-      border-radius:5px;
-      font-weight:600;
-    }
-
-    .remark-box {
-      background:#fff8e1;
-      border-left: 4px solid #ffca28;
-      padding: 8px;
-      border-radius: 4px;
-      font-size: 0.70rem;
     }
 
     .school-nav {
@@ -159,9 +101,27 @@
       margin-top: 10px;
     }
 
-    .school-footer a {
-      color: #ffd54f;
-      text-decoration:none;
+    .badge-grade { padding: 4px 6px; border-radius: 5px; color:#fff; font-weight:600; }
+    .grade-A { background:#2e7d32 }
+    .grade-B { background:#0288d1 }
+    .grade-C { background:#f9a825 }
+    .grade-D { background:#fb8c00 }
+    .grade-E { background:#d32f2f }
+
+    .pos-badge {
+      background:#6a1b9a;
+      color:#fff;
+      padding:4px 8px;
+      border-radius:5px;
+      font-weight:600;
+    }
+
+    .remark-box {
+      background:#fff8e1;
+      border-left: 4px solid #ffca28;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 0.70rem;
     }
   </style>
 </head>
@@ -170,19 +130,22 @@
 
   <div class="page-bg">
 
-    <div class="school-nav no-print">
+    <!-- ✅ Header MUST print → removed no-print -->
+    <div class="school-nav">
       <div style="text-align:center">
         <h2 class="m-0">HOPEFUL FUTURE PRIMARY SCHOOL</h2>
         <div style="font-size:0.70rem">Nurturing Minds, Shaping Futures</div>
       </div>
 
-      <div class="top-actions" style="position:absolute; right:8px;">
+      <!-- Buttons hidden on print -->
+      <div class="top-actions hide-print" style="position:absolute; right:8px;">
         <button class="btn btn-primary btn-sm" onclick="downloadDoc()">Download .doc</button>
         <button class="btn btn-primary btn-sm" onclick="savePdf()">Save as PDF</button>
       </div>
     </div>
 
-    <div class="card p-2 no-print mb-3">
+    <!-- Pupil info card hidden on print -->
+    <div class="card p-2 mb-3 hide-print">
       <h5 class="mb-1">{{ pupil.first_name }} {{ pupil.middle_name }} {{ pupil.last_name }}</h5>
       <div class="text-muted">Adm: {{ pupil.admission_number }}</div>
       <div class="text-muted">Class: {{ pupil.class_name }} | Stream: {{ pupil.stream_name }}</div>
@@ -191,10 +154,8 @@
     {% for ex in exams %}
     <div class="report-card">
 
-      <div class="report-header">
-        <div>
-          <h5 class="mb-0">{{ ex.name }} - Term {{ ex.term }} / {{ ex.year }}</h5>
-        </div>
+      <div class="report-header d-flex justify-content-between flex-wrap mb-2">
+        <h5 class="mb-0">{{ ex.name }} - Term {{ ex.term }} / {{ ex.year }}</h5>
 
         <div class="text-end">
           {% set rep = (reports | selectattr('exam_id','equalto', ex.id) | list).0 %}
@@ -202,7 +163,6 @@
 
           <div><strong>Total:</strong> {{ rep.total_score }} / {{ subjects|length * 100 }}</div>
           <div><strong>Avg:</strong> {{ rep.average_score }}</div>
-
           <div><strong>Grade:</strong>
             <span class="badge-grade grade-{{ rep.grade }}">{{ rep.grade }}</span>
           </div>
@@ -213,7 +173,7 @@
         </div>
       </div>
 
-      <table class="report-table">
+      <table class="table table-sm report-table">
         <thead>
           <tr>
             <th>Subject</th>
@@ -261,9 +221,10 @@
     </div>
     {% endif %}
 
-    <div class="school-footer no-print">
-      <div class="left">Contacts: 0744137174 | 0768936641</div>
-      <div class="right">Email: info@hopefulfutureps.org | Entebbe - Wakiso</div>
+    <!-- ✅ Footer MUST print → removed no-print -->
+    <div class="school-footer">
+      <div>Contacts: 0744137174 | 0768936641</div>
+      <div>Email: info@hopefulfutureps.org | Entebbe - Wakiso</div>
     </div>
 
   </div>
