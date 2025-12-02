@@ -4,11 +4,11 @@
        the browser does not pick Dancing Script or other decorative fonts. */
     .report-footer-print{
       /* use system Comic Sans and fallbacks; force normal (non-italic) weight */
-      font-family: "Comic Sans MS", "Comic Sans", "Trebuchet MS", Arial, sans-serif;
-      color: #ffffff; /* white text on red background */
+      font-family: "Comic Sans MS", "Comic Sans", TrebuchetMS, Arial, sans-serif;
+      color: #ffffff;
       font-style: normal;
       font-weight: 400;
-      font-size: 10px;
+      font-size: 10px; /* uniform size for all footer contents */
       width: 100%;
       box-sizing: border-box;
       padding: 6px 8px;
@@ -36,17 +36,21 @@
       line-height:1;
     }
 
+    /* Uniform font size for header lines */
     .report-footer-print .brand .school-name{
       font-weight:700;
-      font-size:12px;
-      color:#ffffff; /* will appear on red header */
+      font-size:10px;
+      color:#ffffff;
     }
 
     .report-footer-print .brand .motto{
-      font-size:9px;
+      font-size:10px;
       color: rgba(255,255,255,0.95);
-      font-style: normal; /* ensure motto is not italic */
+      font-style: normal;
       font-weight: 400;
+    }
+    .report-footer-print .footer-header .school-name, .report-footer-print .footer-header .motto {
+      text-shadow: 0 1px 0 rgba(0,0,0,0.25);
     }
 
     .report-footer-print .contact{
@@ -75,8 +79,8 @@
       -webkit-print-color-adjust: exact;
     }
 
-    /* Make entire footer card blue with white text/icons */
-    .report-footer-print .footer-card { background: #0b4a86; }
+    /* Make entire footer card a clear blue with white text/icons */
+    .report-footer-print .footer-card { background: #2196F3; }
     .report-footer-print .footer-header {
       background: transparent;
       color: #ffffff;
@@ -94,12 +98,12 @@
       justify-content: space-between;
       gap: 8px;
       align-items: center;
-      font-size: 9px;
+      font-size: 10px; /* enforce uniform size */
     }
 
     .report-footer-print .footer-body .left, .report-footer-print .footer-body .right { display:flex; gap:8px; align-items:center }
-    /* Force white text across the footer */
-    .report-footer-print .footer-header, .report-footer-print .footer-body { color: #ffffff }
+    /* Force white text across the footer and Comic Sans family */
+    .report-footer-print .footer-header, .report-footer-print .footer-body { color: #ffffff; font-family: "Comic Sans MS", "Comic Sans", TrebuchetMS, Arial, sans-serif }
     .report-footer-print .footer-body .contact a{ color: #ffffff; text-decoration: none }
 
     /* Social icons: reduce size and force centered alignment without affecting footer height */
@@ -111,10 +115,10 @@
 
     /* Print-safe adjustments: keep footer compact and avoid forcing a new page */
     @media print{
-      .report-footer-print{ font-size:9px; padding:2px 4px; border-top-width:1px }
+      .report-footer-print{ font-size:10px; padding:2px 4px; border-top-width:1px }
       .report-footer-print .brand .school-name{ font-size:10px }
-      .report-footer-print .brand .motto{ font-size:8px }
-      .report-footer-print .contact{ font-size:8.5px }
+      .report-footer-print .brand .motto{ font-size:10px }
+      .report-footer-print .contact{ font-size:10px }
       .report-footer-print .logo { display:inline-block; width:28px; height:28px }
       /* Ensure the background prints; many browsers need print-color-adjust to honor background colors */
       .report-footer-print { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -136,15 +140,14 @@
       </div>
       <div class="footer-body">
         <div class="left">
-            <div class="brand">
-              <div style="font-weight:700; font-size:11px; color:#ffffff">Bright Future Primary School</div>
-              <div style="font-size:9px; color:#ffffff">Empowering Learners for Tomorrow</div>
-            </div>
+          <!-- left side intentionally compact to avoid repeating school name -->
+          <div style="width:8px"></div>
         </div>
         <div class="right">
           <div class="contact">
             <div><strong>Email:</strong> <a href="mailto:brightfutureprimary@gmail.com?subject=School%20Report%20Enquiry">brightfutureprimary@gmail.com</a></div>
             <div style="margin-top:4px"><strong>Phone:</strong> <a href="tel:0768936641">0768936641</a> / <a href="tel:0744137174">0744137174</a></div>
+            <div style="margin-top:4px; font-size:8.5px; color:#ffffff">Cc: brightfutureprimary@gmail.com</div>
           </div>
           <div class="social" aria-label="social links">
             <a href="https://www.linkedin.com/" title="LinkedIn" target="_blank" rel="noopener">
