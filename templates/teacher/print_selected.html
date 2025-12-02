@@ -11,7 +11,7 @@
   <style>
     body {
       font-family: 'Times New Roman', serif;
-      font-size: 0.75rem;
+      font-size: 0.78rem;
       background: #d0f0c0;
       margin: 0;
     }
@@ -34,7 +34,7 @@
       html, body { width: 210mm; height: 297mm; }
       body { margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .hide-print { display: none !important; }
-      .report-card { page-break-inside: avoid !important; margin-bottom: 4px; box-shadow: none; }
+      .report-card { page-break-inside: avoid !important; margin-bottom: 6px; box-shadow: none; }
       .page-bg { min-height: auto; padding: 0; }
       .school-nav { height: auto; padding: 0; }
     }
@@ -102,10 +102,10 @@
 
     .report-card {
       border-radius: 8px;
-      padding: 10px;
-      margin-bottom: 12px;
+      padding: 14px 12px;
+      margin-bottom: 14px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-      font-size: 0.80rem;
+      font-size: 0.82rem;
       color: #333;
       font-family: 'Times New Roman', serif;
       flex-shrink: 0;
@@ -113,26 +113,26 @@
     .report-card:nth-child(odd) { background: #e0f7fa; }
     .report-card:nth-child(even) { background: #fff3e0; }
 
-    h5.term-title { color: #c2185b; font-weight: bold; margin-bottom:5px; }
+    h5.term-title { color: #c2185b; font-weight: bold; margin-bottom:8px; }
     .text-total { color: #2e7d32; font-weight:600; }
     .text-avg { color: #0288d1; font-weight:600; }
     .text-grade { color: #f9a825; font-weight:600; }
 
-    .badge-grade { padding: 2px 5px; border-radius: 4px; color:#fff; font-weight:600; font-size:0.60rem; }
+    .badge-grade { padding: 3px 6px; border-radius: 4px; color:#fff; font-weight:600; font-size:0.65rem; }
     .grade-A { background:#2e7d32 }
     .grade-B { background:#0288d1 }
     .grade-C { background:#f9a825 }
     .grade-D { background:#fb8c00 }
     .grade-E { background:#d32f2f }
 
-    .pos-badge { background:#6a1b9a; color:#fff; padding:2px 4px; border-radius:4px; font-size:0.55rem; font-weight:600; }
+    .pos-badge { background:#6a1b9a; color:#fff; padding:2px 5px; border-radius:4px; font-size:0.6rem; font-weight:600; }
 
-    .remark-box { background:#fff8e1; border-left: 3px solid #ffca28; padding: 6px; border-radius: 4px; font-size: 0.70rem; }
-    .class-teacher { color: #e57373; font-size: 0.70rem; font-weight:600; margin-top:6px }
+    .remark-box { background:#fff8e1; border-left: 3px solid #ffca28; padding: 8px; border-radius: 4px; font-size: 0.72rem; }
+    .class-teacher { color: #e57373; font-size: 0.72rem; font-weight:600; margin-top:6px }
 
-    table th, table td { text-align:center; vertical-align:middle; font-size:0.70rem; }
+    table th, table td { text-align:center; vertical-align:middle; font-size:0.72rem; padding:4px; }
     table th:first-child, table td:first-child { text-align:left; }
-    table { width: 100%; border-collapse: collapse; margin-bottom:4px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom:6px; }
 
     @media (max-width: 480px) {
       .school-nav h2 { font-size: 1.2rem; }
@@ -172,7 +172,7 @@
     </div>
 
     <!-- Pupil Details -->
-    <div class="card p-2 mb-3" style="background:#c8e6c9;">
+    <div class="card p-3 mb-3" style="background:#c8e6c9;">
       <h5>{{ pupil.first_name }} {{ pupil.middle_name }} {{ pupil.last_name }}</h5>
       <div>Adm: {{ pupil.admission_number }}</div>
       <div>Class: {{ pupil.class_name }} | Stream: {{ pupil.stream_name }}</div>
