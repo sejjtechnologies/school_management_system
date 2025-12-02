@@ -53,6 +53,30 @@
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
+    /* Fixed search bar under navbar */
+    .search-fixed {
+      position: fixed;
+      top: 60px; /* navbar height */
+      left: 0;
+      right: 0;
+      height: 64px;
+      z-index: 1001;
+      background: rgba(255,255,255,0.98);
+      display: flex;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      padding: 8px 0;
+    }
+    .search-fixed .input-group { max-width: 720px; width: 100%; margin: 0; }
+    .search-bar-fixed { border-radius: 28px !important; height: 44px; padding: 10px 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+    .search-fixed .input-group-text { background: transparent; border: none; font-size: 1.05rem; color: #555; }
+    .search-clear-btn { border-radius: 28px; height: 44px; width: 44px; display: inline-flex; align-items: center; justify-content: center; border: none; background: #f1f3f5; }
+    @media (max-width: 575.98px) {
+      .search-fixed .input-group { max-width: 92%; margin-left: auto; margin-right: 12px; }
+      .search-bar-fixed { height: 38px; }
+      .search-clear-btn { height: 38px; width: 38px; }
+      main.main-scroll { margin-top: 12px; }
+    }
     table th {
       background-color: #283593;
       color: #fff;
@@ -108,7 +132,8 @@
       /* Reserve space for footer (measured via --footer-height) + 20px gap so last row is visible above footer */
       padding-bottom: calc(var(--footer-height, 48px) + 20px);
       /* Keep a small gap between navbar and content when scrolling */
-      padding-top: 20px;
+      /* Reserve space for fixed search bar under navbar (64px) plus small gap */
+      padding-top: calc(64px + 20px);
     }
   </style>
 </head>
@@ -124,6 +149,17 @@
       </a>
     </div>
   </nav>
+
+  <!-- Fixed Search Bar -->
+  <div class="search-fixed">
+    <div class="container d-flex">
+      <div class="input-group">
+        <button id="searchBtn" class="btn input-group-text" type="button" title="Search"><i class="bi bi-search"></i></button>
+        <input id="searchInput" type="text" class="form-control search-bar-fixed" placeholder="Search pupils by name, class, or stream..." aria-label="Search pupils">
+        <button id="clearSearch" class="btn search-clear-btn ms-2" type="button" title="Clear search"><i class="bi bi-x-lg"></i></button>
+      </div>
+    </div>
+  </div>
 
   <!-- ✅ Main Content -->
   <main class="container mt-4 main-scroll">
@@ -176,10 +212,35 @@
                       {% endif %}
                     {% endif %}
                   {% endif %}
+                  {% set rep = report_map.get(pupil.id) if report_map is defined else None %}
 
-                  <td class="text-center">{{ cs['combined_average'] if cs and ('combined_average' in cs) else '-' }}</td>
-                  <td class="text-center">{{ cs['combined_grade'] if cs and ('combined_grade' in cs) else '-' }}</td>
-                  <td class="text-center">{{ cs['general_remark'] if cs and ('general_remark' in cs) else '-' }}</td>
+                  <td class="text-center">
+                    {% if cs and ('combined_average' in cs) %}
+                      {{ cs['combined_average'] }}
+                    {% elif rep and (rep.combined_average is not none) %}
+                      {{ rep.combined_average }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                  <td class="text-center">
+                    {% if cs and ('combined_grade' in cs) %}
+                      {{ cs['combined_grade'] }}
+                    {% elif rep and (rep.combined_grade is not none) %}
+                      {{ rep.combined_grade }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                  <td class="text-center">
+                    {% if cs and ('general_remark' in cs) %}
+                      {{ cs['general_remark'] }}
+                    {% elif rep and (rep.general_remark is not none) %}
+                      {{ rep.general_remark }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
                   <td class="text-center">
                     {% if cs and ('stream_combined_position' in cs) %}
                       {{ cs['stream_combined_position'] }} of {{ students_per_stream.get(pupil.stream_id, '-') if students_per_stream is defined else '-' }}
@@ -200,6 +261,22 @@
             </tbody>
           </table>
         </div>
+        <!-- Pagination -->
+        <nav aria-label="Pupil list pagination" class="mt-3">
+          <ul class="pagination" id="pupilPagination" data-per-page="{{ per_page|default(50) }}">
+            {% set _p = page if page is defined else 1 %}
+            {% set _tp = total_pages if total_pages is defined else 1 %}
+            <li class="page-item {% if _p == 1 %}disabled{% endif %}">
+              <a class="page-link" href="?page={{ _p-1 }}&per_page={{ per_page }}" data-page="{{ _p-1 }}">Previous</a>
+            </li>
+            {% for i in range(1, _tp+1) %}
+            <li class="page-item {% if i == _p %}active{% endif %}"><a class="page-link" href="?page={{ i }}&per_page={{ per_page }}" data-page="{{ i }}">{{ i }}</a></li>
+            {% endfor %}
+            <li class="page-item {% if _p == _tp %}disabled{% endif %}">
+              <a class="page-link" href="?page={{ _p+1 }}&per_page={{ per_page }}" data-page="{{ _p+1 }}">Next</a>
+            </li>
+          </ul>
+        </nav>
       {% else %}
         <p class="text-muted">No pupils assigned to you yet.</p>
       {% endif %}
@@ -215,14 +292,25 @@
       var input = document.getElementById('searchInput');
       if (!input) return;
 
+      // Read per-page from the pagination element to avoid embedding Jinja directly into JS
+      var paginationEl = document.getElementById('pupilPagination');
+      var perPage = 50;
+      if (paginationEl && paginationEl.dataset && paginationEl.dataset.perPage) {
+        perPage = parseInt(paginationEl.dataset.perPage, 10) || 50;
+      }
+
       // cache rows and their lower-cased searchable text to avoid recomputing on each keystroke
-      var rows = Array.prototype.slice.call(document.querySelectorAll('#pupilTable tbody tr'));
-      rows.forEach(function(row){
-        var tds = row.querySelectorAll('td');
-        if (!tds || tds.length === 0) return;
-        // use textContent (faster than innerText) and cache
-        row.dataset.searchText = row.textContent.trim().toLowerCase();
-      });
+      var rows = [];
+      function cacheRows(){
+        rows = Array.prototype.slice.call(document.querySelectorAll('#pupilTable tbody tr'));
+        rows.forEach(function(row){
+          var tds = row.querySelectorAll('td');
+          if (!tds || tds.length === 0) return;
+          row.dataset.searchText = row.textContent.trim().toLowerCase();
+        });
+      }
+
+      cacheRows();
 
       function applyFilter() {
         var filter = (input.value || '').trim().toLowerCase();
@@ -243,6 +331,48 @@
 
       input.addEventListener('input', debounce(applyFilter, 160));
       input.addEventListener('keydown', function(e){ if (e.key === 'Enter') applyFilter(); });
+
+      // search and clear buttons
+      var searchBtn = document.getElementById('searchBtn');
+      var clearBtn = document.getElementById('clearSearch');
+      if (searchBtn) {
+        searchBtn.addEventListener('click', function(){ applyFilter(); input && input.focus(); });
+      }
+      if (clearBtn) {
+        clearBtn.addEventListener('click', function(){ if (input) { input.value = ''; applyFilter(); input.focus(); } });
+      }
+
+      // AJAX pagination: intercept clicks on pagination links and load page via fetch
+      var pagination = document.getElementById('pupilPagination');
+      if (pagination) {
+        pagination.addEventListener('click', function(evt){
+          var a = evt.target.closest('a[data-page]');
+          if (!a) return;
+          evt.preventDefault();
+          var page = a.getAttribute('data-page');
+          if (!page) return;
+          // fetch the same URL with page param
+          var url = window.location.pathname + '?page=' + encodeURIComponent(page) + '&per_page=' + encodeURIComponent(perPage);
+          fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(function(resp){ return resp.text(); }).then(function(html){
+            // parse the returned HTML and extract the tbody and pagination
+            var parser = new DOMParser();
+            var doc = parser.parseFromString(html, 'text/html');
+            var newTbody = doc.querySelector('#pupilTable tbody');
+            var newPagination = doc.querySelector('#pupilPagination');
+            if (newTbody) {
+              var tbody = document.querySelector('#pupilTable tbody');
+              tbody.innerHTML = newTbody.innerHTML;
+              cacheRows();
+              applyFilter();
+            }
+            if (newPagination) {
+              pagination.innerHTML = newPagination.innerHTML;
+            }
+            // update browser URL without reloading
+            try { window.history.pushState({}, '', url); } catch (e) { /* ignore */ }
+          }).catch(function(err){ console.error('Page load failed', err); });
+        });
+      }
     })();
   </script>
 </body>
