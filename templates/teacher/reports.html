@@ -407,16 +407,18 @@
           </div>
         {% endif %}
       {% endfor %}
+      <!-- Print footer included inside the report card so it prints on the same page when possible -->
+      <div class="report-card-footer d-none d-print-block" style="margin-top:6px;">
+        <div style="max-width:760px; margin:4px auto 0 auto; font-size:9px;">
+          {% include 'footer_print.html' %}
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- on-screen footer removed; print footer will be included inside the report to keep it on the same page -->
 
-  <div class="report-print-footer d-none d-print-block">
-    <div style="max-width:820px; margin:4px auto 0 auto; font-size:10px;">
-      {% include 'footer_print.html' %}
-    </div>
-  </div>
+  <!-- external print footer removed (embedded inside report-card) -->
 
   <style>
     /* Ensure the included footer prints as a static block matching report width
