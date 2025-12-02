@@ -52,11 +52,11 @@
     .report-footer-print .contact{
       text-align:right;
       font-size:9.5px;
-      color: #10243a;
+      color: #ffffff;
       min-width:140px;
     }
 
-    .report-footer-print .contact a{ color: #c62828; text-decoration:none }
+    .report-footer-print .contact a{ color: #ffffff; text-decoration:none }
 
     .report-footer-print .social{ display:flex; gap:6px; align-items:center; justify-content:flex-end }
     .report-footer-print .social a{ display:inline-block; width:18px; height:18px }
@@ -75,32 +75,20 @@
       -webkit-print-color-adjust: exact;
     }
 
+    /* Make entire footer card blue with white text/icons */
+    .report-footer-print .footer-card { background: #0b4a86; }
     .report-footer-print .footer-header {
-      /* Make entire footer card blue with white text/icons */
-      .report-footer-print .footer-card { background: #0b4a86; }
-      .report-footer-print .footer-header {
-        background: transparent;
-        color: #ffffff;
-        padding: 6px 8px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-
-      .report-footer-print .footer-body {
-        background: transparent;
-        color: #ffffff;
-        padding: 8px 10px;
-        display: flex;
-        justify-content: space-between;
-        gap: 8px;
-        align-items: center;
-        font-size: 9px;
-      }
+      background: transparent;
+      color: #ffffff;
+      padding: 6px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
 
     .report-footer-print .footer-body {
-      background: #ffffff;
-      color: #10243a;
+      background: transparent;
+      color: #ffffff;
       padding: 6px 8px;
       display: flex;
       justify-content: space-between;
@@ -110,9 +98,9 @@
     }
 
     .report-footer-print .footer-body .left, .report-footer-print .footer-body .right { display:flex; gap:8px; align-items:center }
-      /* Force white text across the footer */
-      .report-footer-print .footer-header, .report-footer-print .footer-body { color: #ffffff }
-      .report-footer-print .footer-body .contact a{ color: #ffffff; text-decoration: none }
+    /* Force white text across the footer */
+    .report-footer-print .footer-header, .report-footer-print .footer-body { color: #ffffff }
+    .report-footer-print .footer-body .contact a{ color: #ffffff; text-decoration: none }
 
     /* Social icons: reduce size and force centered alignment without affecting footer height */
     .report-footer-print .footer-body .social { width:48px; display:flex; align-items:center; justify-content:center }
@@ -148,10 +136,10 @@
       </div>
       <div class="footer-body">
         <div class="left">
-          <div class="brand">
-            <div style="font-weight:700; font-size:11px; color:#10243a">Bright Future Primary School</div>
-            <div style="font-size:9px; color:#666">Empowering Learners for Tomorrow</div>
-          </div>
+            <div class="brand">
+              <div style="font-weight:700; font-size:11px; color:#ffffff">Bright Future Primary School</div>
+              <div style="font-size:9px; color:#ffffff">Empowering Learners for Tomorrow</div>
+            </div>
         </div>
         <div class="right">
           <div class="contact">
