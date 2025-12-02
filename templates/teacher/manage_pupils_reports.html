@@ -162,25 +162,24 @@
                   <td>{{ pupil.class_name }}</td>
                   <td>{{ pupil.stream_name }}</td>
                   {# Combined stats may be passed as {pid: {term: {...}}} or {pid: {...}} - handle both shapes #}
-                  {% set cs_raw = combined_stats.get(pupil.id) if combined_stats is defined else None %}
                   {% set cs = None %}
-                  {% if cs_raw %}
-                    {% if 'combined_average' in cs_raw %}
-                      {% set cs = cs_raw %}
-                    {% else %}
-                      {% set _vals = cs_raw.values()|list %}
-                      {% if _vals %}
-                        {% set cs = _vals[0] %}
+                  {% if combined_stats is defined %}
+                    {% set cs_raw = combined_stats.get(pupil.id) %}
+                    {% if cs_raw %}
+                      {% if 'combined_average' in cs_raw %}
+                        {% set cs = cs_raw %}
+                      {% else %}
+                        {% set _vals = cs_raw.values()|list %}
+                        {% if _vals %}
+                          {% set cs = _vals[0] %}
+                        {% endif %}
                       {% endif %}
                     {% endif %}
                   {% endif %}
 
-                  {# pick a representative report row for grade/remark fallbacks #}
-                  {% set rep = (reports|selectattr('pupil_id','equalto',pupil.id)|list)|first if reports is defined else None %}
-
-                  <td class="text-center">{{ (cs['combined_average'] if cs and ('combined_average' in cs) else (rep.combined_average if rep and rep.combined_average is defined else '-')) }}</td>
-                  <td class="text-center">{{ (cs['combined_grade'] if cs and ('combined_grade' in cs) else (rep.combined_grade if rep and rep.combined_grade is defined else '-')) }}</td>
-                  <td class="text-center">{{ (cs['general_remark'] if cs and ('general_remark' in cs) else (rep.general_remark if rep and rep.general_remark is defined else '-')) }}</td>
+                  <td class="text-center">{{ cs['combined_average'] if cs and ('combined_average' in cs) else '-' }}</td>
+                  <td class="text-center">{{ cs['combined_grade'] if cs and ('combined_grade' in cs) else '-' }}</td>
+                  <td class="text-center">{{ cs['general_remark'] if cs and ('general_remark' in cs) else '-' }}</td>
                   <td class="text-center">
                     {% if cs and ('stream_combined_position' in cs) %}
                       {{ cs['stream_combined_position'] }} of {{ students_per_stream.get(pupil.stream_id, '-') if students_per_stream is defined else '-' }}
@@ -210,16 +209,41 @@
   <!-- ✅ Footer -->
   {% include 'footer.html' %}
 
-  <!-- ✅ Search Logic -->
+  <!-- ✅ Search Logic (debounced + cached row text for faster filtering) -->
   <script>
-    document.getElementById("searchInput").addEventListener("keyup", function() {
-      let filter = this.value.toLowerCase();
-      let rows = document.querySelectorAll("#pupilTable tbody tr");
-      rows.forEach(row => {
-        let text = row.innerText.toLowerCase();
-        row.style.display = text.includes(filter) ? "" : "none";
+    (function(){
+      var input = document.getElementById('searchInput');
+      if (!input) return;
+
+      // cache rows and their lower-cased searchable text to avoid recomputing on each keystroke
+      var rows = Array.prototype.slice.call(document.querySelectorAll('#pupilTable tbody tr'));
+      rows.forEach(function(row){
+        var tds = row.querySelectorAll('td');
+        if (!tds || tds.length === 0) return;
+        // use textContent (faster than innerText) and cache
+        row.dataset.searchText = row.textContent.trim().toLowerCase();
       });
-    });
+
+      function applyFilter() {
+        var filter = (input.value || '').trim().toLowerCase();
+        rows.forEach(function(row){
+          if (!row.dataset.searchText) return;
+          row.style.display = (!filter || row.dataset.searchText.indexOf(filter) !== -1) ? '' : 'none';
+        });
+      }
+
+      function debounce(fn, delay) {
+        var t = null;
+        return function() {
+          var args = arguments;
+          clearTimeout(t);
+          t = setTimeout(function(){ fn.apply(null, args); }, delay);
+        };
+      }
+
+      input.addEventListener('input', debounce(applyFilter, 160));
+      input.addEventListener('keydown', function(e){ if (e.key === 'Enter') applyFilter(); });
+    })();
   </script>
 </body>
 </html>
