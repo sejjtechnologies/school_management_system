@@ -123,6 +123,9 @@
       font-size: 0.65rem;
     }
 
+    /* class teacher name shown under remark, soft red, same size as remark text */
+    .class-teacher { color: #e57373; font-size: 0.65rem; font-weight:600; margin-top:8px }
+
     h5 { font-size: 0.85rem; }
   </style>
 </head>
@@ -218,6 +221,9 @@
       {% endif %}
 
       <div class="remark-box"><strong>Remark:</strong> {{ combined.general_remark }}</div>
+      {% if class_teacher %}
+      <div class="class-teacher">Class Teacher: {{ class_teacher.first_name }} {{ class_teacher.last_name }}</div>
+      {% endif %}
     </div>
     {% endif %}
 
