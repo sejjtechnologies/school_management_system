@@ -440,6 +440,16 @@
       }
       /* Remove extra bottom margin so the footer can occupy any remaining space */
       .report-card { margin-bottom: 0; }
+      /* Make the report card behave like a column and fill most of the printable page
+         so the embedded footer can be pushed toward the bottom (but remain on same page). */
+      .report-card {
+        display: flex;
+        flex-direction: column;
+        /* Try to fill the printable viewport while leaving room for page margins/header */
+        min-height: calc(100vh - 60mm);
+      }
+      /* Push the embedded print-footer to the bottom of the card */
+      .report-card .report-card-footer { margin-top: auto; }
     }
   </style>
 </body>
