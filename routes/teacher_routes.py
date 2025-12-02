@@ -5,6 +5,7 @@ from models.stream_model import Stream
 from models.teacher_assignment_models import TeacherAssignment
 from models.register_pupils import Pupil
 from models.marks_model import Subject, Exam, Mark, Report
+from utils.grades import calculate_grade, calculate_general_remark
 
 # Blueprint registered as "teacher_routes"
 teacher_routes = Blueprint("teacher_routes", __name__, url_prefix="/teacher")
@@ -326,17 +327,7 @@ def generate_report(pupil_id, term, year, exam_name):
                            students_per_class=students_per_class)
 
 
-def calculate_grade(avg):
-    if avg >= 80:
-        return "A"
-    elif avg >= 70:
-        return "B"
-    elif avg >= 60:
-        return "C"
-    elif avg >= 50:
-        return "D"
-    else:
-        return "E"
+# grading helpers imported from utils.grades
 
 
 @teacher_routes.route("/debug_year")

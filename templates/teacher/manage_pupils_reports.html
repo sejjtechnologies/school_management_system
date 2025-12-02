@@ -166,6 +166,42 @@
     <div class="table-section">
       <h4 class="mb-3">Pupils Assigned to You</h4>
 
+      <!-- Filter controls: Year / Term / Exam type -->
+      <div class="row mb-3">
+        <div class="col-md-8">
+          <form id="filterForm" class="row gx-2 gy-2 align-items-center">
+            <div class="col-auto">
+              <label class="form-label mb-0 small">Year</label>
+              <select id="filterYear" name="year" class="form-select form-select-sm">
+                {% for y in years %}
+                  <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-auto">
+              <label class="form-label mb-0 small">Term</label>
+              <select id="filterTerm" name="term" class="form-select form-select-sm">
+                <option value="all" {% if not selected_term %}selected{% endif %}>All</option>
+                <option value="1" {% if selected_term == 1 %}selected{% endif %}>Term 1</option>
+                <option value="2" {% if selected_term == 2 %}selected{% endif %}>Term 2</option>
+                <option value="3" {% if selected_term == 3 %}selected{% endif %}>Term 3</option>
+              </select>
+            </div>
+            <div class="col-auto">
+              <label class="form-label mb-0 small">Exam Type</label>
+              <select id="filterTypes" name="types" class="form-select form-select-sm">
+                <option value="both" {% if selected_types == 'both' %}selected{% endif %}>Both</option>
+                <option value="mid" {% if selected_types == 'mid' %}selected{% endif %}>Midterm</option>
+                <option value="end" {% if selected_types == 'end' %}selected{% endif %}>End-term</option>
+              </select>
+            </div>
+            <div class="col-auto align-self-end">
+              <button id="applyFilters" type="button" class="btn btn-sm btn-primary">Apply</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <!-- Search is provided by the fixed bar above -->
 
       {% if pupils %}
@@ -175,6 +211,7 @@
               <tr>
                 <th>#</th>
                 <th>Pupil Name</th>
+                  <th>Actions</th>
                 <th>Class</th>
                 <th>Stream</th>
                 <th class="text-center">Combined Avg</th>
@@ -192,6 +229,9 @@
                     <a href="{{ url_for('teacher_manage_reports.view_pupil_report', pupil_id=pupil.id) }}">
                       {{ pupil.first_name }} {{ pupil.last_name }}
                     </a>
+                  </td>
+                  <td>
+                    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('teacher_manage_reports.prepare_print', pupil_id=pupil.id) }}?year={{ selected_year }}&term={{ selected_term or 'all' }}&types={{ selected_types }}" target="_blank">Print</a>
                   </td>
                   <!-- ✅ Display class and stream names passed from route -->
                   <td>{{ pupil.class_name }}</td>
@@ -266,13 +306,13 @@
             {% set _p = page if page is defined else 1 %}
             {% set _tp = total_pages if total_pages is defined else 1 %}
             <li class="page-item {% if _p == 1 %}disabled{% endif %}">
-              <a class="page-link" href="?page={{ _p-1 }}&per_page={{ per_page }}" data-page="{{ _p-1 }}">Previous</a>
+              <a class="page-link" href="?page={{ _p-1 }}&per_page={{ per_page }}&year={{ selected_year }}&term={{ selected_term or 'all' }}&types={{ selected_types }}" data-page="{{ _p-1 }}">Previous</a>
             </li>
             {% for i in range(1, _tp+1) %}
-            <li class="page-item {% if i == _p %}active{% endif %}"><a class="page-link" href="?page={{ i }}&per_page={{ per_page }}" data-page="{{ i }}">{{ i }}</a></li>
+            <li class="page-item {% if i == _p %}active{% endif %}"><a class="page-link" href="?page={{ i }}&per_page={{ per_page }}&year={{ selected_year }}&term={{ selected_term or 'all' }}&types={{ selected_types }}" data-page="{{ i }}">{{ i }}</a></li>
             {% endfor %}
             <li class="page-item {% if _p == _tp %}disabled{% endif %}">
-              <a class="page-link" href="?page={{ _p+1 }}&per_page={{ per_page }}" data-page="{{ _p+1 }}">Next</a>
+              <a class="page-link" href="?page={{ _p+1 }}&per_page={{ per_page }}&year={{ selected_year }}&term={{ selected_term or 'all' }}&types={{ selected_types }}" data-page="{{ _p+1 }}">Next</a>
             </li>
           </ul>
         </nav>
@@ -296,6 +336,27 @@
       var perPage = 50;
       if (paginationEl && paginationEl.dataset && paginationEl.dataset.perPage) {
         perPage = parseInt(paginationEl.dataset.perPage, 10) || 50;
+      }
+
+      // Filters controls
+      var filterYearEl = document.getElementById('filterYear');
+      var filterTermEl = document.getElementById('filterTerm');
+      var filterTypesEl = document.getElementById('filterTypes');
+      var applyBtn = document.getElementById('applyFilters');
+
+      function getFilterQuery() {
+        var year = filterYearEl ? filterYearEl.value : '';
+        var term = filterTermEl ? filterTermEl.value : 'all';
+        var types = filterTypesEl ? filterTypesEl.value : 'both';
+        return '&year=' + encodeURIComponent(year) + '&term=' + encodeURIComponent(term) + '&types=' + encodeURIComponent(types);
+      }
+
+      if (applyBtn) {
+        applyBtn.addEventListener('click', function(){
+          // reload page with filters applied
+          var url = window.location.pathname + '?page=1&per_page=' + encodeURIComponent(perPage) + getFilterQuery();
+          window.location.href = url;
+        });
       }
 
       // cache rows and their lower-cased searchable text to avoid recomputing on each keystroke
@@ -350,8 +411,8 @@
           evt.preventDefault();
           var page = a.getAttribute('data-page');
           if (!page) return;
-          // fetch the same URL with page param
-          var url = window.location.pathname + '?page=' + encodeURIComponent(page) + '&per_page=' + encodeURIComponent(perPage);
+          // fetch the same URL with page param and current filters
+          var url = window.location.pathname + '?page=' + encodeURIComponent(page) + '&per_page=' + encodeURIComponent(perPage) + getFilterQuery();
           fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(function(resp){ return resp.text(); }).then(function(html){
             // parse the returned HTML and extract the tbody and pagination
             var parser = new DOMParser();

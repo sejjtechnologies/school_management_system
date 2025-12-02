@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prepare Print - {{ pupil.first_name }} {{ pupil.last_name }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+  <div class="container py-4">
+    <h4>Prepare print for {{ pupil.first_name }} {{ pupil.last_name }}</h4>
+    <p class="text-muted">Select the term snapshots you want to include in the printout.</p>
+
+    {% if available_exams %}
+      <form id="printForm" method="get" action="{{ url_for('teacher_manage_reports.print_selected', pupil_id=pupil.id) }}">
+        <input type="hidden" name="year" value="{{ selected_year }}">
+        <input type="hidden" name="term" value="{{ selected_term or 'all' }}">
+        <input type="hidden" name="types" value="{{ selected_types }}">
+        <div class="list-group mb-3">
+          {% for ex in available_exams %}
+            <label class="list-group-item">
+              <input class="form-check-input me-2" type="checkbox" name="exam_ids" value="{{ ex.id }}"> {{ ex.name }} - Term {{ ex.term }} / {{ ex.year }}
+            </label>
+          {% endfor %}
+        </div>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">Print selected</button>
+          <a href="{{ url_for('teacher_manage_reports.manage_pupils_reports') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+      </form>
+
+      <script>
+        document.getElementById('printForm').addEventListener('submit', function(e){
+          // collect checked exam_ids and redirect with comma-separated list
+          e.preventDefault();
+          var checks = Array.from(document.querySelectorAll('input[name="exam_ids"]:checked'));
+          if (checks.length === 0) { alert('Please select at least one exam snapshot to print.'); return; }
+          var ids = checks.map(function(c){ return c.value; }).join(',');
+          var base = this.action + '?exam_ids=' + encodeURIComponent(ids);
+          // preserve year/term/types in query too
+          var year = document.querySelector('input[name="year"]').value;
+          var term = document.querySelector('input[name="term"]').value;
+          var types = document.querySelector('input[name="types"]').value;
+          base += '&year=' + encodeURIComponent(year) + '&term=' + encodeURIComponent(term) + '&types=' + encodeURIComponent(types);
+          window.open(base, '_blank');
+        });
+      </script>
+    {% else %}
+      <p class="text-warning">No exam snapshots available for the selected filters for this pupil.</p>
+      <a href="{{ url_for('teacher_manage_reports.manage_pupils_reports') }}" class="btn btn-secondary">Back</a>
+    {% endif %}
+  </div>
+</body>
+</html>
