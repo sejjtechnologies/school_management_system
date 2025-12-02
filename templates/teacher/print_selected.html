@@ -6,13 +6,12 @@
   <title>Print Report - {{ pupil.first_name }} {{ pupil.last_name }}</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 
   <style>
     body {
-      font-family: 'Poppins', Arial, sans-serif;
-      font-size: 0.68rem;
-      background: #d0f0c0; /* GREEN PAGE BACKGROUND */
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      font-size: 0.75rem;
+      background: #d0f0c0; /* Green page background */
       margin: 0;
     }
 
@@ -21,6 +20,9 @@
       padding: 10px;
       max-width: 820px;
       margin: auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
 
     /* Print setup */
@@ -34,41 +36,17 @@
         width: 210mm;
         height: 297mm;
       }
-
       body {
         margin: 0 !important;
         padding: 0 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
-        overflow: hidden;
-        transform: scale(0.92);
-        transform-origin: top left;
       }
-
       .hide-print { display: none !important; }
       .report-card { page-break-inside: avoid !important; }
+      .school-footer { position: absolute; bottom: 0; width: 100%; }
     }
 
-    @media (max-width: 576px) {
-      .page-bg { padding: 6px; }
-      .school-footer { font-size: 0.55rem !important; padding: 6px !important; }
-      .school-nav h2 { font-size: 1.1rem; }
-      .report-card h5 { font-size: 0.75rem; }
-      .badge-grade { font-size:0.50rem; padding:2px 3px; }
-      .pos-badge { font-size:0.48rem; padding:1px 3px; }
-      table th, table td { font-size:0.6rem; padding: 2px 3px; }
-    }
-
-    .report-card {
-      background: #fff;
-      border: 1px solid #e0e0e0;
-      padding: 8px;
-      border-radius: 6px;
-      margin-bottom: 10px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    }
-
-    /* NAV + FOOTER */
     .school-nav {
       background:#c62828;
       color:#fff;
@@ -79,34 +57,38 @@
       justify-content:center;
       position:relative;
       margin-bottom:10px;
+      flex-shrink: 0;
     }
 
     .school-nav h2 {
-      font-size: 1.3rem;
-      font-weight: 700;
+      font-size: 1.5rem;
+      font-weight: bold;
       margin: 0;
     }
 
     .school-nav .motto {
-      font-size: 0.85rem;
-      margin-top: -4px;
+      font-size: 1rem;
+      margin-top: -2px;
+      color: #ffeb3b;
     }
 
-    .school-footer {
-      background:#263238;
-      color:#fff;
-      height: 60px;
-      padding: 8px 12px;
-      border-radius:4px;
-      font-size:0.70rem;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-top: 8px;
+    .report-card {
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      font-size: 0.80rem;
+      color: #333;
     }
+    .report-card:nth-child(odd) { background: #e0f7fa; }
+    .report-card:nth-child(even) { background: #fff3e0; }
 
-    /* BADGES */
-    .badge-grade { padding: 2px 4px; border-radius: 4px; color:#fff; font-weight:600; font-size:0.58rem; }
+    h5.term-title { color: #c2185b; font-weight: bold; margin-bottom:5px; }
+    .text-total { color: #2e7d32; font-weight:600; }
+    .text-avg { color: #0288d1; font-weight:600; }
+    .text-grade { color: #f9a825; font-weight:600; }
+
+    .badge-grade { padding: 2px 5px; border-radius: 4px; color:#fff; font-weight:600; font-size:0.60rem; }
     .grade-A { background:#2e7d32 }
     .grade-B { background:#0288d1 }
     .grade-C { background:#f9a825 }
@@ -115,15 +97,26 @@
 
     .pos-badge { background:#6a1b9a; color:#fff; padding:2px 4px; border-radius:4px; font-size:0.55rem; font-weight:600; }
 
-    .remark-box { background:#fff8e1; border-left: 3px solid #ffca28; padding: 6px; border-radius: 4px; font-size: 0.65rem; }
-    .class-teacher { color: #e57373; font-size: 0.65rem; font-weight:600; margin-top:6px }
+    .remark-box { background:#fff8e1; border-left: 3px solid #ffca28; padding: 6px; border-radius: 4px; font-size: 0.70rem; }
+    .class-teacher { color: #e57373; font-size: 0.70rem; font-weight:600; margin-top:6px }
 
-    /* TABLE */
-    table th, table td { text-align:center; vertical-align:middle; }
+    table th, table td { text-align:center; vertical-align:middle; font-size:0.70rem; }
     table th:first-child, table td:first-child { text-align:left; }
     table { width: 100%; border-collapse: collapse; margin-bottom:4px; }
 
-    h5 { font-size: 0.85rem; margin-bottom:4px; }
+    .school-footer {
+      background:#263238;
+      color:#fff;
+      height: 60px;
+      padding: 8px 12px;
+      border-radius:4px;
+      font-size:0.75rem;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      flex-shrink: 0;
+      margin-top:auto;
+    }
   </style>
 </head>
 
@@ -135,41 +128,38 @@
         <h2>HOPEFUL FUTURE PRIMARY SCHOOL</h2>
         <div class="motto">Nurturing Minds, Shaping Futures</div>
       </div>
-
       <div class="top-actions hide-print" style="position:absolute; right:8px;">
         <button class="btn btn-primary btn-sm" onclick="downloadDoc()">Download .doc</button>
         <button class="btn btn-primary btn-sm" onclick="savePdf()">Save as PDF</button>
       </div>
     </div>
 
-    <!-- PRINTABLE PUPIL DETAILS -->
-    <div class="card p-2 mb-3">
+    <!-- Pupil Details -->
+    <div class="card p-2 mb-3" style="background:#c8e6c9;">
       <h5>{{ pupil.first_name }} {{ pupil.middle_name }} {{ pupil.last_name }}</h5>
-      <div class="text-muted">Adm: {{ pupil.admission_number }}</div>
-      <div class="text-muted">Class: {{ pupil.class_name }} | Stream: {{ pupil.stream_name }}</div>
+      <div>Adm: {{ pupil.admission_number }}</div>
+      <div>Class: {{ pupil.class_name }} | Stream: {{ pupil.stream_name }}</div>
       {% if class_teacher %}
-      <div class="text-muted"><strong>Class Teacher:</strong> {{ class_teacher.first_name }} {{ class_teacher.last_name }}</div>
+      <div><strong>Class Teacher:</strong> {{ class_teacher.first_name }} {{ class_teacher.last_name }}</div>
       {% endif %}
     </div>
 
     {% for ex in exams %}
     <div class="report-card">
+      <h5 class="term-title">{{ ex.name }} - Term {{ ex.term }}/{{ ex.year }}</h5>
 
       <div class="d-flex justify-content-between flex-wrap mb-2">
-        <h5 class="mb-0">{{ ex.name }} - Term {{ ex.term }}/{{ ex.year }}</h5>
-        <div class="text-end">
-          {% set rep = (reports | selectattr('exam_id','equalto', ex.id) | list).0 %}
-          {% set stats = exam_stats.get(ex.id) %}
-          <div>Total: {{ rep.total_score }} / {{ subjects|length * 100 }}</div>
-          <div>Avg: {{ rep.average_score }}</div>
-          <div>Grade: <span class="badge-grade grade-{{ rep.grade }}">{{ rep.grade }}</span></div>
-          {% if stats %}
-          <div><span class="pos-badge">Stream: {{ stats.stream_position }}/{{ stats.stream_total }}</span></div>
-          {% endif %}
-        </div>
+        {% set rep = (reports | selectattr('exam_id','equalto', ex.id) | list).0 %}
+        {% set stats = exam_stats.get(ex.id) %}
+        <div class="text-total">Total: {{ rep.total_score }} / {{ subjects|length * 100 }}</div>
+        <div class="text-avg">Avg: {{ rep.average_score }}</div>
+        <div class="text-grade">Grade: <span class="badge-grade grade-{{ rep.grade }}">{{ rep.grade }}</span></div>
+        {% if stats %}
+        <div><span class="pos-badge">Stream: {{ stats.stream_position }}/{{ stats.stream_total }}</span></div>
+        {% endif %}
       </div>
 
-      <!-- TABLE with abbreviation + separating column -->
+      <!-- Table -->
       <table class="table table-sm">
         <thead>
           <tr>
@@ -189,10 +179,10 @@
             <td>100</td>
             <td>
               {% if m %}
-                {% set sc=m.score %}
-                <span class="badge-grade grade-{% if sc>=80 %}A{% elif sc>=70 %}B{% elif sc>=60 %}C{% elif sc>=50 %}D{% else %}E{% endif %}">
-                  {% if sc>=80 %}A{% elif sc>=70 %}B{% elif sc>=60 %}C{% elif sc>=50 %}D{% else %}E{% endif %}
-                </span>
+              {% set sc=m.score %}
+              <span class="badge-grade grade-{% if sc>=80 %}A{% elif sc>=70 %}B{% elif sc>=60 %}C{% elif sc>=50 %}D{% else %}E{% endif %}">
+                {% if sc>=80 %}A{% elif sc>=70 %}B{% elif sc>=60 %}C{% elif sc>=50 %}D{% else %}E{% endif %}
+              </span>
               {% else %}-{% endif %}
             </td>
           </tr>
@@ -203,7 +193,7 @@
     {% endfor %}
 
     {% if combined %}
-    <div class="report-card">
+    <div class="report-card" style="background:#ffecb3;">
       <h5>Combined Summary</h5>
       <p><strong>Combined Total:</strong> {{ combined.combined_total }}</p>
       <p><strong>Average:</strong> {{ combined.combined_average }}</p>
@@ -238,11 +228,9 @@
       a.click();
       URL.revokeObjectURL(url);
     }
-
     function savePdf(){
       window.print();
     }
   </script>
-
 </body>
 </html>
