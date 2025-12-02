@@ -6,7 +6,6 @@
   <title>Teacher Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
-  <!-- Dancing Script removed; using system Comic Sans for consistent styling -->
   <style>
     body {
       margin: 0;
@@ -30,9 +29,7 @@
       font-size: 0.85rem;
       padding: 6px 12px;
     }
-    .logout-btn:hover {
-      background-color: #b71c1c;
-    }
+    .logout-btn:hover { background-color: #b71c1c; }
     .main-btn {
       color: #fff;
       border: none;
@@ -46,27 +43,24 @@
       min-width: 200px;
       margin: 8px;
     }
-    .main-btn i {
-      margin-right: 6px;
-    }
-    .btn-pupils {
-      background-color: #00796b;
-    }
-    .btn-pupils:hover {
-      background-color: #004d40;
-    }
-    .btn-marks {
-      background-color: #1976d2;
-    }
-    .btn-marks:hover {
-      background-color: #0d47a1;
-    }
-    .btn-reports {
-      background-color: #6a1b9a;
-    }
-    .btn-reports:hover {
-      background-color: #4a148c;
-    }
+    .main-btn i { margin-right: 6px; }
+
+    .btn-pupils { background-color: #00796b; }
+    .btn-pupils:hover { background-color: #004d40; }
+
+    .btn-marks { background-color: #1976d2; }
+    .btn-marks:hover { background-color: #0d47a1; }
+
+    .btn-reports { background-color: #6a1b9a; }
+    .btn-reports:hover { background-color: #4a148c; }
+
+    /* ✅ New Buttons */
+    .btn-attendance { background-color: #009688; }   /* teal */
+    .btn-attendance:hover { background-color: #00695c; }
+
+    .btn-timetable { background-color: #f4511e; }   /* deep orange */
+    .btn-timetable:hover { background-color: #b71c1c; }
+
     main {
       height: calc(100vh - 60px);
       overflow-y: auto;
@@ -80,7 +74,7 @@
   </style>
 </head>
 <body>
-  <!-- ✅ Navbar -->
+  <!-- Navbar -->
   <nav class="navbar fixed-top navbar-expand-lg">
     <div class="container-fluid px-3">
       <a class="navbar-brand fw-bold" href="#">
@@ -96,11 +90,11 @@
     </div>
   </nav>
 
-  <!-- ✅ Main Content -->
+  <!-- Main Content -->
   <main class="container text-center">
     <h3 class="mb-4 welcome-message">Welcome, {{ teacher.first_name }} {{ teacher.last_name }}</h3>
 
-    <!-- ✅ Buttons Section -->
+    <!-- Buttons Section -->
     <div class="d-flex flex-wrap justify-content-center">
       <!-- Pupils Details -->
       <a href="{{ url_for('user_routes.pupils_details') }}" class="main-btn btn-pupils">
@@ -112,9 +106,19 @@
         <i class="bi bi-pencil-square"></i> Manage Pupils Marks
       </a>
 
-      <!-- ✅ Linked Manage Pupils Reports Button -->
+      <!-- Manage Pupils Reports -->
       <a href="{{ url_for('teacher_manage_reports.manage_pupils_reports') }}" class="main-btn btn-reports">
         <i class="bi bi-file-earmark-text"></i> Manage Pupils Reports
+      </a>
+
+      <!-- New Button: Manage Attendance -->
+      <a href="#" class="main-btn btn-attendance">
+        <i class="bi bi-calendar-check-fill"></i> Manage Pupils Attendance
+      </a>
+
+      <!-- New Button: Manage Timetable -->
+      <a href="#" class="main-btn btn-timetable">
+        <i class="bi bi-table"></i> Manage Time Table
       </a>
     </div>
   </main>
