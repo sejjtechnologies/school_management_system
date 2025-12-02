@@ -21,7 +21,6 @@
       padding: 10px;
       max-width: 820px;
       margin: auto;
-      min-height: 100vh;
       display: flex;
       flex-direction: column;
     }
@@ -35,7 +34,9 @@
       html, body { width: 210mm; height: 297mm; }
       body { margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .hide-print { display: none !important; }
-      .report-card { page-break-inside: avoid !important; }
+      .report-card { page-break-inside: avoid !important; margin-bottom: 4px; box-shadow: none; }
+      .page-bg { min-height: auto; padding: 0; }
+      .school-nav { height: auto; padding: 0; }
     }
 
     .school-nav {
@@ -151,7 +152,8 @@
 
       <div class="contact-socials">
         <div class="contact-left">
-          <span>P.O. Box,345 Entebbe- Wakiso</span> |
+          <span>P.O. Box 345</span> |
+          <span>Entebbe- Wakiso</span> |
           <span>Call: 0768936641 / 0744137174</span> |
           <span>Email: info@hopefulfutureps.org</span>
         </div>
