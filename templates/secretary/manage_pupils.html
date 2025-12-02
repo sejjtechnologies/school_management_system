@@ -393,72 +393,91 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     // ✅ Enable Bootstrap tooltips (desktop hover + mobile tap)
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-      return new bootstrap.Tooltip(tooltipTriggerEl, {
-        trigger: 'hover focus'
-      })
-    })
+    try {
+      if (window.bootstrap && document.querySelectorAll) {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+          return new bootstrap.Tooltip(tooltipTriggerEl, {
+            trigger: 'hover focus'
+          })
+        })
+      }
+    } catch (err) {
+      // don't let tooltip initialization break the rest of the page
+      console.warn('Tooltip init failed:', err);
+    }
 
     // ✅ Simple search filter
     (function(){
-      var input = document.getElementById('searchInput');
-      var clearBtn = document.getElementById('clearSearch');
+      try {
+        var input = document.getElementById('searchInput');
+        var clearBtn = document.getElementById('clearSearch');
 
-      // columns to consider (0-based td indices)
-      var searchCols = [1,2,3,4,5,6,9,11,12,13,21,22,24,16];
+        // columns to consider (0-based td indices). If these indices are incorrect
+        // (table structure changed) we fallback to whole-row search.
+        var searchCols = [1,2,3,4,5,6,9,11,12,13,21,22,24,16];
 
-      function rowMatches(row, query) {
-        if (!query) return true;
-        var tds = row.querySelectorAll('td');
-        var pieces = [];
-        searchCols.forEach(function(i){
-          if (tds[i]) pieces.push(tds[i].textContent.trim().toLowerCase());
-        });
-        var hay = pieces.join(' ');
-        return hay.indexOf(query) !== -1;
-      }
-
-      function applyFilter() {
-        var q = input ? input.value.trim().toLowerCase() : '';
-        var rows = document.querySelectorAll('#pupilTable tbody tr');
-        rows.forEach(function(row) {
-          // keep header/empty rows visible if they don't have tds
-          if (!row.querySelectorAll('td').length) return;
-          row.style.display = rowMatches(row, q) ? '' : 'none';
-        });
-      }
-
-      var searchBtn = document.getElementById('searchBtn');
-      // Debounce helper so filtering while typing is responsive but not spammy
-      function debounce(fn, delay) {
-        var t = null;
-        return function() {
-          var args = arguments;
-          clearTimeout(t);
-          t = setTimeout(function(){ fn.apply(null, args); }, delay);
-        };
-      }
-
-      if (input) {
-        // live filter as user types (debounced)
-        input.addEventListener('input', debounce(applyFilter, 180));
-        // also trigger on Enter key for immediate action
-        input.addEventListener('keydown', function(e){ if (e.key === 'Enter') { applyFilter(); } });
-      }
-
-      if (searchBtn) {
-        searchBtn.addEventListener('click', function(){ applyFilter(); input && input.focus(); });
-      }
-
-      if (clearBtn) {
-        clearBtn.addEventListener('click', function(){
-          if (input) {
-            input.value = '';
-            applyFilter();
-            input.focus();
+        function rowMatches(row, query) {
+          if (!query) return true;
+          var tds = row.querySelectorAll('td');
+          var pieces = [];
+          searchCols.forEach(function(i){
+            if (tds[i]) pieces.push(tds[i].textContent.trim().toLowerCase());
+          });
+          var hay = pieces.join(' ').trim();
+          // fallback to whole-row text if targeted cells produced no searchable text
+          if (!hay) {
+            hay = row.textContent.trim().toLowerCase();
           }
-        });
+          return hay.indexOf(query) !== -1;
+        }
+
+        function applyFilter() {
+          var q = input ? input.value.trim().toLowerCase() : '';
+          var rows = document.querySelectorAll('#pupilTable tbody tr');
+          rows.forEach(function(row) {
+            // keep header/empty rows visible if they don't have tds
+            if (!row.querySelectorAll('td').length) return;
+            row.style.display = rowMatches(row, q) ? '' : 'none';
+          });
+        }
+
+        // expose for quick debugging in the console
+        window.applyPupilFilter = applyFilter;
+
+        var searchBtn = document.getElementById('searchBtn');
+        // Debounce helper so filtering while typing is responsive but not spammy
+        function debounce(fn, delay) {
+          var t = null;
+          return function() {
+            var args = arguments;
+            clearTimeout(t);
+            t = setTimeout(function(){ fn.apply(null, args); }, delay);
+          };
+        }
+
+        if (input) {
+          // live filter as user types (debounced)
+          input.addEventListener('input', debounce(applyFilter, 180));
+          // also trigger on Enter key for immediate action
+          input.addEventListener('keydown', function(e){ if (e.key === 'Enter') { applyFilter(); } });
+        }
+
+        if (searchBtn) {
+          searchBtn.addEventListener('click', function(){ applyFilter(); input && input.focus(); });
+        }
+
+        if (clearBtn) {
+          clearBtn.addEventListener('click', function(){
+            if (input) {
+              input.value = '';
+              applyFilter();
+              input.focus();
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Search setup failed', err);
       }
     })();
   </script>
