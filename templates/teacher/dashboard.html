@@ -30,21 +30,25 @@
       padding: 6px 12px;
     }
     .logout-btn:hover { background-color: #b71c1c; }
+
+    /* ✅ Main buttons - uniform size */
     .main-btn {
       color: #fff;
       border: none;
-      padding: 8px 16px;
       font-size: 0.9rem;
       border-radius: 6px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       text-decoration: none;
-      min-width: 200px;
+      min-width: 220px;  /* increased for uniform width */
+      height: 50px;       /* fixed height for all buttons */
+      padding: 0 16px;    /* horizontal padding */
       margin: 8px;
     }
     .main-btn i { margin-right: 6px; }
 
+    /* Button colors */
     .btn-pupils { background-color: #00796b; }
     .btn-pupils:hover { background-color: #004d40; }
 
@@ -54,11 +58,10 @@
     .btn-reports { background-color: #6a1b9a; }
     .btn-reports:hover { background-color: #4a148c; }
 
-    /* ✅ New Buttons */
-    .btn-attendance { background-color: #009688; }   /* teal */
+    .btn-attendance { background-color: #009688; }
     .btn-attendance:hover { background-color: #00695c; }
 
-    .btn-timetable { background-color: #f4511e; }   /* deep orange */
+    .btn-timetable { background-color: #f4511e; }
     .btn-timetable:hover { background-color: #b71c1c; }
 
     main {
@@ -96,27 +99,22 @@
 
     <!-- Buttons Section -->
     <div class="d-flex flex-wrap justify-content-center">
-      <!-- Pupils Details -->
       <a href="{{ url_for('user_routes.pupils_details') }}" class="main-btn btn-pupils">
         <i class="bi bi-people-fill"></i> View Pupils Details
       </a>
 
-      <!-- Manage Pupils Marks -->
       <a href="{{ url_for('teacher_routes.manage_marks') }}" class="main-btn btn-marks">
         <i class="bi bi-pencil-square"></i> Manage Pupils Marks
       </a>
 
-      <!-- Manage Pupils Reports -->
       <a href="{{ url_for('teacher_manage_reports.manage_pupils_reports') }}" class="main-btn btn-reports">
         <i class="bi bi-file-earmark-text"></i> Manage Pupils Reports
       </a>
 
-      <!-- New Button: Manage Attendance -->
       <a href="#" class="main-btn btn-attendance">
         <i class="bi bi-calendar-check-fill"></i> Manage Pupils Attendance
       </a>
 
-      <!-- New Button: Manage Timetable -->
       <a href="#" class="main-btn btn-timetable">
         <i class="bi bi-table"></i> Manage Time Table
       </a>
