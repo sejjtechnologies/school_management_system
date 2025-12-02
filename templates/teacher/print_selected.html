@@ -6,6 +6,7 @@
   <title>Print Report - {{ pupil.first_name }} {{ pupil.last_name }}</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
   <style>
     body {
@@ -25,7 +26,6 @@
       flex-direction: column;
     }
 
-    /* Print setup */
     @page {
       size: A4 portrait;
       margin: 6mm;
@@ -33,12 +33,7 @@
 
     @media print {
       html, body { width: 210mm; height: 297mm; }
-      body {
-        margin: 0 !important;
-        padding: 0 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
+      body { margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .hide-print { display: none !important; }
       .report-card { page-break-inside: avoid !important; }
     }
@@ -54,7 +49,7 @@
       justify-content:center;
       position:relative;
       margin-bottom:10px;
-      font-family: Georgia, serif; /* Georgia for school name & motto */
+      font-family: Georgia, serif;
       flex-shrink: 0;
       padding-top: 8px;
       padding-bottom: 8px;
@@ -80,6 +75,7 @@
       font-size: 0.65rem;
       margin-top: 4px;
       padding: 0 10px;
+      color: #fff;
     }
 
     .contact-left {
@@ -90,11 +86,12 @@
       text-align: right;
     }
 
-    .social-icons span {
+    .social-icons a {
       margin-left: 6px;
       margin-right: 6px;
-      font-size: 0.75rem;
-      cursor: pointer;
+      color: #fff;
+      font-size: 0.8rem;
+      text-decoration: none;
     }
 
     .report-card {
@@ -104,7 +101,7 @@
       box-shadow: 0 1px 4px rgba(0,0,0,0.1);
       font-size: 0.80rem;
       color: #333;
-      font-family: 'Times New Roman', serif; /* Times New Roman for report content */
+      font-family: 'Times New Roman', serif;
       flex-shrink: 0;
     }
     .report-card:nth-child(odd) { background: #e0f7fa; }
@@ -147,11 +144,11 @@
           <span>Call: 0768936641 / 0744137174</span>
         </div>
         <div class="contact-right social-icons">
-          <span>📧 info@hopefulfutureps.org</span>
-          <span>💬 WhatsApp</span>
-          <span>📘 Facebook</span>
-          <span>💼 LinkedIn</span>
-          <span>🐦 X/Twitter</span>
+          <a href="mailto:info@hopefulfutureps.org"><i class="bi bi-envelope-fill"></i></a>
+          <a href="#"><i class="bi bi-whatsapp"></i></a>
+          <a href="#"><i class="bi bi-facebook"></i></a>
+          <a href="#"><i class="bi bi-linkedin"></i></a>
+          <a href="#"><i class="bi bi-twitter"></i></a>
         </div>
       </div>
 
@@ -186,7 +183,6 @@
         {% endif %}
       </div>
 
-      <!-- Table -->
       <table class="table table-sm">
         <thead>
           <tr>
