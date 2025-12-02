@@ -212,6 +212,7 @@
       border: none;
       background: #f1f3f5;
     }
+    .search-highlight { background: #fffb91; padding: 0 2px; border-radius: 2px; }
     @media (max-width: 575.98px) {
       .search-fixed .input-group { max-width: 92%; margin-left: auto; margin-right: 12px; }
       .search-bar-fixed { height: 38px; }
@@ -417,12 +418,31 @@
         // (table structure changed) we fallback to whole-row search.
         var searchCols = [1,2,3,4,5,6,9,11,12,13,21,22,24,16];
 
+        // escape helpers
+        function escapeRegExp(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+        function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+
+        // initialize original plain-text content for each cell so we can safely
+        // restore and re-highlight on each filter pass
+        function ensureOriginals() {
+          var rows = document.querySelectorAll('#pupilTable tbody tr');
+          rows.forEach(function(row){
+            var tds = row.querySelectorAll('td');
+            tds.forEach(function(td){
+              if (!td.dataset.original) {
+                // store the plain text (not innerHTML) to avoid persisting previous highlights
+                td.dataset.original = td.textContent || '';
+              }
+            });
+          });
+        }
+
         function rowMatches(row, query) {
           if (!query) return true;
           var tds = row.querySelectorAll('td');
           var pieces = [];
           searchCols.forEach(function(i){
-            if (tds[i]) pieces.push(tds[i].textContent.trim().toLowerCase());
+            if (tds[i]) pieces.push((tds[i].dataset && tds[i].dataset.original) ? tds[i].dataset.original.trim().toLowerCase() : tds[i] && tds[i].textContent.trim().toLowerCase());
           });
           var hay = pieces.join(' ').trim();
           // fallback to whole-row text if targeted cells produced no searchable text
@@ -435,12 +455,40 @@
         function applyFilter() {
           var q = input ? input.value.trim().toLowerCase() : '';
           var rows = document.querySelectorAll('#pupilTable tbody tr');
+
+          // prepare highlighting regex if query present (match any word)
+          var words = q ? q.split(/\s+/).filter(Boolean).map(escapeRegExp) : [];
+          var regex = words.length ? new RegExp('(' + words.join('|') + ')', 'gi') : null;
+
           rows.forEach(function(row) {
             // keep header/empty rows visible if they don't have tds
-            if (!row.querySelectorAll('td').length) return;
-            row.style.display = rowMatches(row, q) ? '' : 'none';
+            var tds = row.querySelectorAll('td');
+            if (!tds.length) return;
+
+            var matched = rowMatches(row, q);
+            row.style.display = matched ? '' : 'none';
+
+            // restore original and apply highlights where appropriate
+            tds.forEach(function(td){
+              // skip cells that contain images or actionable controls
+              if (td.querySelector('img') || td.querySelector('button') || td.querySelector('a')) {
+                return;
+              }
+              var original = td.dataset.original !== undefined ? td.dataset.original : (td.textContent || '');
+              if (!regex || !matched) {
+                // nothing to highlight or row hidden -> restore plain text
+                td.textContent = original;
+              } else {
+                // highlight matches in the original plain text
+                var highlighted = original.replace(regex, function(m){ return '<span class="search-highlight">' + escapeHtml(m) + '</span>'; });
+                td.innerHTML = highlighted;
+              }
+            });
           });
         }
+
+        // ensure original cache is populated on init
+        ensureOriginals();
 
         // expose for quick debugging in the console
         window.applyPupilFilter = applyFilter;
