@@ -41,21 +41,23 @@
       }
       .hide-print { display: none !important; }
       .report-card { page-break-inside: avoid !important; }
-      .school-footer { position: absolute; bottom: 0; width: 100%; }
     }
 
     .school-nav {
       background:#c62828;
       color:#fff;
-      height:70px;
+      height:100px;
       border-radius:4px;
       display:flex;
+      flex-direction: column;
       align-items:center;
       justify-content:center;
       position:relative;
       margin-bottom:10px;
-      flex-shrink: 0;
       font-family: Georgia, serif; /* Georgia for school name & motto */
+      flex-shrink: 0;
+      padding-top: 8px;
+      padding-bottom: 8px;
     }
 
     .school-nav h2 {
@@ -66,8 +68,33 @@
 
     .school-nav .motto {
       font-size: 1rem;
-      margin-top: -2px;
+      margin-top: 2px;
       color: #ffeb3b;
+    }
+
+    .school-nav .contact-socials {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 800px;
+      font-size: 0.65rem;
+      margin-top: 4px;
+      padding: 0 10px;
+    }
+
+    .contact-left {
+      text-align: left;
+    }
+
+    .contact-right {
+      text-align: right;
+    }
+
+    .social-icons span {
+      margin-left: 6px;
+      margin-right: 6px;
+      font-size: 0.75rem;
+      cursor: pointer;
     }
 
     .report-card {
@@ -78,6 +105,7 @@
       font-size: 0.80rem;
       color: #333;
       font-family: 'Times New Roman', serif; /* Times New Roman for report content */
+      flex-shrink: 0;
     }
     .report-card:nth-child(odd) { background: #e0f7fa; }
     .report-card:nth-child(even) { background: #fff3e0; }
@@ -102,20 +130,6 @@
     table th, table td { text-align:center; vertical-align:middle; font-size:0.70rem; }
     table th:first-child, table td:first-child { text-align:left; }
     table { width: 100%; border-collapse: collapse; margin-bottom:4px; }
-
-    .school-footer {
-      background:#263238;
-      color:#fff;
-      height: 60px;
-      padding: 8px 12px;
-      border-radius:4px;
-      font-size:0.75rem;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      flex-shrink: 0;
-      margin-top:auto;
-    }
   </style>
 </head>
 
@@ -123,11 +137,25 @@
   <div class="page-bg">
 
     <div class="school-nav">
-      <div style="text-align:center">
-        <h2>HOPEFUL FUTURE PRIMARY SCHOOL</h2>
-        <div class="motto">Nurturing Minds, Shaping Futures</div>
+      <h2>HOPEFUL FUTURE PRIMARY SCHOOL</h2>
+      <div class="motto">Nurturing Minds, Shaping Futures</div>
+
+      <div class="contact-socials">
+        <div class="contact-left">
+          <span>Location: Entebbe, Wakiso</span> |
+          <span>Box: 12345</span> |
+          <span>Call: 0768936641 / 0744137174</span>
+        </div>
+        <div class="contact-right social-icons">
+          <span>📧 info@hopefulfutureps.org</span>
+          <span>💬 WhatsApp</span>
+          <span>📘 Facebook</span>
+          <span>💼 LinkedIn</span>
+          <span>🐦 X/Twitter</span>
+        </div>
       </div>
-      <div class="top-actions hide-print" style="position:absolute; right:8px;">
+
+      <div class="top-actions hide-print" style="position:absolute; right:8px; top:8px;">
         <button class="btn btn-primary btn-sm" onclick="downloadDoc()">Download .doc</button>
         <button class="btn btn-primary btn-sm" onclick="savePdf()">Save as PDF</button>
       </div>
@@ -206,11 +234,6 @@
       {% endif %}
     </div>
     {% endif %}
-
-    <div class="school-footer">
-      <div>Contacts: 0744137174 | 0768936641</div>
-      <div>Email: info@hopefulfutureps.org | Entebbe - Wakiso</div>
-    </div>
 
   </div>
 
