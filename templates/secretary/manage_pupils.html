@@ -234,7 +234,7 @@
   <div class="search-fixed">
     <div class="container d-flex">
       <div class="input-group">
-        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <button id="searchBtn" class="btn input-group-text" type="button" title="Search"><i class="bi bi-search"></i></button>
         <input id="searchInput" type="text" class="form-control search-bar-fixed" placeholder="Search pupils by name, class, or stream..." aria-label="Search pupils">
         <button id="clearSearch" class="btn search-clear-btn ms-2" type="button" title="Clear search"><i class="bi bi-x-lg"></i></button>
       </div>
@@ -429,10 +429,28 @@
         });
       }
 
-      if (input) {
-        input.addEventListener('keyup', applyFilter);
-        input.addEventListener('input', applyFilter);
+      var searchBtn = document.getElementById('searchBtn');
+      // Debounce helper so filtering while typing is responsive but not spammy
+      function debounce(fn, delay) {
+        var t = null;
+        return function() {
+          var args = arguments;
+          clearTimeout(t);
+          t = setTimeout(function(){ fn.apply(null, args); }, delay);
+        };
       }
+
+      if (input) {
+        // live filter as user types (debounced)
+        input.addEventListener('input', debounce(applyFilter, 180));
+        // also trigger on Enter key for immediate action
+        input.addEventListener('keydown', function(e){ if (e.key === 'Enter') { applyFilter(); } });
+      }
+
+      if (searchBtn) {
+        searchBtn.addEventListener('click', function(){ applyFilter(); input && input.focus(); });
+      }
+
       if (clearBtn) {
         clearBtn.addEventListener('click', function(){
           if (input) {
