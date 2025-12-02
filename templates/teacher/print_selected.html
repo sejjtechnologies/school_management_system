@@ -64,10 +64,11 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
+    /* === UPDATED NAV HEIGHT + FONT SIZES === */
     .school-nav {
       background:#c62828;
       color:#fff;
-      height:60px;
+      height:70px;            /* increased */
       border-radius:4px;
       display:flex;
       align-items:center;
@@ -76,13 +77,25 @@
       margin-bottom:10px;
     }
 
+    .school-nav h2 {
+      font-size: 1.25rem;     /* bigger school name */
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .school-nav .motto {
+      font-size: 0.80rem;     /* bigger motto */
+      margin-top: -4px;
+    }
+
+    /* === UPDATED FOOTER HEIGHT === */
     .school-footer {
       background:#263238;
       color:#fff;
-      height: 50px;
-      padding: 5px 10px;
+      height: 60px;           /* increased */
+      padding: 8px 12px;
       border-radius:4px;
-      font-size:0.65rem;
+      font-size:0.72rem;
       display:flex;
       justify-content:space-between;
       align-items:center;
@@ -132,8 +145,8 @@
 
     <div class="school-nav">
       <div style="text-align:center">
-        <h2 class="m-0">HOPEFUL FUTURE PRIMARY SCHOOL</h2>
-        <div style="font-size:0.70rem">Nurturing Minds, Shaping Futures</div>
+        <h2>HOPEFUL FUTURE PRIMARY SCHOOL</h2>
+        <div class="motto">Nurturing Minds, Shaping Futures</div>
       </div>
 
       <div class="top-actions hide-print" style="position:absolute; right:8px;">
@@ -142,7 +155,7 @@
       </div>
     </div>
 
-    <!-- PRINTABLE PUPIL DETAILS (removed hide-print) -->
+    <!-- PRINTABLE PUPIL DETAILS -->
     <div class="card p-2 mb-3">
       <h5 class="mb-1">{{ pupil.first_name }} {{ pupil.middle_name }} {{ pupil.last_name }}</h5>
       <div class="text-muted">Adm: {{ pupil.admission_number }}</div>
