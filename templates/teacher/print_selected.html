@@ -49,7 +49,6 @@
       .report-card { page-break-inside: avoid !important; }
     }
 
-    /* Responsive adjustments */
     @media (max-width: 576px) {
       .page-bg { padding: 6px; }
       .school-footer { font-size: 0.55rem !important; padding: 6px !important; }
@@ -68,7 +67,7 @@
     .school-nav {
       background:#c62828;
       color:#fff;
-      height:60px; /* KEPT as you requested */
+      height:60px;
       border-radius:4px;
       display:flex;
       align-items:center;
@@ -90,7 +89,6 @@
       margin-top: 8px;
     }
 
-    /* Smaller grade badges */
     .badge-grade {
       padding: 2px 4px;
       border-radius: 4px;
@@ -105,7 +103,6 @@
     .grade-D { background:#fb8c00 }
     .grade-E { background:#d32f2f }
 
-    /* Option A small position badge */
     .pos-badge {
       background:#6a1b9a;
       color:#fff;
@@ -123,7 +120,6 @@
       font-size: 0.65rem;
     }
 
-    /* class teacher name shown under remark, soft red, same size as remark text */
     .class-teacher { color: #e57373; font-size: 0.65rem; font-weight:600; margin-top:8px }
 
     h5 { font-size: 0.85rem; }
@@ -146,10 +142,15 @@
       </div>
     </div>
 
-    <div class="card p-2 mb-3 hide-print">
+    <!-- PRINTABLE PUPIL DETAILS (removed hide-print) -->
+    <div class="card p-2 mb-3">
       <h5 class="mb-1">{{ pupil.first_name }} {{ pupil.middle_name }} {{ pupil.last_name }}</h5>
       <div class="text-muted">Adm: {{ pupil.admission_number }}</div>
       <div class="text-muted">Class: {{ pupil.class_name }} | Stream: {{ pupil.stream_name }}</div>
+
+      {% if class_teacher %}
+      <div class="text-muted"><strong>Class Teacher:</strong> {{ class_teacher.first_name }} {{ class_teacher.last_name }}</div>
+      {% endif %}
     </div>
 
     {% for ex in exams %}
@@ -221,6 +222,7 @@
       {% endif %}
 
       <div class="remark-box"><strong>Remark:</strong> {{ combined.general_remark }}</div>
+
       {% if class_teacher %}
       <div class="class-teacher">Class Teacher: {{ class_teacher.first_name }} {{ class_teacher.last_name }}</div>
       {% endif %}
