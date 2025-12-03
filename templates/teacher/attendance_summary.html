@@ -329,6 +329,9 @@
         <div class="container-fluid p-0 d-flex align-items-center justify-content-between">
             <span class="navbar-brand" style="font-size:0.95rem; color: white !important;">
                 <i class="bi bi-calendar-check"></i> Attendance Summary
+                {% if class_name %}
+                  <span style="font-weight: normal; margin-left: 8px; font-size: 0.9rem;">{{ class_name }}{% if stream_name %} {{ stream_name | truncate(1, end='') }}{% endif %}</span>
+                {% endif %}
             </span>
             <a href="{{ url_for('teacher_routes.attendance_view') }}" class="btn back-btn-custom ms-2">
                 <i class="bi bi-box-arrow-right"></i> Back

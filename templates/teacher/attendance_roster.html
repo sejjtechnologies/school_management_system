@@ -138,6 +138,9 @@
   <nav class="navbar">
     <span class="navbar-brand">
       <i class="bi bi-clipboard-check me-2"></i> Attendance Roster
+      {% if selected_class_id %}
+        <span style="font-weight: normal; margin-left: 8px; font-size: 0.9rem;">{{ selected_class_id }}{% if selected_stream %} {{ selected_stream | truncate(1, end='') }}{% endif %}</span>
+      {% endif %}
     </span>
     <a href="{{ url_for('teacher_routes.dashboard') }}" class="back-btn-top">
       <i class="bi bi-box-arrow-right"></i> Back

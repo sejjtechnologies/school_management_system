@@ -370,11 +370,22 @@ def attendance_view():
             flash('You have no class assignments. Contact admin.', 'warning')
             return redirect(url_for('teacher_routes.dashboard'))
 
+        # Get selected date or default to today
+        selected_date_str = request.args.get('date')
+        if selected_date_str:
+            try:
+                selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                selected_date = datetime.today().date()
+        else:
+            selected_date = datetime.today().date()
+
         # Load pupils across all assignments with real database data
         pupils_list = []
         seen = set()
         classes_seen = set()
         streams_data = {}
+        attendance_map = {}  # Store existing attendance records
 
         for assignment in assignments:
             # Query pupils for this specific assignment
@@ -410,6 +421,11 @@ def attendance_view():
                         'stream_name': stream_name
                     })
 
+        # Load existing attendance for selected date
+        existing_attendance = Attendance.query.filter_by(date=selected_date).all()
+        for att in existing_attendance:
+            attendance_map[att.pupil_id] = att.status
+
         # Build unique streams list
         all_streams = [
             {'id': stream_id, 'name': name}
@@ -432,7 +448,9 @@ def attendance_view():
             pupils_count=len(pupils_list),
             all_streams=all_streams,
             class_name=primary_class_name,
-            stream_name=primary_stream_name
+            stream_name=primary_stream_name,
+            selected_date=selected_date.isoformat(),
+            attendance_map=attendance_map
         )
 
     # POST: bulk upsert attendance (expects JSON payload with real data)
@@ -463,6 +481,15 @@ def attendance_view():
     except (ValueError, TypeError) as e:
         return (json.dumps({'error': f'Invalid date format: {str(e)}'}), 400, {'Content-Type': 'application/json'})
 
+    # Check if attendance for this date has already been saved by checking if records exist
+    existing_count = Attendance.query.filter_by(date=attendance_date_obj).filter(
+        Attendance.class_id == class_id
+    ).count()
+
+    # If attendance already exists for this date and class, prevent re-saving
+    if existing_count > 0:
+        return (json.dumps({'error': 'Attendance for this date has already been saved. Cannot save twice.', 'already_saved': True}), 409, {'Content-Type': 'application/json'})
+
     # Prepare records for upsert with validation
     to_upsert = []
     logs_to_create = []
@@ -481,35 +508,17 @@ def attendance_view():
             if not pupil:
                 continue  # Skip invalid pupils
 
-            # Check for existing attendance record
-            existing = Attendance.query.filter_by(
+            # Since we already checked above, there should be no existing records
+            # But create log for new records
+            log_entry = AttendanceLog(
                 pupil_id=pupil_id,
-                date=attendance_date_obj
-            ).first()
-
-            # Log status changes for audit trail
-            if existing and existing.status != status:
-                log_entry = AttendanceLog(
-                    attendance_id=existing.id,
-                    pupil_id=pupil_id,
-                    date=attendance_date_obj,
-                    old_status=existing.status,
-                    new_status=status,
-                    changed_by=teacher.id,
-                    reason=entry.get('reason')
-                )
-                logs_to_create.append(log_entry)
-            elif not existing:
-                # New attendance record - log creation
-                log_entry = AttendanceLog(
-                    pupil_id=pupil_id,
-                    date=attendance_date_obj,
-                    old_status=None,
-                    new_status=status,
-                    changed_by=teacher.id,
-                    reason=entry.get('reason')
-                )
-                logs_to_create.append(log_entry)
+                date=attendance_date_obj,
+                old_status=None,
+                new_status=status,
+                changed_by=teacher.id,
+                reason=entry.get('reason')
+            )
+            logs_to_create.append(log_entry)
 
             to_upsert.append({
                 'pupil_id': pupil_id,
