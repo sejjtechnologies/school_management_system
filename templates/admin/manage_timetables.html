@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Timetables</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    body {
+      background-color: #f1f8e9;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .navbar {
+      background-color: #4a148c;
+      height: 60px;
+    }
+    .navbar-brand, .nav-link {
+      color: #fff !important;
+    }
+    .logout-btn {
+      background-color: #d32f2f;
+      color: #fff;
+      border: none;
+      font-size: 0.85rem;
+      padding: 6px 12px;
+    }
+    .logout-btn:hover {
+      background-color: #b71c1c;
+    }
+
+    main {
+      flex: 1;
+      overflow-y: auto;
+      padding-top: 80px;
+      padding-bottom: 80px;
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+
+    footer {
+      height: 70px;
+      background: linear-gradient(to right, #4a148c, #1a237e);
+      box-shadow: 0 -2px 6px rgba(0,0,0,0.2);
+      color: #fff;
+    }
+
+    .page-title {
+      color: red;
+      font-weight: bold;
+      margin-bottom: 30px;
+      text-align: center;
+      font-size: 1.8rem;
+    }
+
+    .control-panel {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    select {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+
+    .btn-load {
+      background-color: #00796b;
+      color: #fff;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .btn-load:hover {
+      background-color: #004d40;
+    }
+
+    .btn-add-slot {
+      background-color: #1976d2;
+      color: #fff;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+
+    .btn-add-slot:hover {
+      background-color: #1565c0;
+    }
+
+    .btn-delete {
+      background-color: #d32f2f;
+      color: #fff;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .btn-delete:hover {
+      background-color: #b71c1c;
+    }
+
+    .timetable-container {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 20px;
+      overflow-x: auto;
+    }
+
+    .timetable-grid {
+      display: grid;
+      grid-template-columns: 100px repeat(6, 1fr);
+      gap: 2px;
+      background: #ddd;
+      padding: 2px;
+      min-width: 100%;
+    }
+
+    .grid-header {
+      background-color: #4a148c;
+      color: #fff;
+      font-weight: bold;
+      padding: 12px;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    .grid-time {
+      background-color: #7b1fa2;
+      color: #fff;
+      font-weight: bold;
+      padding: 12px;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    .grid-cell {
+      background: #f5f5f5;
+      padding: 10px;
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      font-size: 0.85rem;
+      position: relative;
+      overflow-y: auto;
+      max-height: 200px;
+    }
+
+    .grid-cell.occupied {
+      background-color: #c8e6c9;
+      border: 2px solid #388e3c;
+      min-height: auto;
+      padding: 8px;
+    }
+
+    .slot-content {
+      font-weight: bold;
+      color: #1b5e20;
+    }
+
+    .slot-subject {
+      font-size: 0.75rem;
+      color: #424242;
+    }
+
+    .slot-teacher {
+      font-size: 0.75rem;
+      color: #616161;
+      margin-top: 4px;
+    }
+
+    .slot-delete {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      padding: 2px 4px;
+      font-size: 0.7rem;
+    }
+
+    .modal-backdrop {
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-header {
+      background-color: #4a148c;
+      color: #fff;
+    }
+
+    .modal-title {
+      font-weight: bold;
+    }
+
+    .btn-modal-cancel {
+      background-color: #999;
+      color: #fff;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .btn-modal-cancel:hover {
+      background-color: #666;
+    }
+
+    .btn-modal-save {
+      background-color: #00796b;
+      color: #fff;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .btn-modal-save:hover {
+      background-color: #004d40;
+    }
+
+    .alert-message {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      z-index: 1000;
+      min-width: 300px;
+    }
+
+    .error {
+      background-color: #ffebee;
+      color: #c62828;
+      padding: 15px;
+      border-radius: 4px;
+      border-left: 4px solid #d32f2f;
+    }
+
+    .success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      padding: 15px;
+      border-radius: 4px;
+      border-left: 4px solid #4caf50;
+    }
+
+    .no-selection {
+      text-align: center;
+      color: #999;
+      padding: 40px;
+      font-style: italic;
+    }
+
+    @media (max-width: 768px) {
+      main {
+        padding-left: 10px;
+        padding-right: 10px;
+        padding-top: 70px;
+      }
+
+      .page-title {
+        font-size: 1.3rem;
+        margin-bottom: 20px;
+      }
+
+      .control-panel {
+        padding: 15px;
+        margin-bottom: 20px;
+      }
+
+      .control-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      select {
+        padding: 10px;
+        font-size: 1rem;
+      }
+
+      .btn-load, .btn-add-slot {
+        padding: 10px 15px;
+        font-size: 0.9rem;
+        width: 100%;
+        margin-left: 0;
+      }
+
+      .btn-load {
+        margin-bottom: 8px;
+      }
+
+      #assignedTeachersInfo {
+        margin-top: 10px;
+        padding: 10px;
+        font-size: 0.9rem;
+      }
+
+      .timetable-container {
+        padding: 10px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .timetable-grid {
+        grid-template-columns: 65px repeat(6, 1fr);
+        min-width: 600px;
+        gap: 1px;
+      }
+
+      .grid-header {
+        padding: 8px 4px;
+        font-size: 0.8rem;
+        word-break: break-word;
+      }
+
+      .grid-time {
+        padding: 8px 4px;
+        font-size: 0.8rem;
+      }
+
+      .grid-cell {
+        min-height: 90px;
+        padding: 6px;
+        font-size: 0.75rem;
+        max-height: 150px;
+      }
+
+      .grid-cell.occupied {
+        padding: 6px;
+      }
+
+      .slot-subject {
+        font-size: 0.7rem;
+        font-weight: bold;
+      }
+
+      .slot-teacher {
+        font-size: 0.65rem;
+        margin-top: 2px;
+      }
+
+      .alert-message {
+        position: fixed;
+        top: 70px;
+        right: 10px;
+        left: 10px;
+        z-index: 1000;
+        min-width: auto;
+        width: calc(100% - 20px);
+        font-size: 0.9rem;
+      }
+
+      .modal-dialog {
+        width: 95%;
+      }
+
+      .no-selection {
+        padding: 30px 20px;
+        font-size: 0.9rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      main {
+        padding-left: 8px;
+        padding-right: 8px;
+        padding-top: 65px;
+      }
+
+      .page-title {
+        font-size: 1.1rem;
+        margin-bottom: 15px;
+      }
+
+      .control-panel {
+        padding: 12px;
+        margin-bottom: 15px;
+      }
+
+      .control-panel h5 {
+        font-size: 0.95rem;
+        margin-bottom: 10px;
+      }
+
+      select {
+        padding: 8px;
+        font-size: 0.95rem;
+      }
+
+      .btn-load, .btn-add-slot {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+        width: 100%;
+      }
+
+      .timetable-container {
+        padding: 8px;
+      }
+
+      .timetable-grid {
+        grid-template-columns: 55px repeat(6, 1fr);
+        min-width: 550px;
+        gap: 1px;
+      }
+
+      .grid-header {
+        padding: 6px 2px;
+        font-size: 0.7rem;
+      }
+
+      .grid-time {
+        padding: 6px 2px;
+        font-size: 0.7rem;
+      }
+
+      .grid-cell {
+        min-height: 80px;
+        padding: 4px;
+        font-size: 0.65rem;
+        max-height: 120px;
+      }
+
+      .slot-subject {
+        font-size: 0.6rem;
+        font-weight: bold;
+      }
+
+      .slot-teacher {
+        font-size: 0.55rem;
+        margin-top: 1px;
+      }
+
+      .alert-message {
+        top: 65px;
+        right: 8px;
+        left: 8px;
+        width: calc(100% - 16px);
+        font-size: 0.85rem;
+        padding: 10px;
+      }
+
+      .modal-dialog {
+        width: 90%;
+        margin: 50% auto;
+      }
+
+      .modal-body {
+        padding: 12px;
+      }
+
+      .mb-3 {
+        margin-bottom: 10px !important;
+      }
+
+      .form-label {
+        font-size: 0.9rem;
+        margin-bottom: 4px;
+      }
+
+      .form-control {
+        font-size: 0.95rem;
+        padding: 8px;
+      }
+
+      .modal-footer {
+        padding: 10px;
+        gap: 5px;
+      }
+
+      .btn-modal-cancel, .btn-modal-save {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- ✅ Fixed Navbar -->
+  <nav class="navbar fixed-top navbar-expand-lg">
+    <div class="container-fluid px-3">
+      <a class="navbar-brand fw-bold" href="{{ url_for('admin_routes.dashboard') }}">
+        <i class="bi bi-calendar-check me-2"></i>Timetable Management
+      </a>
+      <div class="ms-auto">
+        <form action="{{ url_for('user_routes.logout') }}" method="get" class="d-inline">
+          <button type="submit" class="btn logout-btn">
+            <i class="bi bi-box-arrow-right me-1"></i>Logout
+          </button>
+        </form>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ✅ Scrollable Main Section -->
+  <main>
+    <h2 class="page-title">📅 Manage Timetables</h2>
+
+    <!-- ✅ Control Panel -->
+    <div class="control-panel">
+      <h5 style="margin-bottom: 15px; color: #4a148c; font-weight: bold;">Select Class & Stream</h5>
+      <div class="control-row">
+        <select id="classSelect" required style="width: 100%;">
+          <option value="">-- Select Class --</option>
+          {% for cls in classes %}
+          <option value="{{ cls.id }}">{{ cls.name }}</option>
+          {% endfor %}
+        </select>
+
+        <select id="streamSelect" required style="width: 100%;">
+          <option value="">-- Select Stream --</option>
+          {% for stream in streams %}
+          <option value="{{ stream.id }}">{{ stream.name }}</option>
+          {% endfor %}
+        </select>
+
+        <button class="btn-load" onclick="loadTimetable()" style="width: 100%;">
+          <i class="bi bi-arrow-clockwise me-1"></i>Load Timetable
+        </button>
+        <button class="btn-add-slot" onclick="generateTimetable()" style="width: 100%;">
+          <i class="bi bi-sparkles me-1"></i>Generate Auto
+        </button>
+        <button class="btn-add-slot" onclick="openAddModal()" style="width: 100%;">
+          <i class="bi bi-plus-circle me-1"></i>Add Slot
+        </button>
+      </div>
+      <div id="assignedTeachersInfo" style="margin-top: 10px; padding: 10px; background: #e8f5e9; border-radius: 4px; display: none;">
+        <strong style="color: #2e7d32;">Assigned Teachers:</strong>
+        <div id="assignedTeachersList" style="margin-top: 8px;"></div>
+      </div>
+    </div>
+
+    <!-- ✅ Alert Messages -->
+    <div id="alertContainer"></div>
+
+    <!-- ✅ Timetable Grid -->
+    <div class="timetable-container" id="timetableContainer">
+      <div class="no-selection">
+        <i class="bi bi-info-circle"></i> Select a class and stream, then click "Load Timetable" to view and manage slots
+      </div>
+    </div>
+  </main>
+
+  <!-- ✅ Fixed Footer -->
+  {% include 'footer.html' %}
+
+  <!-- ✅ Add/Edit Modal -->
+  <div class="modal fade" id="slotModal" tabindex="-1" aria-labelledby="slotModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="slotModalLabel">Add Timetable Slot</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="slotForm">
+            <div class="mb-3">
+              <label for="teacherSelect" class="form-label">Teacher</label>
+              <select id="teacherSelect" class="form-control" required>
+                <option value="">-- Select Teacher --</option>
+                {% for teacher in teachers %}
+                <option value="{{ teacher.id }}">{{ teacher.first_name }} {{ teacher.last_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="subjectSelect" class="form-label">Subject</label>
+              <select id="subjectSelect" class="form-control" required>
+                <option value="">-- Select Subject --</option>
+                {% for subject in subjects %}
+                <option value="{{ subject.id }}">{{ subject.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="daySelect" class="form-label">Day of Week</label>
+              <select id="daySelect" class="form-control" required>
+                <option value="">-- Select Day --</option>
+                <option value="Monday">Monday</option>
+                <option value="Tuesday">Tuesday</option>
+                <option value="Wednesday">Wednesday</option>
+                <option value="Thursday">Thursday</option>
+                <option value="Friday">Friday</option>
+                <option value="Saturday">Saturday</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="startTimeSelect" class="form-label">Start Time</label>
+              <select id="startTimeSelect" class="form-control" required>
+                <option value="">-- Select Time --</option>
+                <option value="08:00">08:00 (8 AM)</option>
+                <option value="09:00">09:00 (9 AM)</option>
+                <option value="10:00">10:00 (10 AM)</option>
+                <option value="11:00">11:00 (11 AM)</option>
+                <option value="12:00">12:00 (12 PM)</option>
+                <option value="13:00">13:00 (1 PM)</option>
+                <option value="14:00">14:00 (2 PM)</option>
+                <option value="15:00">15:00 (3 PM)</option>
+                <option value="16:00">16:00 (4 PM)</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-modal-cancel" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn-modal-save" onclick="saveSlot()">Add Slot</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ Edit Slot Modal -->
+  <div class="modal fade" id="editSlotModal" tabindex="-1" aria-labelledby="editSlotModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editSlotModalLabel">Edit Timetable Slot</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editSlotForm">
+            <input type="hidden" id="editSlotId">
+            
+            <div class="mb-3">
+              <label for="editTeacherSelect" class="form-label">Teacher</label>
+              <select id="editTeacherSelect" class="form-control" required>
+                <option value="">-- Select Teacher --</option>
+                {% for teacher in teachers %}
+                <option value="{{ teacher.id }}">{{ teacher.first_name }} {{ teacher.last_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="editSubjectSelect" class="form-label">Subject</label>
+              <select id="editSubjectSelect" class="form-control" required>
+                <option value="">-- Select Subject --</option>
+                {% for subject in subjects %}
+                <option value="{{ subject.id }}">{{ subject.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="editDaySelect" class="form-label">Day of Week</label>
+              <select id="editDaySelect" class="form-control" required>
+                <option value="">-- Select Day --</option>
+                <option value="Monday">Monday</option>
+                <option value="Tuesday">Tuesday</option>
+                <option value="Wednesday">Wednesday</option>
+                <option value="Thursday">Thursday</option>
+                <option value="Friday">Friday</option>
+                <option value="Saturday">Saturday</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="editStartTimeSelect" class="form-label">Start Time</label>
+              <select id="editStartTimeSelect" class="form-control" required>
+                <option value="">-- Select Time --</option>
+                <option value="08:00">08:00 (8 AM)</option>
+                <option value="09:00">09:00 (9 AM)</option>
+                <option value="10:00">10:00 (10 AM)</option>
+                <option value="11:00">11:00 (11 AM)</option>
+                <option value="12:00">12:00 (12 PM)</option>
+                <option value="13:00">13:00 (1 PM)</option>
+                <option value="14:00">14:00 (2 PM)</option>
+                <option value="15:00">15:00 (3 PM)</option>
+                <option value="16:00">16:00 (4 PM)</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-modal-cancel" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn-modal-save" onclick="updateSlot()">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let currentSlots = [];
+    let slotModal;
+    let editSlotModal;
+    let assignedTeachers = [];
+
+    // ✅ Initialize modal
+    document.addEventListener('DOMContentLoaded', function() {
+      slotModal = new bootstrap.Modal(document.getElementById('slotModal'));
+      editSlotModal = new bootstrap.Modal(document.getElementById('editSlotModal'));
+    });
+
+    // ✅ Show alert message
+    function showAlert(message, type = 'success') {
+      const alertContainer = document.getElementById('alertContainer');
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `alert-message ${type}`;
+      alertDiv.textContent = message;
+      alertContainer.appendChild(alertDiv);
+      
+      setTimeout(() => alertDiv.remove(), 5000);
+    }
+
+    // ✅ Load assigned teachers for class/stream
+    async function loadAssignedTeachers() {
+      const classId = document.getElementById('classSelect').value;
+      const streamId = document.getElementById('streamSelect').value;
+
+      if (!classId || !streamId) return;
+
+      try {
+        const response = await fetch(`/admin/timetable/assigned-teachers/${classId}/${streamId}`);
+        const data = await response.json();
+        assignedTeachers = data.assigned_teachers;
+
+        // Display assigned teachers
+        const infoDiv = document.getElementById('assignedTeachersInfo');
+        const listDiv = document.getElementById('assignedTeachersList');
+        
+        if (assignedTeachers.length > 0) {
+          infoDiv.style.display = 'block';
+          listDiv.innerHTML = assignedTeachers.map(t => 
+            `<span style="display: inline-block; background: #81c784; color: white; padding: 4px 8px; border-radius: 3px; margin-right: 8px; margin-bottom: 4px; font-size: 0.85rem;">✓ ${t.name}</span>`
+          ).join('');
+        } else {
+          infoDiv.style.display = 'none';
+        }
+      } catch (error) {
+        console.error('Error loading teachers:', error);
+      }
+    }
+
+    // ✅ Load timetable for selected class/stream
+    async function loadTimetable() {
+      const classId = document.getElementById('classSelect').value;
+      const streamId = document.getElementById('streamSelect').value;
+
+      if (!classId || !streamId) {
+        showAlert('Please select both class and stream', 'error');
+        return;
+      }
+
+      await loadAssignedTeachers();
+
+      try {
+        const response = await fetch(`/admin/timetable/get/${classId}/${streamId}`);
+        const data = await response.json();
+        currentSlots = data.slots;
+        renderTimetable();
+      } catch (error) {
+        showAlert('Error loading timetable: ' + error.message, 'error');
+      }
+    }
+
+    // ✅ Render timetable grid
+    function renderTimetable() {
+      const container = document.getElementById('timetableContainer');
+      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const times = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'];
+
+      let html = '<div class="timetable-grid">';
+
+      // Header row (days)
+      html += '<div class="grid-header"></div>';
+      days.forEach(day => {
+        html += `<div class="grid-header">${day}</div>`;
+      });
+
+      // Time rows
+      times.forEach(time => {
+        html += `<div class="grid-time">${time}</div>`;
+
+        days.forEach(day => {
+          // Get all slots for this day and time (should be 3 - one per teacher)
+          const slots = currentSlots.filter(s => s.day_of_week === day && s.start_time === time);
+          
+          if (slots.length > 0) {
+            html += `<div class="grid-cell occupied">`;
+            
+            // Show each teacher's assignment for this time slot
+            slots.forEach((slot, idx) => {
+              html += `
+                <div style="margin-bottom: ${idx < slots.length - 1 ? '8px' : '0'}; padding-bottom: ${idx < slots.length - 1 ? '8px' : '0'}; border-bottom: ${idx < slots.length - 1 ? '1px solid #b0bec5' : 'none'};">
+                  <div class="slot-subject" style="font-weight: bold; color: #1b5e20;">${slot.subject_name}</div>
+                  <div class="slot-teacher">${slot.teacher_name}</div>
+                  <div style="display: flex; gap: 2px; margin-top: 4px; font-size: 0.7rem;">
+                    <button class="btn-delete" onclick="openEditModal(${slot.id}, '${slot.teacher_id}', '${slot.subject_id}', '${slot.day_of_week}', '${slot.start_time}')" style="flex: 1; padding: 2px 4px;">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn-delete" onclick="deleteSlot(${slot.id})" style="flex: 1; padding: 2px 4px;">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              `;
+            });
+            
+            html += `</div>`;
+          } else {
+            html += '<div class="grid-cell" onclick="openAddModalForCell(\'' + day + '\', \'' + time + '\')"><small style="color: #999; cursor: pointer;">+ Add</small></div>';
+          }
+        });
+      });
+
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    // ✅ Open add modal (general)
+    function openAddModal() {
+      document.getElementById('slotForm').reset();
+      document.getElementById('slotModalLabel').textContent = 'Add Timetable Slot';
+      slotModal.show();
+    }
+
+    // ✅ Generate timetable automatically
+    async function generateTimetable() {
+      const classId = document.getElementById('classSelect').value;
+      const streamId = document.getElementById('streamSelect').value;
+
+      if (!classId || !streamId) {
+        showAlert('Please select both class and stream', 'error');
+        return;
+      }
+
+      if (!confirm('This will auto-generate a timetable for assigned teachers. Existing timetable will be replaced. Continue?')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/admin/timetable/generate/${classId}/${streamId}`, {
+          method: 'POST'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showAlert('✓ ' + data.message, 'success');
+          loadTimetable();
+        } else {
+          showAlert('Error: ' + data.error, 'error');
+        }
+      } catch (error) {
+        showAlert('Error generating timetable: ' + error.message, 'error');
+      }
+    }
+
+    // ✅ Open add modal with pre-filled day/time
+    function openAddModalForCell(day, time) {
+      document.getElementById('slotForm').reset();
+      document.getElementById('daySelect').value = day;
+      document.getElementById('startTimeSelect').value = time;
+      document.getElementById('slotModalLabel').textContent = 'Add Timetable Slot';
+      slotModal.show();
+    }
+
+    // ✅ Save slot
+    async function saveSlot() {
+      const classId = document.getElementById('classSelect').value;
+      const streamId = document.getElementById('streamSelect').value;
+      const teacherId = document.getElementById('teacherSelect').value;
+      const subjectId = document.getElementById('subjectSelect').value;
+      const dayOfWeek = document.getElementById('daySelect').value;
+      const startTime = document.getElementById('startTimeSelect').value;
+
+      if (!classId || !streamId || !teacherId || !subjectId || !dayOfWeek || !startTime) {
+        showAlert('Please fill all fields', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch('/admin/timetable/add', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            teacher_id: teacherId,
+            class_id: classId,
+            stream_id: streamId,
+            subject_id: subjectId,
+            day_of_week: dayOfWeek,
+            start_time: startTime
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showAlert('✓ Slot added successfully!', 'success');
+          slotModal.hide();
+          loadTimetable();
+        } else {
+          showAlert('Error: ' + data.error, 'error');
+        }
+      } catch (error) {
+        showAlert('Error saving slot: ' + error.message, 'error');
+      }
+    }
+
+    // ✅ Delete slot
+    async function deleteSlot(slotId) {
+      if (!confirm('Are you sure you want to delete this slot?')) return;
+
+      try {
+        const response = await fetch(`/admin/timetable/delete/${slotId}`, {
+          method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showAlert('✓ Slot deleted successfully!', 'success');
+          loadTimetable();
+        } else {
+          showAlert('Error: ' + data.error, 'error');
+        }
+      } catch (error) {
+        showAlert('Error deleting slot: ' + error.message, 'error');
+      }
+    }
+
+    // ✅ Open edit modal
+    function openEditModal(slotId, teacherId, subjectId, day, time) {
+      document.getElementById('editSlotId').value = slotId;
+      document.getElementById('editTeacherSelect').value = teacherId;
+      document.getElementById('editSubjectSelect').value = subjectId;
+      document.getElementById('editDaySelect').value = day;
+      document.getElementById('editStartTimeSelect').value = time;
+      editSlotModal.show();
+    }
+
+    // ✅ Update slot
+    async function updateSlot() {
+      const slotId = document.getElementById('editSlotId').value;
+      const teacherId = document.getElementById('editTeacherSelect').value;
+      const subjectId = document.getElementById('editSubjectSelect').value;
+      const dayOfWeek = document.getElementById('editDaySelect').value;
+      const startTime = document.getElementById('editStartTimeSelect').value;
+
+      if (!teacherId || !subjectId || !dayOfWeek || !startTime) {
+        showAlert('Please fill all fields', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/admin/timetable/edit/${slotId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            teacher_id: teacherId,
+            subject_id: subjectId,
+            day_of_week: dayOfWeek,
+            start_time: startTime
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showAlert('✓ Slot updated successfully!', 'success');
+          editSlotModal.hide();
+          loadTimetable();
+        } else {
+          showAlert('Error: ' + data.error, 'error');
+        }
+      } catch (error) {
+        showAlert('Error updating slot: ' + error.message, 'error');
+      }
+    }
+  </script>
+</body>
+</html>

@@ -64,6 +64,9 @@
     .btn-assign { background-color: #6a1b9a; }
     .btn-assign:hover { background-color: #4a148c !important; }
 
+    .btn-timetable { background-color: #00897b; }
+    .btn-timetable:hover { background-color: #00695c !important; }
+
     main {
       flex: 1;
       overflow-y: auto;
@@ -138,6 +141,11 @@
       <div class="col-md-4 text-center">
         <a href="{{ url_for('admin_routes.assign_teacher') }}" class="main-btn btn-assign">
           <i class="bi bi-journal-check"></i>Assign Classes & Streams
+        </a>
+      </div>
+      <div class="col-md-4 text-center">
+        <a href="{{ url_for('admin_routes.manage_timetables') }}" class="main-btn btn-timetable">
+          <i class="bi bi-calendar-check"></i>Manage Timetables
         </a>
       </div>
     </div>
