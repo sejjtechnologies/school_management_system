@@ -115,6 +115,10 @@
         <i class="bi bi-calendar-check-fill"></i> Manage Pupils Attendance
       </a>
 
+      <a href="{% if assignments and assignments|length > 0 %}{{ url_for('teacher_routes.attendance_summary') }}?class_id={{ assignments[0].class_id }}&start={{ (None)|default('') }}{% else %}{{ url_for('teacher_routes.attendance_summary') }}{% endif %}" class="main-btn btn-attendance" style="background:#5c6bc0;">
+        <i class="bi bi-bar-chart-line-fill"></i> View Attendance Summary
+      </a>
+
       <a href="#" class="main-btn btn-timetable">
         <i class="bi bi-table"></i> Manage Time Table
       </a>

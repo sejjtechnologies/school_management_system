@@ -176,6 +176,7 @@
           <table class="table table-sm table-striped" id="pupilsTable">
             <thead class="table-dark">
               <tr>
+                <th>#</th>
                 <th>Admission No.</th>
                 <th>First Name</th>
                 <th>Middle Name</th>
@@ -191,6 +192,7 @@
             <tbody>
               {% for r in records %}
               <tr>
+                <td>{{ loop.index }}</td>
                 <td>{{ r.admission_number }}</td>
                 <td>{{ r.first_name }}</td>
                 <td>{{ r.middle_name }}</td>

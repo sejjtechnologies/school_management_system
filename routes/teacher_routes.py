@@ -14,7 +14,6 @@ import io
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from datetime import datetime, timedelta
 import json
-import json as json_lib
 
 # Blueprint registered as "teacher_routes"
 teacher_routes = Blueprint("teacher_routes", __name__, url_prefix="/teacher")
@@ -366,34 +365,48 @@ def attendance_view():
     if request.method == 'GET':
         # fetch teacher assignments
         assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
-        
+
         if not assignments:
             flash('You have no class assignments. Contact admin.', 'warning')
             return redirect(url_for('teacher_routes.dashboard'))
-        
-        # Load pupils across all assignments
+
+        # Load pupils across all assignments (include class and stream names)
         pupils_list = []
+        seen = set()
         for a in assignments:
             ps = Pupil.query.filter_by(class_id=a.class_id, stream_id=a.stream_id).order_by(Pupil.last_name).all()
-            pupils_list.extend([{
-                'id': p.id,
-                'first_name': p.first_name,
-                'last_name': p.last_name,
-                'class_id': p.class_id,
-                'stream_id': p.stream_id
-            } for p in ps])
-        
-        # Get all streams teacher teaches
+            for p in ps:
+                if p.id in seen:
+                    continue
+                seen.add(p.id)
+                cls = Class.query.get(p.class_id)
+                s = Stream.query.get(p.stream_id)
+                pupils_list.append({
+                    'id': p.id,
+                    'first_name': p.first_name,
+                    'last_name': p.last_name,
+                    'class_id': p.class_id,
+                    'class_name': cls.name if cls else '',
+                    'stream_id': p.stream_id,
+                    'stream_name': s.name if s else ''
+                })
+
+        # Build unique streams list from pupils (ensure correct names from Stream model)
         all_streams = []
-        for a in assignments:
-            s = Stream.query.get(a.stream_id)
-            if s and s.id not in [st['id'] for st in all_streams]:
-                all_streams.append({'id': s.id, 'name': s.name})
-        
-        pupils_json = json_lib.dumps(pupils_list)
-        all_streams_json = json_lib.dumps(all_streams)
-        
-        return render_template('teacher/attendance_new.html', teacher=teacher, pupils_json=pupils_json, all_streams_json=all_streams_json)
+        seen_streams = set()
+        for p in pupils_list:
+            sid = p.get('stream_id')
+            if sid and sid not in seen_streams:
+                seen_streams.add(sid)
+                s = Stream.query.get(sid)
+                all_streams.append({'id': sid, 'name': s.name if s else p.get('stream_name', '')})
+
+        # determine a primary class/stream to show in top nav (choose first pupil's)
+        class_name = pupils_list[0]['class_name'] if pupils_list else ''
+        stream_name = pupils_list[0]['stream_name'] if pupils_list else ''
+
+        # pass raw Python lists to the template and let Jinja's |tojson handle serialization
+        return render_template('teacher/attendance_new.html', teacher=teacher, pupils_json=pupils_list, all_streams_json=all_streams, class_name=class_name, stream_name=stream_name)
 
     # POST: bulk upsert attendance (expects JSON payload)
     try:
@@ -572,6 +585,13 @@ def attendance_summary():
         if days not in (5, 6):
             days = 6
         end_date = start_date + timedelta(days=days-1)
+    elif period == 'term':
+        # term defined as 3.5 months ~= 105 days (approx). Use 105 days for counting.
+        days = request.args.get('days', default=105, type=int)
+        # safeguard
+        if days <= 0 or days > 365:
+            days = 105
+        end_date = start_date + timedelta(days=days-1)
     else:
         end_date = (start_date.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
 
@@ -588,16 +608,20 @@ def attendance_summary():
     pupils = Pupil.query.filter_by(class_id=class_id).order_by(Pupil.last_name).all()
     pupil_ids = [p.id for p in pupils]
 
-    # Build date range with formatted labels
+    # Build date range with formatted labels (only for day-by-day views)
     date_range = []
-    current = start_date
-    while current <= end_date:
-        date_range.append({
-            'iso': current.isoformat(),
-            'short': current.strftime('%a'),  # Mon, Tue, etc.
-            'full': current.strftime('%m/%d')  # 01/20, etc.
-        })
-        current += timedelta(days=1)
+    if period in ('week', 'month'):
+        current = start_date
+        while current <= end_date:
+            date_range.append({
+                'iso': current.isoformat(),
+                'short': current.strftime('%a'),  # Mon, Tue, etc.
+                'full': current.strftime('%m/%d')  # 01/20, etc.
+            })
+            current += timedelta(days=1)
+    else:
+        # for term view we will not render per-day columns (too many). date_range stays empty.
+        pass
 
     # aggregate attendance data
     summary_data = []
@@ -621,10 +645,13 @@ def attendance_summary():
             'attendance_by_date': attendance_by_date
         })
 
+    total_days = (end_date - start_date).days + 1
     summary = {
         'start': start_date.isoformat(),
         'end': end_date.isoformat(),
-        'data': summary_data
+        'data': summary_data,
+        'total_days': total_days,
+        'period': period
     }
 
     return render_template('teacher/attendance_summary.html',

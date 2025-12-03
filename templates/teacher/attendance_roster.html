@@ -39,7 +39,30 @@
   </style>
 </head>
 <body>
-  <div class="container py-3">
+  <!-- Navbar with back button -->
+  <nav class="navbar fixed-top navbar-expand-lg" style="background:#283593; height:60px;">
+    <div class="container-fluid px-3 d-flex align-items-center">
+      <a class="navbar-brand text-white fw-bold" href="#">Attendance Roster</a>
+      <div class="ms-auto">
+        <a href="{{ url_for('teacher_routes.dashboard') }}" class="btn btn-sm btn-light" title="Back to dashboard"><i class="bi bi-box-arrow-left"></i> Back</a>
+      </div>
+    </div>
+  </nav>
+
+  <div style="height:60px;"></div>
+
+  <!-- Fixed search under navbar -->
+  <div class="search-fixed" style="position:sticky; top:60px; z-index:1100; background:#fff; padding:8px 0; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
+    <div class="container d-flex">
+      <div class="input-group">
+        <button id="searchBtn" class="btn input-group-text" type="button" title="Search"><i class="bi bi-search"></i></button>
+        <input id="searchInput" type="text" class="form-control" placeholder="Search pupils by name..." />
+        <button id="clearSearch" class="btn ms-2" type="button" title="Clear search"><i class="bi bi-x-lg"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <main class="container py-3" style="margin-top:16px; overflow-y:auto; padding-bottom:68px;">
     <h4>Attendance — Select class and week</h4>
 
     <form id="attendanceMeta" class="row g-2 top-controls">
@@ -76,6 +99,7 @@
       <table class="table table-bordered table-sm compact">
         <thead>
           <tr>
+            <th>#</th>
             <th>Pupil</th>
             {% for d in week_dates %}
               <th class="text-center">{{ d.strftime('%a') }}<br>{{ d.strftime('%d-%b') }}</th>
@@ -85,6 +109,7 @@
         <tbody>
           {% for p in pupils %}
             <tr data-pupil-id="{{ p.id }}" data-class-id="{{ p.class_id }}" data-stream-id="{{ p.stream_id }}">
+              <td>{{ loop.index }}</td>
               <td data-label="Pupil">{{ p.first_name }} {{ p.last_name }}</td>
               {% for d in week_dates %}
                 {% set a = att_map.get((p.id, d.isoformat())) %}
@@ -117,6 +142,28 @@
         {% endif %}
       </span>
     </div>
+  </main>
+
+  {% include 'footer.html' %}
+
+  <script>
+    // client-side search filter for attendance roster
+    (function(){
+      var input = document.getElementById('searchInput');
+      var clearBtn = document.getElementById('clearSearch');
+      function applyFilter(){
+        var q = input ? input.value.trim().toLowerCase() : '';
+        var rows = document.querySelectorAll('#rosterArea table tbody tr');
+        rows.forEach(function(row){
+          var nameCell = row.querySelector('td[data-label="Pupil"]');
+          var name = nameCell ? nameCell.textContent.trim().toLowerCase() : '';
+          row.style.display = (!q || name.indexOf(q) !== -1) ? '' : 'none';
+        });
+      }
+      if (input) input.addEventListener('input', function(){ applyFilter(); });
+      if (clearBtn) clearBtn.addEventListener('click', function(){ if (input) { input.value=''; applyFilter(); input.focus(); } });
+    })();
+  </script>
   </div>
 
   <script>

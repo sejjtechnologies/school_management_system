@@ -2,70 +2,86 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Mark Attendance</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
   <style>
     :root { --bs-body-font-size: 0.95rem; }
+    html, body { height: 100%; margin: 0; }
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; }
-    .navbar-custom { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .navbar-custom { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 60px; min-height: 60px; }
+    .navbar-custom .navbar-brand { font-size: 1rem; }
+    .navbar-content { display: flex; align-items: center; gap: 12px; }
     .card-header-custom { background-color: #667eea; color: white; }
     .btn-check:checked + .btn { background-color: #28a745; border-color: #28a745; }
     .btn-check:not(:checked) + .btn { background-color: #dc3545; border-color: #dc3545; }
     .roster-table { width: 100%; }
-    .roster-table thead th { background-color: #667eea; color: white; padding: 12px 8px; font-weight: 600; }
+    .roster-table thead th { background-color: #667eea; color: white; padding: 8px 6px; font-weight: 600; }
     .roster-table tbody tr { border-bottom: 1px solid #e9ecef; }
     .roster-table tbody tr:hover { background-color: #f5f5f5; }
-    .roster-table td { padding: 12px 8px; }
+    .roster-table td { padding: 8px 6px; }
     .pupil-name { font-weight: 500; }
     .checkbox-cell { text-align: center; }
     .btn-check + .btn-check-label { cursor: pointer; user-select: none; }
-    .alert-toast { position: fixed; top: 20px; right: 20px; z-index: 1050; min-width: 300px; }
-    
+    .alert-toast { position: fixed; top: 80px; right: 20px; z-index: 1050; min-width: 280px; }
+    .top-search { position: sticky; top: 60px; z-index: 1000; background: #fff; padding: 8px; border-bottom: 1px solid #e9ecef; }
+    .fixed-back { position: absolute; left: 12px; top: 12px; z-index: 1100; }
+    .fixed-back .btn { height: 36px; padding: 6px 10px; }
+    .scroll-last-btn { position: fixed; right: 14px; bottom: 90px; z-index: 1100; }
+
     /* Mobile responsive */
     @media (max-width: 768px) {
       .roster-table { font-size: 0.85rem; }
-      .roster-table th, .roster-table td { padding: 8px 4px; }
-      .btn { padding: 0.375rem 0.75rem; font-size: 0.85rem; }
+      .roster-table th, .roster-table td { padding: 6px 4px; }
+      .btn { padding: 0.35rem 0.6rem; font-size: 0.85rem; }
+      .alert-toast { top: 70px; min-width: 220px; }
+      .navbar-custom { height: 60px; }
     }
   </style>
 </head>
 <body>
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
+  <!-- Navbar (fixed) -->
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-custom fixed-top">
     <div class="container-fluid">
-      <span class="navbar-brand mb-0 h1">Mark Attendance</span>
-      <span class="navbar-text text-white">{{ teacher.first_name }} {{ teacher.last_name }}</span>
+      <div class="navbar-content w-100">
+        <a href="{{ url_for('teacher_routes.dashboard') }}" class="btn btn-light btn-sm fixed-back" title="Back to dashboard">
+          <i class="bi bi-box-arrow-left"></i>
+        </a>
+        <span class="navbar-brand mb-0 h1">Mark Attendance</span>
+        <div class="ms-3 text-white" style="font-size:0.95rem;">
+          <strong>{{ class_name or 'Class' }}</strong> &ndash; <span>{{ stream_name or 'Stream' }}</span>
+        </div>
+        <div class="ms-auto text-white">{{ teacher.first_name }} {{ teacher.last_name }}</div>
+      </div>
     </div>
   </nav>
 
-  <div class="container-fluid py-4">
-    <!-- Date Picker Section -->
-    <div class="card mb-4">
+  <div style="height:60px;"></div>
+
+  <div class="container-fluid py-2">
+    <!-- Date Picker & Controls -->
+    <div class="card mb-2">
       <div class="card-header card-header-custom">
-        <h5 class="mb-0">📅 Select Date & Mark Attendance</h5>
+        <h6 class="mb-0">📅 Select Date & Mark Attendance</h6>
       </div>
       <div class="card-body">
-        <div class="row g-3 align-items-end">
-          <div class="col-md-4">
+        <div class="row g-2 align-items-end">
+          <div class="col-12 col-md-4">
             <label for="attendanceDate" class="form-label fw-bold">Attendance Date</label>
             <input type="date" id="attendanceDate" class="form-control" />
           </div>
-          <div class="col-md-4">
+          <div class="col-12 col-md-4">
             <label class="form-label fw-bold">Show For Stream</label>
             <select id="streamFilter" class="form-select">
               <option value="">All Streams</option>
-              {% for s in all_streams %}
-                <option value="{{ s.id }}">Stream {{ s.name }}</option>
-              {% endfor %}
             </select>
           </div>
-          <div class="col-md-4">
-            <button id="markAllPresentBtn" class="btn btn-success me-2">
+          <div class="col-12 col-md-4 d-flex gap-2">
+            <button id="markAllPresentBtn" class="btn btn-success w-100">
               <i class="bi bi-check-circle"></i> Mark All Present
             </button>
-            <button id="markAllAbsentBtn" class="btn btn-danger">
+            <button id="markAllAbsentBtn" class="btn btn-danger w-100">
               <i class="bi bi-x-circle"></i> Mark All Absent
             </button>
           </div>
@@ -73,107 +89,107 @@
       </div>
     </div>
 
-    <!-- Pupils Table -->
-    <div class="card">
+    <!-- Search (sticky) -->
+    <div class="top-search">
+      <div class="row g-2 align-items-center">
+        <div class="col-12 col-md-8">
+          <input id="searchBox" type="search" class="form-control" placeholder="Search by first or last name" />
+        </div>
+        <div class="col-12 col-md-4 text-end">
+          <button id="saveAttendanceBtn" class="btn btn-primary me-2"><i class="bi bi-check-lg"></i> Save</button>
+          <button id="viewSummaryBtn" class="btn btn-info" style="display:none;"><i class="bi bi-eye"></i> Summary</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pupils Table (scrollable area) -->
+    <div class="card mt-2">
       <div class="card-header card-header-custom">
-        <h5 class="mb-0">👥 Students (<span id="pupilCount">0</span>)</h5>
+        <h6 class="mb-0">👥 Students (<span id="pupilCount">0</span>)</h6>
       </div>
       <div class="card-body p-0">
-        <div class="table-responsive">
+        <div id="pupilsWrapper" class="table-responsive" style="overflow-y:auto;">
           <table class="table roster-table mb-0">
             <thead>
               <tr>
-                <th style="width: 30%;">Student Name</th>
-                <th style="width: 20%;">Stream</th>
-                <th style="width: 25%;">Present</th>
-                <th style="width: 25%;">Absent</th>
+                <th>Name</th>
+                <th>Stream</th>
+                <th class="text-center">Present</th>
+                <th class="text-center">Absent</th>
               </tr>
             </thead>
-            <tbody id="pupilsTableBody">
-              <!-- Populated by JS -->
-            </tbody>
+            <tbody id="pupilsTableBody"></tbody>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- Save Button -->
-    <div class="mt-4 d-flex gap-2">
-      <button id="saveAttendanceBtn" class="btn btn-primary btn-lg">
-        <i class="bi bi-check-lg"></i> Save Attendance
-      </button>
-      <button id="viewSummaryBtn" class="btn btn-info btn-lg" style="display: none;">
-        <i class="bi bi-eye"></i> View Weekly Summary
-      </button>
-    </div>
+    <button id="scrollLastBtn" class="btn btn-sm btn-secondary scroll-last-btn" title="Scroll to last">
+      <i class="bi bi-arrow-down-circle"></i>
+    </button>
+
   </div>
 
-  <!-- Alert Container -->
+  {% include 'footer.html' %}
+
   <div id="alertContainer"></div>
 
   <script>
-    // Data from template
-    const pupils = {{ pupils_json|safe }};
-    const allStreams = {{ all_streams_json|safe }};
+    // Data from template (serialized safely) placed in JSON script blocks to avoid
+    // confusing static JS parsers with Jinja tokens inside script code.
+    </script>
+    <script id="pupils-data" type="application/json">{{ pupils_json|tojson }}</script>
+    <script id="streams-data" type="application/json">{{ all_streams_json|tojson }}</script>
+    <script>
+    const pupils = JSON.parse(document.getElementById('pupils-data').textContent || '[]');
+    const allStreams = JSON.parse(document.getElementById('streams-data').textContent || '[]');
     const todayIso = new Date().toISOString().split('T')[0];
-    
-    // State
-    let currentAttendance = {}; // { pupil_id: 'present'|'absent' }
+    let currentAttendance = {};
     let selectedDate = todayIso;
     let selectedStream = '';
+    let searchTerm = '';
 
-    // Initialize
-    function init() {
-      document.getElementById('attendanceDate').value = todayIso;
-      document.getElementById('attendanceDate').addEventListener('change', (e) => {
-        selectedDate = e.target.value;
+    // initialize stream filter options
+    function populateStreams() {
+      const sel = document.getElementById('streamFilter');
+      // clear except default
+      sel.innerHTML = '<option value="">All Streams</option>';
+      allStreams.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name;
+        sel.appendChild(opt);
       });
-      document.getElementById('streamFilter').addEventListener('change', (e) => {
-        selectedStream = e.target.value;
-        renderTable();
-      });
-      document.getElementById('markAllPresentBtn').addEventListener('click', () => {
-        getVisiblePupils().forEach(p => currentAttendance[p.id] = 'present');
-        renderTable();
-      });
-      document.getElementById('markAllAbsentBtn').addEventListener('click', () => {
-        getVisiblePupils().forEach(p => currentAttendance[p.id] = 'absent');
-        renderTable();
-      });
-      document.getElementById('saveAttendanceBtn').addEventListener('click', saveAttendance);
-      document.getElementById('viewSummaryBtn').addEventListener('click', viewSummary);
-      renderTable();
     }
 
     function getVisiblePupils() {
-      return pupils.filter(p => !selectedStream || p.stream_id == selectedStream);
+      return pupils.filter(p => {
+        if (selectedStream && p.stream_id != selectedStream) return false;
+        if (!searchTerm) return true;
+        const q = searchTerm.toLowerCase();
+        return (p.first_name && p.first_name.toLowerCase().includes(q)) || (p.last_name && p.last_name.toLowerCase().includes(q));
+      });
     }
 
     function renderTable() {
       const visible = getVisiblePupils();
       const html = visible.map(p => {
         const status = currentAttendance[p.id] || '';
-        return `
-          <tr>
-            <td class="pupil-name">${p.first_name} ${p.last_name}</td>
-            <td>Stream ${p.stream_id}</td>
-            <td class="checkbox-cell">
-              <div class="form-check form-check-inline">
-                <input class="form-check-input attendance-check" type="radio" name="attendance_${p.id}" id="present_${p.id}" value="present" ${status === 'present' ? 'checked' : ''} />
-              </div>
-            </td>
-            <td class="checkbox-cell">
-              <div class="form-check form-check-inline">
-                <input class="form-check-input attendance-check" type="radio" name="attendance_${p.id}" id="absent_${p.id}" value="absent" ${status === 'absent' ? 'checked' : ''} />
-              </div>
-            </td>
-          </tr>
-        `;
+        return `\
+          <tr id="pupil_row_${p.id}">\
+            <td class="pupil-name">${p.first_name} ${p.last_name}</td>\
+            <td> ${p.stream_name || ('Stream ' + (p.stream_id||''))} </td>\
+            <td class="checkbox-cell text-center">\
+              <input class="form-check-input attendance-check" type="radio" name="attendance_${p.id}" id="present_${p.id}" value="present" ${status === 'present' ? 'checked' : ''} />\
+            </td>\
+            <td class="checkbox-cell text-center">\
+              <input class="form-check-input attendance-check" type="radio" name="attendance_${p.id}" id="absent_${p.id}" value="absent" ${status === 'absent' ? 'checked' : ''} />\
+            </td>\
+          </tr>`;
       }).join('');
       document.getElementById('pupilsTableBody').innerHTML = html;
       document.getElementById('pupilCount').textContent = visible.length;
 
-      // Add event listeners to radio buttons
       document.querySelectorAll('.attendance-check').forEach(input => {
         input.addEventListener('change', (e) => {
           const pupilId = parseInt(e.target.name.split('_')[1]);
@@ -182,83 +198,75 @@
       });
     }
 
-    async function saveAttendance() {
-      if (!selectedDate) {
-        showAlert('warning', 'Please select a date first.');
-        return;
-      }
-      if (Object.keys(currentAttendance).length === 0) {
-        showAlert('warning', 'Please mark attendance for at least one student.');
-        return;
-      }
-
-      const entries = Object.entries(currentAttendance).map(([pupilId, status]) => {
-        const p = pupils.find(x => x.id == pupilId);
-        return {
-          pupil_id: parseInt(pupilId),
-          class_id: p.class_id,
-          stream_id: p.stream_id,
-          date: selectedDate,
-          status: status,
-          reason: ''
-        };
-      });
-
-      const payload = { class_id: null, entries: entries, days: 6 };
-
-      try {
-        showAlert('info', 'Saving attendance...');
-        const resp = await fetch("{{ url_for('teacher_routes.attendance_view') }}", {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        const data = await resp.json();
-        if (resp.ok) {
-          showAlert('success', '✓ Attendance saved successfully!');
-          document.getElementById('viewSummaryBtn').style.display = 'inline-block';
-          // Clear current attendance for next entry
-          currentAttendance = {};
-          renderTable();
-        } else {
-          showAlert('danger', '✗ Failed to save attendance: ' + (data.error || 'Unknown error'));
-        }
-      } catch (err) {
-        showAlert('danger', '✗ Error: ' + err.message);
-      }
+    function computeWrapperHeight() {
+      const wrapper = document.getElementById('pupilsWrapper');
+      const navbarHeight = document.querySelector('.navbar-custom').offsetHeight || 60;
+      const topSearch = document.querySelector('.top-search').offsetHeight || 56;
+      const footerEl = document.querySelector('footer');
+      const footerHeight = footerEl ? footerEl.offsetHeight : 0;
+      const available = window.innerHeight - navbarHeight - topSearch - footerHeight - 40; // leave 20px gap
+      wrapper.style.maxHeight = Math.max(150, available) + 'px';
     }
 
-    function viewSummary() {
-      const classIds = [...new Set(pupils.map(p => p.class_id))];
-      const start = selectedDate.substring(0, 10); // YYYY-MM-DD
-      if (classIds.length === 1) {
-        window.location.href = `{{ url_for('teacher_routes.attendance_summary') }}?class_id=${classIds[0]}&start=${start}&period=week`;
-      } else {
-        showAlert('info', 'Multi-class summary not yet available. Please select a specific class.');
-      }
+    async function saveAttendance() {
+      if (!selectedDate) { showAlert('warning','Please select a date'); return; }
+      const entries = Object.entries(currentAttendance).map(([pid, status]) => {
+        const p = pupils.find(x => x.id == pid);
+        return { pupil_id: parseInt(pid), class_id: p.class_id, stream_id: p.stream_id, date: selectedDate, status: status, reason: '' };
+      });
+      if (entries.length === 0) { showAlert('warning','No attendance to save'); return; }
+      const payload = { class_id: null, entries: entries, days: 6 };
+      try {
+        showAlert('info','Saving attendance...');
+        const resp = await fetch("{{ url_for('teacher_routes.attendance_view') }}", { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+        const data = await resp.json();
+        if (resp.ok) { showAlert('success','Attendance saved'); document.getElementById('viewSummaryBtn').style.display='inline-block'; currentAttendance = {}; renderTable(); }
+        else { showAlert('danger', data.error || 'Failed to save'); }
+      } catch (err) { showAlert('danger', err.message); }
+    }
+
+    function scrollToLast() {
+      const wrapper = document.getElementById('pupilsWrapper');
+      const rows = wrapper.querySelectorAll('tbody tr');
+      if (!rows.length) return;
+      const last = rows[rows.length-1];
+      // scroll so last row is visible with 20px gap from footer
+      wrapper.scrollTop = last.offsetTop - 20;
     }
 
     function showAlert(type, message) {
       const alertId = 'alert-' + Date.now();
-      const alertHtml = `
-        <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show alert-toast" role="alert">
-          ${message}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      `;
+      const alertHtml = `<div id="${alertId}" class="alert alert-${type} alert-dismissible fade show alert-toast" role="alert">${message}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>`;
       document.getElementById('alertContainer').insertAdjacentHTML('beforeend', alertHtml);
-      const alertEl = document.getElementById(alertId);
-      setTimeout(() => {
-        if (alertEl) {
-          const bsAlert = new bootstrap.Alert(alertEl);
-          bsAlert.close();
-        }
-      }, 4000);
+      setTimeout(()=>{ const el = document.getElementById(alertId); if (el) { const bs = new bootstrap.Alert(el); bs.close(); } }, 4000);
     }
 
-    // Initialize on page load
-    document.addEventListener('DOMContentLoaded', init);
+    // Wire events
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('attendanceDate').value = todayIso;
+      selectedDate = todayIso;
+      populateStreams();
+      // set selectedStream default
+      document.getElementById('streamFilter').addEventListener('change', (e)=>{ selectedStream = e.target.value; renderTable(); });
+      document.getElementById('markAllPresentBtn').addEventListener('click', ()=>{ getVisiblePupils().forEach(p=> currentAttendance[p.id]='present'); renderTable(); });
+      document.getElementById('markAllAbsentBtn').addEventListener('click', ()=>{ getVisiblePupils().forEach(p=> currentAttendance[p.id]='absent'); renderTable(); });
+      document.getElementById('saveAttendanceBtn').addEventListener('click', saveAttendance);
+      document.getElementById('viewSummaryBtn').addEventListener('click', ()=>{ const classIds = [...new Set(pupils.map(p=>p.class_id))]; if (classIds.length===1) window.location.href = `{{ url_for('teacher_routes.attendance_summary') }}?class_id=${classIds[0]}&start=${selectedDate}&period=week`; else showAlert('info','Multi-class summary not available'); });
+      document.getElementById('searchBox').addEventListener('input', (e)=>{ searchTerm = e.target.value.trim(); renderTable(); });
+      document.getElementById('scrollLastBtn').addEventListener('click', scrollToLast);
+      // set streams into select (and preselect if stream_name provided)
+      populateStreams();
+      if ('{{ stream_name }}') {
+        // try to preselect the stream matching the provided stream_name
+        const opt = Array.from(document.getElementById('streamFilter').options).find(o=> o.textContent.trim() === '{{ stream_name }}' || o.textContent.includes('{{ stream_name }}'));
+        if (opt) opt.selected = true;
+      }
+      renderTable();
+      computeWrapperHeight();
+      window.addEventListener('resize', computeWrapperHeight);
+    });
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+ 
