@@ -41,9 +41,9 @@
       align-items: center;
       justify-content: center;
       text-decoration: none;
-      min-width: 180px;  /* slightly smaller for mobile */
-      height: 42px;       /* reduced height for mobile fit */
-      padding: 0 16px;    /* horizontal padding */
+      flex: 0 1 160px;    /* equal width but shrink if needed */
+      height: 44px;       /* consistent height */
+      padding: 0 12px;    /* horizontal padding */
       margin: 8px;
     }
     .main-btn i { margin-right: 6px; }
@@ -63,6 +63,8 @@
 
     .btn-timetable { background-color: #f4511e; }
     .btn-timetable:hover { background-color: #b71c1c; }
+    .btn-summary { background: #5c6bc0; }
+    .btn-summary:hover { background: #3f51b5; }
 
     main {
       height: calc(100vh - 60px);
@@ -71,8 +73,16 @@
     }
     .welcome-message {
       font-family: 'Comic Sans MS', 'Comic Sans', 'Segoe UI', Arial, sans-serif;
-      font-size: 1.5rem;
+      font-size: 1.25rem; /* reduced for mobile-first */
       color: #283593;
+    }
+
+    /* Mobile adjustments: slightly smaller buttons and fonts on narrow screens */
+    @media (max-width: 420px) {
+      .main-btn { flex: 0 1 140px; height: 38px; font-size: 0.82rem; }
+      .welcome-message { font-size: 1.0rem; }
+      .navbar-brand { font-size: 0.95rem; }
+      .logout-btn { padding: 5px 10px; font-size: 0.78rem; }
     }
   </style>
 </head>
@@ -116,14 +126,14 @@
       </a>
 
       {% if assignments and assignments|length > 0 %}
-      <a href="{{ url_for('teacher_routes.attendance_summary', class_id=assignments[0].class_id) }}" class="main-btn btn-attendance" style="background:#5c6bc0; font-size:0.82rem; min-width:140px; height:38px;">
+      <a href="{{ url_for('teacher_routes.attendance_summary', class_id=assignments[0].class_id) }}" class="main-btn btn-summary">
         <i class="bi bi-bar-chart-line-fill"></i>
-        <span style="margin-left:6px;">Summary</span>
+        <span>Summary</span>
       </a>
       {% else %}
-      <a href="{{ url_for('teacher_routes.attendance_summary') }}" class="main-btn btn-attendance" style="background:#5c6bc0; font-size:0.82rem; min-width:140px; height:38px;">
+      <a href="{{ url_for('teacher_routes.attendance_summary') }}" class="main-btn btn-summary">
         <i class="bi bi-bar-chart-line-fill"></i>
-        <span style="margin-left:6px;">Summary</span>
+        <span>Summary</span>
       </a>
       {% endif %}
 
