@@ -80,7 +80,7 @@
       overflow-y: auto;
       overflow-x: hidden;
       padding: 20px 12px;
-      padding-top: 15px;
+      padding-top: 0px;
       /* reserve footer height + 20px gap (defaults to 68px if variable not set: 48px footer + 20px) */
       padding-bottom: calc(var(--footer-height, 68px) + 20px);
       margin-top: 60px;
@@ -110,7 +110,7 @@
       .navbar { padding: 0 10px; }
       .navbar-brand { font-size: 0.85rem; }
       .back-btn-top { padding: 3px 6px; font-size: 0.65rem; }
-      main { margin-top: 60px !important; padding: 20px 12px !important; padding-top: 15px !important; padding-bottom: calc(var(--footer-height, 68px) + 20px) !important; }
+      main { margin-top: 60px !important; padding: 20px 12px !important; padding-top: 0px !important; padding-bottom: calc(var(--footer-height, 68px) + 20px) !important; }
       .container { padding-left: 10px; padding-right: 10px }
       .top-controls .form-label { font-size: 0.9rem }
       .table-responsive { padding: 0 }
@@ -137,7 +137,7 @@
       <i class="bi bi-clipboard-check me-2"></i> Attendance Roster
     </span>
     <a href="{{ url_for('teacher_routes.dashboard') }}" class="back-btn-top">
-      <i class="bi bi-arrow-left"></i> Back
+      <i class="bi bi-box-arrow-right"></i> Back
     </a>
   </nav>
 
@@ -145,7 +145,7 @@
   <main class="container">
     <h4>Attendance — Select class and week</h4>
 
-    <form id="attendanceMeta" class="row g-2 top-controls">
+    <form id="attendanceMeta" class="row g-2 top-controls" style="margin-top: 15px;">
       <div class="col-auto">
         <label class="form-label">Class</label>
         {% if selected_class_id %}
@@ -315,9 +315,10 @@
         document.documentElement.style.setProperty('--footer-height', footerH + 'px');
         // set padding-bottom to footer height + 20px gap - FORCE with !important
         main.style.setProperty('padding-bottom', (footerH + 20) + 'px', 'important');
-        // ensure main has margin-top (navbar height: 60px) and padding-top (15px gap from navbar) - FORCE on mobile
+        // ensure main has margin-top (navbar height: 60px) only
         main.style.setProperty('margin-top', '60px', 'important');
-        main.style.setProperty('padding-top', '15px', 'important');
+        // remove padding-top to avoid navbar conflict
+        main.style.setProperty('padding-top', '0px', 'important');
       }
       document.addEventListener('DOMContentLoaded', function(){
         updateFooterHeight();
