@@ -7,128 +7,72 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
   <style>
-    :root { --bs-body-font-size: 0.95rem; }
-    html, body { height: 100%; margin: 0; overflow: hidden; }
     body {
+      margin: 0;
+      padding-top: 60px;
       background-color: #f9f9f9;
       font-family: 'Segoe UI', sans-serif;
-      display: flex;
-      flex-direction: column;
     }
-    .navbar-custom {
-      background-color: #dc3545;
+    .navbar {
+      background-color: #283593;
       height: 60px;
-      display: flex;
-      align-items: center;
-      padding: 0 15px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .navbar-brand {
       color: #fff !important;
       font-weight: bold;
-      font-size: 0.95rem;
-      margin: 0;
     }
-    .back-btn-small {
-      background-color: white;
-      color: #dc3545;
-      border: none;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      margin-left: auto;
-    }
-    .back-btn-small:hover {
+    .nav-btn-top {
       background-color: #f5f5f5;
-      color: #dc3545;
+      color: #283593;
+      font-size: 0.9rem;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      text-decoration: none;
     }
-    .back-btn-small i {
-      font-size: 0.8rem;
-      color: #dc3545;
-    }
-    .search-fixed {
-      position: fixed;
-      top: 60px;
-      left: 0;
-      right: 0;
-      height: auto;
-      z-index: 1001;
-      background: white;
-      padding: 8px 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-      border-bottom: 1px solid #e9ecef;
-    }
-    main {
-      flex: 1;
-      overflow-y: auto;
-      overflow-x: hidden;
-      margin-top: 70px;
-      padding: 12px;
-      -webkit-overflow-scrolling: touch;
-    }
-    main::-webkit-scrollbar {
-      width: 6px;
-    }
-    main::-webkit-scrollbar-track {
-      background: #f1f1f1;
-    }
-    main::-webkit-scrollbar-thumb {
-      background: #dc3545;
-      border-radius: 3px;
+    .nav-btn-top:hover {
+      background-color: #e0e0e0;
+      color: #1a237e;
     }
     .form-section {
-      background: white;
-      padding: 15px;
-      border-radius: 6px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-      margin-bottom: 20px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    main {
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-bottom: 160px;
     }
     .form-label {
       font-weight: 500;
-      font-size: 0.9rem;
     }
     .submit-btn {
-      background-color: #28a745;
-      color: white;
+      background-color: #00796b;
+      color: #fff;
       border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
-      font-size: 0.9rem;
-      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 6px;
     }
     .submit-btn:hover {
-      background-color: #218838;
+      background-color: #004d40;
     }
-    footer {
-      margin-top: auto;
-      min-height: 60px;
-      background: white;
-      border-top: 1px solid #e9ecef;
-    }
-    @media (max-width: 576px) {
-      .navbar-custom { padding: 0 10px; }
-      .navbar-brand { font-size: 0.85rem; }
-      .back-btn-small { padding: 3px 6px; font-size: 0.65rem; }
-      .form-label { font-size: 0.85rem; }
-      .form-section { padding: 12px; margin-bottom: 15px; }
-      .search-fixed { padding: 6px 8px; }
+    .nav-btn {
+      margin-top: 15px;
+      margin-right: 10px;
     }
   </style>
 </head>
 <body>
   <!-- ✅ Navbar -->
-  <nav class="navbar fixed-top" style="height:50px;">
+  <nav class="navbar fixed-top">
     <div class="container-fluid px-3 d-flex justify-content-between align-items-center">
-      <a class="navbar-brand" href="#" style="font-size:0.95rem;">
+      <a class="navbar-brand" href="#">
         <i class="bi bi-pencil-square me-2"></i> Manage Pupils Marks
       </a>
       <!-- ✅ Back Button with Door Icon -->
-      <a href="{{ url_for('teacher_routes.dashboard') }}" class="nav-btn-top" title="Back to Dashboard" style="font-size:0.78rem; padding:4px 8px;">
+      <a href="{{ url_for('teacher_routes.dashboard') }}" class="nav-btn-top" title="Back to Dashboard">
         <i class="bi bi-door-open me-1"></i> Back
       </a>
     </div>
