@@ -6,8 +6,18 @@ from models.marks_model import Subject
 from models.teacher_assignment_models import TeacherAssignment
 from models.timetable_model import TimeTableSlot
 from werkzeug.security import generate_password_hash
+from datetime import datetime, timedelta
 
 admin_routes = Blueprint("admin_routes", __name__)
+
+# Utility function to convert 24-hour time to 12-hour AM/PM format
+def convert_to_12hour(time_24h):
+    """Convert '14:30' to '2:30 PM'"""
+    try:
+        dt = datetime.strptime(time_24h, '%H:%M')
+        return dt.strftime('%I:%M %p')
+    except:
+        return time_24h
 
 @admin_routes.route("/admin/dashboard")
 def dashboard():
@@ -229,22 +239,34 @@ def get_assigned_teachers(class_id, stream_id):
 
 @admin_routes.route("/admin/timetable/generate/<int:class_id>/<int:stream_id>", methods=["POST"])
 def generate_timetable(class_id, stream_id):
-    """Auto-generate timetable for assigned teachers with proper distribution.
-    Each class/stream has 3 teachers, each teaching different subjects at different times."""
+    """Auto-generate timetable for a stream with 40-minute lesson slots.
+    Gets ALL teachers with role Teacher and distributes them across all streams.
+    Includes the assigned class teacher in each stream's timetable.
+    Each teacher teaches different subjects in different streams.
+    Includes 20-minute break at 10:00 AM and 40-minute lunch at 1:00 PM."""
 
-    # Get all assigned teachers for this class/stream (should be 3)
-    assignments = TeacherAssignment.query.filter_by(
+    # Get the assigned class teacher (must be included)
+    class_teacher_assignment = TeacherAssignment.query.filter_by(
         class_id=class_id,
         stream_id=stream_id
-    ).all()
+    ).first()
 
-    if not assignments:
-        return jsonify({'error': 'No teachers assigned to this class/stream'}), 400
+    if not class_teacher_assignment:
+        return jsonify({'error': 'No class teacher assigned to this class/stream'}), 400
 
-    if len(assignments) < 3:
-        return jsonify({
-            'error': f'This class/stream should have 3 teachers. Currently has {len(assignments)}. Please assign all 3 teachers first.'
-        }), 400
+    # Get ALL teachers with role "Teacher"
+    teacher_role = Role.query.filter_by(role_name="Teacher").first()
+    if not teacher_role:
+        return jsonify({'error': 'Teacher role not found in database'}), 400
+
+    all_teachers = User.query.filter_by(role_id=teacher_role.id).all()
+    if not all_teachers:
+        return jsonify({'error': 'No teachers available in the system'}), 400
+
+    # Ensure class teacher is included in the list
+    all_teacher_ids = [t.id for t in all_teachers]
+    if class_teacher_assignment.teacher_id not in all_teacher_ids:
+        all_teachers.insert(0, class_teacher_assignment.teacher)
 
     # Clear existing slots for this class/stream
     TimeTableSlot.query.filter_by(
@@ -258,180 +280,110 @@ def generate_timetable(class_id, stream_id):
         return jsonify({'error': 'No subjects available in the database'}), 400
 
     days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-    times = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00']
+
+    # Generate 40-minute time slots from 8:00 AM to 5:00 PM with breaks
+    times = []
+    from datetime import datetime, timedelta
+    current_time = datetime.strptime('08:00', '%H:%M')
+    end_time = datetime.strptime('17:00', '%H:%M')  # 5:00 PM
+
+    while current_time < end_time:
+        time_str = current_time.strftime('%H:%M')
+
+        # Skip 20-minute break at 10:00 AM
+        if time_str == '10:00':
+            current_time += timedelta(minutes=20)  # Skip break duration
+        # Skip 40-minute lunch at 1:00 PM (13:00)
+        elif time_str == '13:00':
+            current_time += timedelta(minutes=40)  # Skip lunch duration
+        else:
+            # Calculate remaining time until 5:00 PM
+            remaining_minutes = (end_time - current_time).total_seconds() / 60
+
+            # If remaining time <= 40 min, use all remaining time; otherwise use 40 min
+            lesson_duration = int(remaining_minutes) if remaining_minutes <= 40 else 40
+
+            if lesson_duration > 0:
+                times.append({
+                    'start': time_str,
+                    'duration': lesson_duration
+                })
+                current_time += timedelta(minutes=lesson_duration)
+            else:
+                break
 
     slots_created = 0
     subject_idx = 0
+    teacher_idx = 0
 
-    # For each time slot, assign all 3 teachers (rotating through subjects)
-    from datetime import datetime, timedelta
+    # For each time slot, assign one teacher teaching one subject
+    # Rotate through all teachers and subjects
     for day in days:
-        for time in times:
-            # Each time slot gets all 3 teachers teaching different subjects
-            for teacher_idx, assignment in enumerate(assignments):
-                # Get subject for this teacher (cycle through available subjects)
-                current_subject_idx = (subject_idx + teacher_idx) % len(subjects)
-                subject = subjects[current_subject_idx]
+        for time_obj in times:
+            time_str = time_obj['start']
+            duration = time_obj['duration']
 
-                # Calculate end time (1 hour after start)
-                start_dt = datetime.strptime(time, '%H:%M')
-                end_dt = start_dt + timedelta(hours=1)
-                end_time = end_dt.strftime('%H:%M')
+            # Get next teacher (round-robin distribution from ALL available teachers)
+            teacher = all_teachers[teacher_idx % len(all_teachers)]
 
-                # Create slot
-                new_slot = TimeTableSlot(
-                    teacher_id=assignment.teacher_id,
-                    class_id=class_id,
-                    stream_id=stream_id,
-                    subject_id=subject.id,
-                    day_of_week=day,
-                    start_time=time,
-                    end_time=end_time
-                )
-                db.session.add(new_slot)
-                slots_created += 1
+            # Get subject (cycle through available subjects)
+            subject = subjects[subject_idx % len(subjects)]
 
+            # Calculate end time
+            start_dt = datetime.strptime(time_str, '%H:%M')
+            end_dt = start_dt + timedelta(minutes=duration)
+            end_time_str = end_dt.strftime('%H:%M')
+
+            # Create slot
+            new_slot = TimeTableSlot(
+                teacher_id=teacher.id,
+                class_id=class_id,
+                stream_id=stream_id,
+                subject_id=subject.id,
+                day_of_week=day,
+                start_time=time_str,
+                end_time=end_time_str
+            )
+            db.session.add(new_slot)
+            slots_created += 1
+
+            # Rotate to next teacher and subject
+            teacher_idx += 1
             subject_idx += 1
 
     db.session.commit()
     return jsonify({
-        'message': f'✓ Timetable generated successfully! All 3 teachers assigned across {slots_created} slots!',
-        'slots_created': slots_created
+        'message': f'✓ Timetable generated! {slots_created} lessons scheduled for {len(all_teachers)} teachers!',
+        'slots_created': slots_created,
+        'total_teachers': len(all_teachers)
     }), 201
 
-
-@admin_routes.route("/admin/timetable/add", methods=["POST"])
-def add_timetable_slot():
-    """Add a new timetable slot with conflict validation"""
-    data = request.json
-
-    teacher_id = data.get('teacher_id')
-    class_id = data.get('class_id')
-    stream_id = data.get('stream_id')
-    subject_id = data.get('subject_id')
-    day_of_week = data.get('day_of_week')
-    start_time = data.get('start_time')
-
-    # ✅ Validate required fields
-    if not all([teacher_id, class_id, stream_id, subject_id, day_of_week, start_time]):
-        return jsonify({'error': 'Missing required fields'}), 400
-
-    # ✅ Calculate end_time (one hour after start_time)
-    from datetime import datetime, timedelta
-    try:
-        start_dt = datetime.strptime(start_time, '%H:%M')
-        end_dt = start_dt + timedelta(hours=1)
-        end_time = end_dt.strftime('%H:%M')
-    except ValueError:
-        return jsonify({'error': 'Invalid time format'}), 400
-
-    # ✅ Check teacher double-booking (same day, overlapping time)
-    teacher_conflict = TimeTableSlot.query.filter(
-        TimeTableSlot.teacher_id == teacher_id,
-        TimeTableSlot.day_of_week == day_of_week,
-        TimeTableSlot.start_time == start_time
-    ).first()
-
-    if teacher_conflict:
-        return jsonify({'error': f'Teacher is already assigned at {start_time} on {day_of_week}'}), 409
-
-    # ✅ Check class double-booking (same day, overlapping time)
-    class_conflict = TimeTableSlot.query.filter(
-        TimeTableSlot.class_id == class_id,
-        TimeTableSlot.stream_id == stream_id,
-        TimeTableSlot.day_of_week == day_of_week,
-        TimeTableSlot.start_time == start_time
-    ).first()
-
-    if class_conflict:
-        return jsonify({'error': f'Class {day_of_week} {start_time} slot is already occupied'}), 409
-
-    # ✅ Create and save new slot
-    new_slot = TimeTableSlot(
-        teacher_id=teacher_id,
-        class_id=class_id,
-        stream_id=stream_id,
-        subject_id=subject_id,
-        day_of_week=day_of_week,
-        start_time=start_time,
-        end_time=end_time
-    )
-
-    try:
-        db.session.add(new_slot)
-        db.session.commit()
-        return jsonify({
-            'id': new_slot.id,
-            'message': 'Timetable slot added successfully!'
-        }), 201
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-
-@admin_routes.route("/admin/timetable/delete/<int:slot_id>", methods=["DELETE"])
-def delete_timetable_slot(slot_id):
-    """Delete a timetable slot"""
-    slot = TimeTableSlot.query.get_or_404(slot_id)
-
-    try:
-        db.session.delete(slot)
-        db.session.commit()
-        return jsonify({'message': 'Timetable slot deleted successfully!'}), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
 
 
 @admin_routes.route("/admin/timetable/edit/<int:slot_id>", methods=["PUT"])
 def edit_timetable_slot(slot_id):
-    """Edit an existing timetable slot"""
+    """Edit an existing timetable slot - ONLY teacher_id and subject_id can be changed"""
     slot = TimeTableSlot.query.get_or_404(slot_id)
     data = request.json
 
     teacher_id = data.get('teacher_id')
     subject_id = data.get('subject_id')
-    day_of_week = data.get('day_of_week')
-    start_time = data.get('start_time')
 
-    # ✅ Calculate end_time (one hour after start_time)
-    from datetime import datetime, timedelta
-    try:
-        start_dt = datetime.strptime(start_time, '%H:%M')
-        end_dt = start_dt + timedelta(hours=1)
-        end_time = end_dt.strftime('%H:%M')
-    except ValueError:
-        return jsonify({'error': 'Invalid time format'}), 400
-
-    # ✅ Check teacher double-booking (excluding current slot)
+    # ✅ Check teacher double-booking for SAME STREAM at SAME TIME (excluding current slot)
     teacher_conflict = TimeTableSlot.query.filter(
         TimeTableSlot.id != slot_id,
         TimeTableSlot.teacher_id == teacher_id,
-        TimeTableSlot.day_of_week == day_of_week,
-        TimeTableSlot.start_time == start_time
+        TimeTableSlot.stream_id == slot.stream_id,
+        TimeTableSlot.day_of_week == slot.day_of_week,
+        TimeTableSlot.start_time == slot.start_time
     ).first()
 
     if teacher_conflict:
-        return jsonify({'error': f'Teacher is already assigned at {start_time} on {day_of_week}'}), 409
-
-    # ✅ Check class double-booking (excluding current slot)
-    class_conflict = TimeTableSlot.query.filter(
-        TimeTableSlot.id != slot_id,
-        TimeTableSlot.class_id == slot.class_id,
-        TimeTableSlot.stream_id == slot.stream_id,
-        TimeTableSlot.day_of_week == day_of_week,
-        TimeTableSlot.start_time == start_time
-    ).first()
-
-    if class_conflict:
-        return jsonify({'error': f'Class {day_of_week} {start_time} slot is already occupied'}), 409
+        return jsonify({'error': f'Teacher is already assigned to this stream at {slot.start_time} on {slot.day_of_week}'}), 409
 
     try:
         slot.teacher_id = teacher_id
         slot.subject_id = subject_id
-        slot.day_of_week = day_of_week
-        slot.start_time = start_time
-        slot.end_time = end_time
         db.session.commit()
         return jsonify({'message': 'Timetable slot updated successfully!'}), 200
     except Exception as e:

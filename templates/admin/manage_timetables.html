@@ -538,11 +538,8 @@
         <button class="btn-load" onclick="loadTimetable()" style="width: 100%;">
           <i class="bi bi-arrow-clockwise me-1"></i>Load Timetable
         </button>
-        <button class="btn-add-slot" onclick="generateTimetable()" style="width: 100%;">
-          <i class="bi bi-sparkles me-1"></i>Generate Auto
-        </button>
-        <button class="btn-add-slot" onclick="openAddModal()" style="width: 100%;">
-          <i class="bi bi-plus-circle me-1"></i>Add Slot
+        <button class="btn-add-slot" onclick="loadTimetable()" style="width: 100%;">
+          <i class="bi bi-arrow-clockwise me-1"></i>Refresh Timetable
         </button>
       </div>
       <div id="assignedTeachersInfo" style="margin-top: 10px; padding: 10px; background: #e8f5e9; border-radius: 4px; display: none;">
@@ -570,7 +567,7 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="slotModalLabel">Add Timetable Slot</h5>
+          <h5 class="modal-title" id="slotModalLabel">Edit Timetable Slot</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
@@ -595,39 +592,12 @@
               </select>
             </div>
 
-            <div class="mb-3">
-              <label for="daySelect" class="form-label">Day of Week</label>
-              <select id="daySelect" class="form-control" required>
-                <option value="">-- Select Day --</option>
-                <option value="Monday">Monday</option>
-                <option value="Tuesday">Tuesday</option>
-                <option value="Wednesday">Wednesday</option>
-                <option value="Thursday">Thursday</option>
-                <option value="Friday">Friday</option>
-                <option value="Saturday">Saturday</option>
-              </select>
-            </div>
 
-            <div class="mb-3">
-              <label for="startTimeSelect" class="form-label">Start Time</label>
-              <select id="startTimeSelect" class="form-control" required>
-                <option value="">-- Select Time --</option>
-                <option value="08:00">08:00 (8 AM)</option>
-                <option value="09:00">09:00 (9 AM)</option>
-                <option value="10:00">10:00 (10 AM)</option>
-                <option value="11:00">11:00 (11 AM)</option>
-                <option value="12:00">12:00 (12 PM)</option>
-                <option value="13:00">13:00 (1 PM)</option>
-                <option value="14:00">14:00 (2 PM)</option>
-                <option value="15:00">15:00 (3 PM)</option>
-                <option value="16:00">16:00 (4 PM)</option>
-              </select>
-            </div>
           </form>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-modal-cancel" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn-modal-save" onclick="saveSlot()">Add Slot</button>
+          <button type="button" class="btn-modal-save" onclick="saveSlot()">Save Changes</button>
         </div>
       </div>
     </div>
@@ -664,40 +634,11 @@
                 {% endfor %}
               </select>
             </div>
-
-            <div class="mb-3">
-              <label for="editDaySelect" class="form-label">Day of Week</label>
-              <select id="editDaySelect" class="form-control" required>
-                <option value="">-- Select Day --</option>
-                <option value="Monday">Monday</option>
-                <option value="Tuesday">Tuesday</option>
-                <option value="Wednesday">Wednesday</option>
-                <option value="Thursday">Thursday</option>
-                <option value="Friday">Friday</option>
-                <option value="Saturday">Saturday</option>
-              </select>
-            </div>
-
-            <div class="mb-3">
-              <label for="editStartTimeSelect" class="form-label">Start Time</label>
-              <select id="editStartTimeSelect" class="form-control" required>
-                <option value="">-- Select Time --</option>
-                <option value="08:00">08:00 (8 AM)</option>
-                <option value="09:00">09:00 (9 AM)</option>
-                <option value="10:00">10:00 (10 AM)</option>
-                <option value="11:00">11:00 (11 AM)</option>
-                <option value="12:00">12:00 (12 PM)</option>
-                <option value="13:00">13:00 (1 PM)</option>
-                <option value="14:00">14:00 (2 PM)</option>
-                <option value="15:00">15:00 (3 PM)</option>
-                <option value="16:00">16:00 (4 PM)</option>
-              </select>
-            </div>
           </form>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-modal-cancel" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn-modal-save" onclick="updateSlot()">Save Changes</button>
+          <button type="button" class="btn-modal-save" onclick="saveSlot()">Save Changes</button>
         </div>
       </div>
     </div>
@@ -779,11 +720,89 @@
       }
     }
 
+    // ✅ Convert 24-hour time to 12-hour AM/PM format
+    function convertTo12Hour(time24h) {
+      const [hours, minutes] = time24h.split(':').map(Number);
+      const period = hours >= 12 ? 'PM' : 'AM';
+      const hours12 = hours % 12 || 12;
+      return `${hours12}:${String(minutes).padStart(2, '0')} ${period}`;
+    }
+
+    // ✅ Generate 40-minute time slots with 20-minute break and 40-minute lunch
+    function generateTimeSlots() {
+      const slots = [];
+      let current = new Date();
+      current.setHours(8, 0, 0, 0); // Start at 8:00 AM
+      const endTime = new Date();
+      endTime.setHours(17, 0, 0, 0); // End at 5:00 PM
+
+      while (current < endTime) {
+        const hours = String(current.getHours()).padStart(2, '0');
+        const minutes = String(current.getMinutes()).padStart(2, '0');
+        const timeStr = `${hours}:${minutes}`;
+        
+        // Add 20-minute break at 10:00 AM
+        if (timeStr === '10:00') {
+          slots.push({ time: timeStr, type: 'break', label: '☕ 20 MIN BREAK' });
+          current.setMinutes(current.getMinutes() + 20); // Break duration
+        }
+        // Add 40-minute lunch at 1:00 PM (13:00)
+        else if (timeStr === '13:00') {
+          slots.push({ time: timeStr, type: 'lunch', label: '🍽️ 40 MIN LUNCH' });
+          current.setMinutes(current.getMinutes() + 40); // Lunch duration
+        }
+        // Regular lesson slot
+        else {
+          // Calculate remaining time until 5:00 PM
+          const remainingMinutes = (endTime - current) / (1000 * 60);
+          
+          // If remaining time is less than 40, use all remaining time
+          // Otherwise use 40 minutes
+          const lessonDuration = remainingMinutes <= 40 ? Math.ceil(remainingMinutes) : 40;
+          
+          slots.push({ 
+            time: timeStr, 
+            type: 'lesson',
+            duration: lessonDuration
+          });
+          current.setMinutes(current.getMinutes() + lessonDuration);
+        }
+      }
+      return slots;
+    }
+
+    // ✅ Populate time selector with 40-minute intervals (exclude breaks/lunch)
+    function populateTimeSelector(selectId) {
+      const select = document.getElementById(selectId);
+      const times = generateTimeSlots();
+      
+      // Clear existing options (except the first placeholder)
+      while (select.options.length > 1) {
+        select.remove(1);
+      }
+      
+      // Add only lesson time slots (skip breaks and lunch)
+      times.forEach(timeObj => {
+        if (timeObj.type === 'lesson') {
+          const option = document.createElement('option');
+          option.value = timeObj.time;
+          option.textContent = convertTo12Hour(timeObj.time);
+          select.appendChild(option);
+        }
+      });
+    }
+
+    // ✅ Initialize time selectors when modals open
+    document.addEventListener('shown.bs.modal', function() {
+      populateTimeSelector('startTimeSelect');
+      populateTimeSelector('editStartTimeSelect');
+    });
+
     // ✅ Render timetable grid
     function renderTimetable() {
       const container = document.getElementById('timetableContainer');
       const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const times = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'];
+      const times = generateTimeSlots();
 
       let html = '<div class="timetable-grid">';
 
@@ -794,37 +813,49 @@
       });
 
       // Time rows
-      times.forEach(time => {
-        html += `<div class="grid-time">${time}</div>`;
+      times.forEach(timeObj => {
+        const time = timeObj.time;
+        const timeType = timeObj.type;
+        
+        // Display time header
+        if (timeType === 'break') {
+          html += `<div class="grid-time" style="background-color: #fff9c4; color: #f57f17; font-weight: bold;">☕ BREAK</div>`;
+        } else if (timeType === 'lunch') {
+          html += `<div class="grid-time" style="background-color: #ffecb3; color: #e65100; font-weight: bold;">🍽️ LUNCH</div>`;
+        } else {
+          html += `<div class="grid-time">${convertTo12Hour(time)}</div>`;
+        }
 
         days.forEach(day => {
-          // Get all slots for this day and time (should be 3 - one per teacher)
-          const slots = currentSlots.filter(s => s.day_of_week === day && s.start_time === time);
-          
-          if (slots.length > 0) {
-            html += `<div class="grid-cell occupied">`;
-            
-            // Show each teacher's assignment for this time slot
-            slots.forEach((slot, idx) => {
-              html += `
-                <div style="margin-bottom: ${idx < slots.length - 1 ? '8px' : '0'}; padding-bottom: ${idx < slots.length - 1 ? '8px' : '0'}; border-bottom: ${idx < slots.length - 1 ? '1px solid #b0bec5' : 'none'};">
-                  <div class="slot-subject" style="font-weight: bold; color: #1b5e20;">${slot.subject_name}</div>
-                  <div class="slot-teacher">${slot.teacher_name}</div>
-                  <div style="display: flex; gap: 2px; margin-top: 4px; font-size: 0.7rem;">
-                    <button class="btn-delete" onclick="openEditModal(${slot.id}, '${slot.teacher_id}', '${slot.subject_id}', '${slot.day_of_week}', '${slot.start_time}')" style="flex: 1; padding: 2px 4px;">
-                      <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn-delete" onclick="deleteSlot(${slot.id})" style="flex: 1; padding: 2px 4px;">
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </div>
-                </div>
-              `;
-            });
-            
-            html += `</div>`;
+          // Skip break and lunch - don't add lessons during these times
+          if (timeType === 'break' || timeType === 'lunch') {
+            html += `<div class="grid-cell" style="background-color: ${timeType === 'break' ? '#fff9c4' : '#ffecb3'}; text-align: center; font-weight: bold; color: #666;">${timeObj.label}</div>`;
           } else {
-            html += '<div class="grid-cell" onclick="openAddModalForCell(\'' + day + '\', \'' + time + '\')"><small style="color: #999; cursor: pointer;">+ Add</small></div>';
+            // Get all slots for this day and time (regular lesson slots)
+            const slots = currentSlots.filter(s => s.day_of_week === day && s.start_time === time);
+            
+            if (slots.length > 0) {
+              html += `<div class="grid-cell occupied">`;
+              
+              // Show each teacher's assignment for this time slot
+              slots.forEach((slot, idx) => {
+                html += `
+                  <div style="margin-bottom: ${idx < slots.length - 1 ? '8px' : '0'}; padding-bottom: ${idx < slots.length - 1 ? '8px' : '0'}; border-bottom: ${idx < slots.length - 1 ? '1px solid #b0bec5' : 'none'};">
+                    <div class="slot-subject" style="font-weight: bold; color: #1b5e20;">${slot.subject_name}</div>
+                    <div class="slot-teacher">${slot.teacher_name}</div>
+                    <div style="display: flex; gap: 2px; margin-top: 4px; font-size: 0.7rem;">
+                      <button class="btn-delete" onclick="openEditModal(${slot.id}, '${slot.teacher_id}', '${slot.subject_id}', '${slot.day_of_week}', '${slot.start_time}')" style="flex: 1; padding: 2px 4px;">
+                        <i class="bi bi-pencil"></i> Edit
+                      </button>
+                    </div>
+                  </div>
+                `;
+              });
+              
+              html += `</div>`;
+            } else {
+              html += '<div class="grid-cell" onclick="openAddModalForCell(\'' + day + '\', \'' + time + '\')"><small style="color: #999; cursor: pointer;">+ Add</small></div>';
+            }
           }
         });
       });
@@ -834,138 +865,13 @@
     }
 
     // ✅ Open add modal (general)
-    function openAddModal() {
-      document.getElementById('slotForm').reset();
-      document.getElementById('slotModalLabel').textContent = 'Add Timetable Slot';
-      slotModal.show();
-    }
-
-    // ✅ Generate timetable automatically
-    async function generateTimetable() {
-      const classId = document.getElementById('classSelect').value;
-      const streamId = document.getElementById('streamSelect').value;
-
-      if (!classId || !streamId) {
-        showAlert('Please select both class and stream', 'error');
-        return;
-      }
-
-      if (!confirm('This will auto-generate a timetable for assigned teachers. Existing timetable will be replaced. Continue?')) {
-        return;
-      }
-
-      try {
-        const response = await fetch(`/admin/timetable/generate/${classId}/${streamId}`, {
-          method: 'POST'
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          showAlert('✓ ' + data.message, 'success');
-          loadTimetable();
-        } else {
-          showAlert('Error: ' + data.error, 'error');
-        }
-      } catch (error) {
-        showAlert('Error generating timetable: ' + error.message, 'error');
-      }
-    }
-
-    // ✅ Open add modal with pre-filled day/time
-    function openAddModalForCell(day, time) {
-      document.getElementById('slotForm').reset();
-      document.getElementById('daySelect').value = day;
-      document.getElementById('startTimeSelect').value = time;
-      document.getElementById('slotModalLabel').textContent = 'Add Timetable Slot';
-      slotModal.show();
-    }
-
-    // ✅ Save slot
+    // ✅ Save slot (edit mode only)
     async function saveSlot() {
-      const classId = document.getElementById('classSelect').value;
-      const streamId = document.getElementById('streamSelect').value;
-      const teacherId = document.getElementById('teacherSelect').value;
-      const subjectId = document.getElementById('subjectSelect').value;
-      const dayOfWeek = document.getElementById('daySelect').value;
-      const startTime = document.getElementById('startTimeSelect').value;
-
-      if (!classId || !streamId || !teacherId || !subjectId || !dayOfWeek || !startTime) {
-        showAlert('Please fill all fields', 'error');
-        return;
-      }
-
-      try {
-        const response = await fetch('/admin/timetable/add', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            teacher_id: teacherId,
-            class_id: classId,
-            stream_id: streamId,
-            subject_id: subjectId,
-            day_of_week: dayOfWeek,
-            start_time: startTime
-          })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          showAlert('✓ Slot added successfully!', 'success');
-          slotModal.hide();
-          loadTimetable();
-        } else {
-          showAlert('Error: ' + data.error, 'error');
-        }
-      } catch (error) {
-        showAlert('Error saving slot: ' + error.message, 'error');
-      }
-    }
-
-    // ✅ Delete slot
-    async function deleteSlot(slotId) {
-      if (!confirm('Are you sure you want to delete this slot?')) return;
-
-      try {
-        const response = await fetch(`/admin/timetable/delete/${slotId}`, {
-          method: 'DELETE'
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          showAlert('✓ Slot deleted successfully!', 'success');
-          loadTimetable();
-        } else {
-          showAlert('Error: ' + data.error, 'error');
-        }
-      } catch (error) {
-        showAlert('Error deleting slot: ' + error.message, 'error');
-      }
-    }
-
-    // ✅ Open edit modal
-    function openEditModal(slotId, teacherId, subjectId, day, time) {
-      document.getElementById('editSlotId').value = slotId;
-      document.getElementById('editTeacherSelect').value = teacherId;
-      document.getElementById('editSubjectSelect').value = subjectId;
-      document.getElementById('editDaySelect').value = day;
-      document.getElementById('editStartTimeSelect').value = time;
-      editSlotModal.show();
-    }
-
-    // ✅ Update slot
-    async function updateSlot() {
       const slotId = document.getElementById('editSlotId').value;
       const teacherId = document.getElementById('editTeacherSelect').value;
       const subjectId = document.getElementById('editSubjectSelect').value;
-      const dayOfWeek = document.getElementById('editDaySelect').value;
-      const startTime = document.getElementById('editStartTimeSelect').value;
 
-      if (!teacherId || !subjectId || !dayOfWeek || !startTime) {
+      if (!teacherId || !subjectId) {
         showAlert('Please fill all fields', 'error');
         return;
       }
@@ -978,9 +884,7 @@
           },
           body: JSON.stringify({
             teacher_id: teacherId,
-            subject_id: subjectId,
-            day_of_week: dayOfWeek,
-            start_time: startTime
+            subject_id: subjectId
           })
         });
 
@@ -996,6 +900,14 @@
       } catch (error) {
         showAlert('Error updating slot: ' + error.message, 'error');
       }
+    }
+
+    // ✅ Open edit modal
+    function openEditModal(slotId, teacherId, subjectId, day, time) {
+      document.getElementById('editSlotId').value = slotId;
+      document.getElementById('editTeacherSelect').value = teacherId;
+      document.getElementById('editSubjectSelect').value = subjectId;
+      editSlotModal.show();
     }
   </script>
 </body>
