@@ -14,6 +14,7 @@ import io
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from datetime import datetime, timedelta
 import json
+import json as json_lib
 
 # Blueprint registered as "teacher_routes"
 teacher_routes = Blueprint("teacher_routes", __name__, url_prefix="/teacher")
@@ -361,73 +362,38 @@ def attendance_view():
     if redirect_resp:
         return redirect_resp
 
-    # GET: render roster for a class and week
+    # GET: render new attendance marking page with all teacher assignments auto-loaded
     if request.method == 'GET':
-        class_id = request.args.get('class_id', type=int)
-        start = request.args.get('start')
-        # compute week_dates (configurable days: default Mon-Sat)
-        if start:
-            try:
-                start_date = datetime.strptime(start, '%Y-%m-%d').date()
-            except Exception:
-                start_date = None
-        else:
-            start_date = None
-        # allow 5 or 6 day view; default to 6 (Mon-Sat)
-        days = request.args.get('days', default=6, type=int)
-        if days not in (5, 6):
-            days = 6
-
-        # fetch teacher assignments; if no class_id provided, load pupils across all assignments
+        # fetch teacher assignments
         assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
-        selected_stream = None
-
-        # default start_date to this week's Monday if not provided and compute week_dates
-        if not start_date:
-            today = datetime.today().date()
-            start_date = today - timedelta(days=today.weekday())
-        week_dates = [start_date + timedelta(days=i) for i in range(days)]
-
-        pupils = []
-        att_map = {}
-
-        if class_id:
-            # ensure teacher is assigned to this class
-            assigned = any(a.class_id == class_id for a in assignments)
-            if not assigned:
-                flash('You are not assigned to this class', 'danger')
-                return redirect(url_for('teacher_routes.dashboard'))
-
-            pupils = Pupil.query.filter_by(class_id=class_id).order_by(Pupil.last_name).all()
-            pupil_ids = [p.id for p in pupils]
-
-            if pupil_ids:
-                rows = Attendance.query.filter(Attendance.pupil_id.in_(pupil_ids), Attendance.date.between(week_dates[0], week_dates[-1])).all()
-                for r in rows:
-                    att_map[(r.pupil_id, r.date.isoformat())] = r
-
-            # check confirmation status for this period (class-level)
-            confirmation = PeriodConfirmation.query.filter_by(
-                class_id=class_id,
-                start_date=week_dates[0],
-                period_type='week',
-                days=days
-            ).first()
-            confirmed = bool(confirmation)
-        else:
-            # no specific class selected: load pupils across all assignments for this teacher
-            pupils = []
-            for a in assignments:
-                ps = Pupil.query.filter_by(class_id=a.class_id, stream_id=a.stream_id).order_by(Pupil.last_name).all()
-                pupils.extend(ps)
-            pupil_ids = [p.id for p in pupils]
-            if pupil_ids:
-                rows = Attendance.query.filter(Attendance.pupil_id.in_(pupil_ids), Attendance.date.between(week_dates[0], week_dates[-1])).all()
-                for r in rows:
-                    att_map[(r.pupil_id, r.date.isoformat())] = r
-            confirmed = False
-
-        return render_template('teacher/attendance_roster.html', assignments=assignments, pupils=pupils, week_dates=week_dates, att_map=att_map, confirmed=confirmed if class_id else False, selected_class_id=class_id, selected_stream=selected_stream)
+        
+        if not assignments:
+            flash('You have no class assignments. Contact admin.', 'warning')
+            return redirect(url_for('teacher_routes.dashboard'))
+        
+        # Load pupils across all assignments
+        pupils_list = []
+        for a in assignments:
+            ps = Pupil.query.filter_by(class_id=a.class_id, stream_id=a.stream_id).order_by(Pupil.last_name).all()
+            pupils_list.extend([{
+                'id': p.id,
+                'first_name': p.first_name,
+                'last_name': p.last_name,
+                'class_id': p.class_id,
+                'stream_id': p.stream_id
+            } for p in ps])
+        
+        # Get all streams teacher teaches
+        all_streams = []
+        for a in assignments:
+            s = Stream.query.get(a.stream_id)
+            if s and s.id not in [st['id'] for st in all_streams]:
+                all_streams.append({'id': s.id, 'name': s.name})
+        
+        pupils_json = json_lib.dumps(pupils_list)
+        all_streams_json = json_lib.dumps(all_streams)
+        
+        return render_template('teacher/attendance_new.html', teacher=teacher, pupils_json=pupils_json, all_streams_json=all_streams_json)
 
     # POST: bulk upsert attendance (expects JSON payload)
     try:
@@ -598,7 +564,8 @@ def attendance_summary():
             today = datetime.today().date()
             start_date = today - timedelta(days=today.weekday())
     except Exception:
-        return json.dumps({'error':'invalid date'}), 400, {'Content-Type':'application/json'}
+        flash('Invalid date', 'danger')
+        return redirect(url_for('teacher_routes.dashboard'))
 
     if period == 'week':
         days = request.args.get('days', default=6, type=int)
@@ -611,13 +578,29 @@ def attendance_summary():
     # permission
     assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
     if class_id and not any(a.class_id == class_id for a in assignments):
-        return json.dumps({'error':'not allowed'}), 403, {'Content-Type':'application/json'}
+        flash('Not allowed', 'danger')
+        return redirect(url_for('teacher_routes.dashboard'))
+
+    # if no class_id, default to first assignment's class
+    if not class_id and assignments:
+        class_id = assignments[0].class_id
 
     pupils = Pupil.query.filter_by(class_id=class_id).order_by(Pupil.last_name).all()
     pupil_ids = [p.id for p in pupils]
 
-    # aggregate
-    data = []
+    # Build date range with formatted labels
+    date_range = []
+    current = start_date
+    while current <= end_date:
+        date_range.append({
+            'iso': current.isoformat(),
+            'short': current.strftime('%a'),  # Mon, Tue, etc.
+            'full': current.strftime('%m/%d')  # 01/20, etc.
+        })
+        current += timedelta(days=1)
+
+    # aggregate attendance data
+    summary_data = []
     for p in pupils:
         counts = {
             'present': 0,
@@ -625,13 +608,29 @@ def attendance_summary():
             'late': 0,
             'leave': 0
         }
+        attendance_by_date = {}
         rows = Attendance.query.filter_by(pupil_id=p.id).filter(Attendance.date.between(start_date, end_date)).all()
         for r in rows:
             if r.status in counts:
                 counts[r.status] += 1
-        data.append({'pupil_id': p.id, 'name': f"{p.first_name} {p.last_name}", 'counts': counts})
+            attendance_by_date[r.date.isoformat()] = r.status
+        summary_data.append({
+            'pupil_id': p.id,
+            'name': f"{p.first_name} {p.last_name}",
+            'counts': counts,
+            'attendance_by_date': attendance_by_date
+        })
 
-    return json.dumps({'start': start_date.isoformat(), 'end': end_date.isoformat(), 'data': data}), 200, {'Content-Type':'application/json'}
+    summary = {
+        'start': start_date.isoformat(),
+        'end': end_date.isoformat(),
+        'data': summary_data
+    }
+
+    return render_template('teacher/attendance_summary.html',
+                          teacher=teacher,
+                          summary=summary,
+                          dates=date_range)
 
 
 @teacher_routes.route('/attendance/confirm', methods=['POST'])
