@@ -35,8 +35,9 @@
     .navbar-brand {
       color: white !important;
       font-weight: bold;
-      font-size: 0.95rem;
-      margin: 0;
+      font-size: 0.95rem !important;
+      margin: 0 !important;
+      white-space: nowrap !important;
     }
     .back-btn-top {
       background-color: white;
@@ -103,13 +104,15 @@
     .late { background: #fff3e0 }
     .status-select { width: 100%; min-width: 120px }
     .top-controls { margin-bottom: 12px }
+    .top-search { background: #fff; padding: 12px; border-bottom: 1px solid #e9ecef; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 12px; }
+    .search-input-group { max-width: 400px; margin: 0 auto; }
     table.table-sm th, table.table-sm td { padding: 8px 10px }
     .btn-wide { min-width: 110px }
 
     @media (max-width: 576px) {
-      .navbar { padding: 0 10px; }
-      .navbar-brand { font-size: 0.85rem; }
-      .back-btn-top { padding: 3px 6px; font-size: 0.65rem; }
+      .navbar { padding: 0 10px !important; }
+      .navbar-brand { font-size: 0.85rem !important; }
+      .back-btn-top { padding: 3px 6px !important; font-size: 0.65rem !important; }
       main { margin-top: 60px !important; padding: 20px 12px !important; padding-top: 0px !important; padding-bottom: calc(var(--footer-height, 68px) + 20px) !important; }
       .container { padding-left: 10px; padding-right: 10px }
       .top-controls .form-label { font-size: 0.9rem }
@@ -144,6 +147,13 @@
   <!-- Main Content -->
   <main class="container">
     <h4>Attendance — Select class and week</h4>
+
+    <!-- Fixed Search Bar -->
+    <div class="top-search">
+      <div class="search-input-group">
+        <input id="pupilSearchBox" type="search" class="form-control form-control-lg" placeholder="🔍 Search roster by pupil name..." />
+      </div>
+    </div>
 
     <form id="attendanceMeta" class="row g-2 top-controls" style="margin-top: 15px;">
       <div class="col-auto">

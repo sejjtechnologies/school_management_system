@@ -13,6 +13,7 @@
     .navbar-custom { background: #dc3545; height: 60px; min-height: 60px; display: flex; align-items: center; position: fixed; top: 0; left: 0; right: 0; z-index: 1000; width: 100%; }
     .navbar-custom .navbar-brand { font-size: 1rem; color: white !important; }
     .navbar-content { display: flex; align-items: center; gap: 12px; width: 100%; justify-content: space-between; }
+    .navbar-label { color: white !important; font-weight: 600; font-size: 0.95rem !important; margin: 0 !important; white-space: nowrap !important; }
     .back-btn-custom { color: #dc3545 !important; background-color: white !important; border: none !important; border-radius: 4px; padding: 6px 12px !important; font-size: 1.2rem; }
     .back-btn-custom:hover { background-color: #f5f5f5 !important; }
     .card-header-custom { background-color: #dc3545; color: white; }
@@ -28,13 +29,15 @@
     .btn-check + .btn-check-label { cursor: pointer; user-select: none; }
     .alert-toast { position: fixed; top: 80px; right: 20px; z-index: 1050; min-width: 280px; }
     main { flex: 1; overflow-y: auto; overflow-x: hidden; margin-top: 60px; padding-bottom: calc(var(--footer-height, 68px) + 20px); -webkit-overflow-scrolling: touch; }
-    .top-search { background: #fff; padding: 8px; border-bottom: 1px solid #e9ecef; }
+    .top-search { background: #fff; padding: 12px; border-bottom: 1px solid #e9ecef; position: sticky; top: 60px; z-index: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .search-input-group { max-width: 400px; margin: 0 auto; }
     .fixed-back { position: absolute; left: 12px; top: 12px; z-index: 1100; }
     .fixed-back .btn { height: 36px; padding: 6px 10px; }
     .scroll-last-btn { position: fixed; right: 14px; bottom: 90px; z-index: 1100; }
 
     /* Mobile responsive */
     @media (max-width: 768px) {
+      .navbar-label { font-size: 0.85rem !important; }
       .roster-table { font-size: 0.85rem; }
       .roster-table th, .roster-table td { padding: 6px 4px; }
       .btn { padding: 0.35rem 0.6rem; font-size: 0.85rem; }
@@ -48,10 +51,12 @@
   <!-- Navbar (fixed) -->
   <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
     <div class="container-fluid navbar-content">
-      <div style="display:flex; align-items:center; gap:8px; font-size:0.95rem;">
-        <span class="badge bg-white text-danger">{{ class_name or 'No Class' }}</span>
-        <small class="text-white">{{ stream_name or '' }}</small>
-      </div>
+      <span class="navbar-label">
+        <i class="bi bi-file-earmark-text"></i> Mark Attendance
+        {% if class_name %}
+          <span style="font-weight: normal; margin-left: 8px; font-size: 0.9rem;">{{ class_name }}{% if stream_name %} {{ stream_name | truncate(1, end='') }}{% endif %}</span>
+        {% endif %}
+      </span>
       <a href="{{ url_for('teacher_routes.dashboard') }}" class="btn back-btn-custom" title="Back to dashboard">
         <i class="bi bi-box-arrow-right"></i> Back
       </a>
@@ -60,6 +65,12 @@
 
   <!-- Main scrollable content -->
   <main class="container-fluid py-2">
+    <!-- Fixed Search Bar -->
+    <div class="top-search">
+      <div class="search-input-group">
+        <input id="searchBox" type="search" class="form-control form-control-lg" placeholder="🔍 Search pupils by name..." />
+      </div>
+    </div>
     <!-- Date Picker & Controls -->
     <div class="card mb-2" style="margin-top: 15px;">
       <div class="card-header card-header-custom">
