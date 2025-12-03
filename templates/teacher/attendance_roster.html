@@ -80,6 +80,7 @@
       overflow-y: auto;
       overflow-x: hidden;
       padding: 20px 12px;
+      padding-top: 5px;
       /* reserve footer height + 20px gap (defaults to 80px if variable not set) */
       padding-bottom: calc(var(--footer-height, 80px) + 20px);
       margin-top: 60px;
@@ -109,7 +110,7 @@
       .navbar { padding: 0 10px; }
       .navbar-brand { font-size: 0.85rem; }
       .back-btn-top { padding: 3px 6px; font-size: 0.65rem; }
-      main { padding: 20px 12px; padding-bottom: calc(var(--footer-height, 80px) + 20px); margin-top: 60px; }
+      main { margin-top: 60px !important; padding: 20px 12px !important; padding-top: 5px !important; padding-bottom: calc(var(--footer-height, 80px) + 20px) !important; }
       .container { padding-left: 10px; padding-right: 10px }
       .top-controls .form-label { font-size: 0.9rem }
       .table-responsive { padding: 0 }
@@ -169,7 +170,7 @@
       <div class="col-auto align-self-end">
         <button id="loadBtn" type="button" class="btn btn-secondary">Load Roster</button>
         <button id="saveBtn" type="button" class="btn btn-primary">Save Attendance</button>
-        <button id="confirmBtn" type="button" class="btn btn-warning ms-2">{{ 'Unconfirm' if confirmed else 'Confirm Period' }}</button>
+        <button id="confirmBtn" type="button" class="btn btn-warning ms-2" data-confirmed="{{ confirmed|tojson }}">{{ 'Unconfirm' if confirmed else 'Confirm Period' }}</button>
       </div>
     </form>
 
@@ -291,7 +292,7 @@
       const start = document.getElementById('weekStart').value;
       const days = parseInt(document.getElementById('daysSelect').value || '6', 10);
       if (!classId) return alert('You have no class assignments');
-      const currentlyConfirmed = {{ confirmed|tojson }};
+      const currentlyConfirmed = JSON.parse(confirmBtn.getAttribute('data-confirmed') || 'false');
       const payload = { class_id: classId, start: start, period: 'week', days: days, confirm: !currentlyConfirmed };
       const resp = await fetch("{{ url_for('teacher_routes.attendance_confirm') }}", {
         method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload)
@@ -304,15 +305,19 @@
     });
   </script>
   <script>
-    // Ensure the main area reserves footer height + 20px gap dynamically
+    // Ensure the main area reserves footer height + 20px gap dynamically and respects navbar
     (function(){
       function updateFooterHeight(){
         const footer = document.querySelector('footer');
         const main = document.querySelector('main');
         if (!footer || !main) return;
-        const h = footer.offsetHeight || 80;
-        document.documentElement.style.setProperty('--footer-height', h + 'px');
-        main.style.paddingBottom = (h + 20) + 'px';
+        const footerH = footer.offsetHeight || 80;
+        document.documentElement.style.setProperty('--footer-height', footerH + 'px');
+        // set padding-bottom to footer height + 20px gap
+        main.style.paddingBottom = (footerH + 20) + 'px';
+        // ensure main has margin-top (navbar height: 60px) and padding-top (5px gap from navbar)
+        main.style.marginTop = '60px';
+        main.style.paddingTop = '5px';
       }
       document.addEventListener('DOMContentLoaded', function(){
         updateFooterHeight();
