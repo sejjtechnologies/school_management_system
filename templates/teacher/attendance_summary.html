@@ -300,6 +300,12 @@
                 font-size: 14px;
             }
         }
+        /* main area that will scroll leaving space above the fixed footer */
+        main.main-scroll {
+            height: calc(100vh - 50px); /* account for navbar height */
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
     </style>
 </head>
 <body>
@@ -316,10 +322,10 @@
         </div>
     </nav>
 
-    <div class="container">
+    <main class="container main-scroll">
         <!-- Back Button and Controls (fixed search) -->
         <div style="height:10px;"></div>
-        <div class="top-controls" style="position:sticky; top:50px; z-index:1100; background:#fff; padding:6px 0; border-bottom:1px solid #e9ecef;">
+        <div class="top-controls" style="position:sticky; top:0; z-index:1100; background:#fff; padding:6px 0; border-bottom:1px solid #e9ecef;">
             <div class="container d-flex gap-2 align-items-center">
             <!-- back button moved into navbar -->
                 <form id="summaryForm" class="d-flex align-items-center" method="get" action="{{ url_for('teacher_routes.attendance_summary') }}">
@@ -344,7 +350,13 @@
         <div class="container">
             <!-- Summary Info -->
             <div class="summary-info">
-                <p><strong>{{ summary.start|default('N/A', true) }}</strong> - <strong>{{ summary.end|default('N/A', true) }}</strong> | <strong>Pupils:</strong> {{ summary.data|length|default(0) }}</p>
+                <p>
+                    <strong>{{ summary.start|default('N/A', true) }}</strong> - <strong>{{ summary.end|default('N/A', true) }}</strong>
+                    | <strong>Pupils:</strong> {{ summary.data|length|default(0) }}
+                    {% if stream_name %}
+                        | <strong>Stream:</strong> {{ stream_name }}
+                    {% endif %}
+                </p>
             </div>
 
         <!-- Statistics -->
@@ -377,7 +389,7 @@
         <!-- Summary Table -->
         <div class="card">
             <div class="card-body p-0">
-                <div id="summaryWrapper" class="table-responsive-wrapper" style="overflow-y:auto;">
+                <div id="summaryWrapper" class="table-responsive-wrapper">
                     {% if summary.period in ['week','month'] %}
                     <table class="summary-table">
                         <thead>
@@ -397,7 +409,8 @@
                         <tbody id="summaryTableBody">
                             {% if summary.data %}
                                 {% for pupil_record in summary.data %}
-                                <tr>
+                                {% set pupil_stream = pupil_record.stream_name|default(pupil_record.stream|default('')) %}
+                                <tr data-stream="{{ pupil_stream }}">
                                     <td>{{ loop.index }}</td>
                                     <td class="pupil-name">{{ pupil_record.name|default('Unknown', true) }}</td>
                                     {% for date in dates %}
@@ -420,7 +433,8 @@
                                 </tr>
                                 {% endfor %}
                             {% else %}
-                                <tr>
+                                {% set pupil_stream = pupil_record.stream_name|default(pupil_record.stream|default('')) %}
+                                <tr data-stream="{{ pupil_stream }}">
                                     <td colspan="100%" style="text-align: center; padding: 20px; color: #999;">
                                         No records found
                                     </td>
@@ -478,21 +492,33 @@
                 <p><span class="mark-present">✓</span> = Present | <span class="mark-absent">✗</span> = Absent | <span class="mark-empty">—</span> = No Record</p>
             </div>
         </div>
-    </div>
+    </main>
+
+    {% include 'footer.html' %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script id="assigned-stream" type="application/json">{{ (stream_name|default(None))|tojson }}</script>
     <script>
-        // compute available height for the summary wrapper so it scrolls and leaves 20px above footer
+        // assigned stream passed from the route (if any) is stored as JSON in #assigned-stream
+        const assignedStream = JSON.parse(document.getElementById('assigned-stream').textContent || 'null');
+        // compute available height for the main scrolling area so it reaches the last line of the table
+        // leaving a 20px gap above the fixed footer
         function computeSummaryHeight() {
             const navbar = document.querySelector('.navbar-custom');
-            const topControls = document.querySelector('.top-controls');
-            const footer = document.querySelector('footer');
+            const footer = document.querySelector('.site-footer') || document.querySelector('footer');
+            const main = document.querySelector('main.main-scroll');
             const wrapper = document.getElementById('summaryWrapper');
             const navbarH = navbar ? navbar.offsetHeight : 60;
-            const controlsH = topControls ? topControls.offsetHeight : 60;
             const footerH = footer ? footer.offsetHeight : 0;
-            const avail = window.innerHeight - navbarH - controlsH - footerH - 20;
-            wrapper.style.maxHeight = Math.max(200, avail) + 'px';
+            // available height for main (below navbar) leaving 20px gap above footer
+            const avail = window.innerHeight - navbarH - footerH - 20;
+            if (main) {
+                main.style.maxHeight = Math.max(200, avail) + 'px';
+            }
+            // ensure inner wrapper doesn't constrain height (we want main to scroll)
+            if (wrapper) {
+                wrapper.style.maxHeight = 'none';
+            }
         }
 
         document.addEventListener('DOMContentLoaded', function(){
@@ -506,9 +532,25 @@
                 const rows = document.querySelectorAll('#summaryTableBody tr');
                 rows.forEach(r => {
                     const name = r.querySelector('.pupil-name') ? r.querySelector('.pupil-name').textContent.toLowerCase() : '';
-                    r.style.display = (!q || name.includes(q)) ? '' : 'none';
+                    let visible = (!q || name.includes(q));
+                    // if the route provided an assigned stream, only show pupils from that stream
+                    if (assignedStream) {
+                        const rowStream = (r.dataset.stream || '').toString().toLowerCase();
+                        visible = visible && rowStream === (assignedStream || '').toString().toLowerCase();
+                    }
+                    r.style.display = visible ? '' : 'none';
                 });
             });
+
+            // apply initial stream filter (if any) even before typing into search
+            if (assignedStream) {
+                const rows = document.querySelectorAll('#summaryTableBody tr');
+                rows.forEach(r => {
+                    const rowStream = (r.dataset.stream || '').toString().toLowerCase();
+                    const keep = rowStream === (assignedStream || '').toString().toLowerCase();
+                    r.style.display = keep ? '' : 'none';
+                });
+            }
         });
     </script>
 </body>

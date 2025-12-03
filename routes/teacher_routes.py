@@ -605,7 +605,26 @@ def attendance_summary():
     if not class_id and assignments:
         class_id = assignments[0].class_id
 
-    pupils = Pupil.query.filter_by(class_id=class_id).order_by(Pupil.last_name).all()
+    # Determine the stream assigned to this teacher for the given class (if any)
+    assigned_stream_id = None
+    assigned_stream_name = None
+    for a in assignments:
+        if a.class_id == class_id:
+            assigned_stream_id = a.stream_id
+            break
+    # If we still don't have an assigned stream, use the first assignment's stream as fallback
+    if not assigned_stream_id and assignments:
+        assigned_stream_id = assignments[0].stream_id
+
+    if assigned_stream_id:
+        s_obj = Stream.query.get(assigned_stream_id)
+        assigned_stream_name = s_obj.name if s_obj else None
+
+    # Only fetch pupils in the requested class AND the teacher's assigned stream
+    if assigned_stream_id:
+        pupils = Pupil.query.filter_by(class_id=class_id, stream_id=assigned_stream_id).order_by(Pupil.last_name).all()
+    else:
+        pupils = Pupil.query.filter_by(class_id=class_id).order_by(Pupil.last_name).all()
     pupil_ids = [p.id for p in pupils]
 
     # Build date range with formatted labels (only for day-by-day views)
@@ -638,11 +657,15 @@ def attendance_summary():
             if r.status in counts:
                 counts[r.status] += 1
             attendance_by_date[r.date.isoformat()] = r.status
+        # include stream info per pupil for client-side filtering/labeling
+        stream_obj = Stream.query.get(p.stream_id)
         summary_data.append({
             'pupil_id': p.id,
             'name': f"{p.first_name} {p.last_name}",
             'counts': counts,
-            'attendance_by_date': attendance_by_date
+            'attendance_by_date': attendance_by_date,
+            'stream': p.stream_id,
+            'stream_name': stream_obj.name if stream_obj else None
         })
 
     total_days = (end_date - start_date).days + 1
@@ -657,7 +680,8 @@ def attendance_summary():
     return render_template('teacher/attendance_summary.html',
                           teacher=teacher,
                           summary=summary,
-                          dates=date_range)
+                          dates=date_range,
+                          stream_name=assigned_stream_name)
 
 
 @teacher_routes.route('/attendance/confirm', methods=['POST'])
