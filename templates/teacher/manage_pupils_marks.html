@@ -78,8 +78,8 @@
       flex: 1;
       overflow-y: auto;
       overflow-x: hidden;
-      padding: 12px;
-      padding-bottom: 80px; /* leave 20px gap above footer */
+      padding: 20px 12px 80px 12px; /* top padding to show first card, bottom padding for last card + 20px */
+      margin-top: 60px; /* height of navbar */
       -webkit-overflow-scrolling: touch;
     }
     main::-webkit-scrollbar {
@@ -128,12 +128,12 @@
       .nav-btn-top { padding: 3px 6px; font-size: 0.65rem; }
       .form-label { font-size: 0.85rem; }
       .form-section { padding: 12px; margin-bottom: 15px; }
-      main { padding: 12px; padding-bottom: 80px; }
+      main { padding: 20px 12px 80px 12px; margin-top: 60px; }
     }
   </style>
 </head>
 <body>
-  <!-- ✅ Fixed Navbar -->
+  <!-- Fixed Navbar -->
   <nav class="navbar">
     <span class="navbar-brand">
       <i class="bi bi-pencil-square me-2"></i> Marks
@@ -143,7 +143,7 @@
     </a>
   </nav>
 
-  <!-- ✅ Main Content -->
+  <!-- Main Content -->
   <main>
     <div class="form-section">
       <form method="POST" action="{{ url_for('teacher_routes.manage_marks') }}">
@@ -223,7 +223,7 @@
 
   {% include 'footer.html' %}
 
-  <!-- ✅ Script to auto-fill class and stream -->
+  <!-- Script to auto-fill class and stream -->
   <script>
     function updatePupilInfo(select) {
       const selectedOption = select.options[select.selectedIndex];
