@@ -80,9 +80,9 @@
       overflow-y: auto;
       overflow-x: hidden;
       padding: 20px 12px;
-      padding-top: 5px;
-      /* reserve footer height + 20px gap (defaults to 80px if variable not set) */
-      padding-bottom: calc(var(--footer-height, 80px) + 20px);
+      padding-top: 15px;
+      /* reserve footer height + 20px gap (defaults to 68px if variable not set: 48px footer + 20px) */
+      padding-bottom: calc(var(--footer-height, 68px) + 20px);
       margin-top: 60px;
       -webkit-overflow-scrolling: touch;
     }
@@ -110,7 +110,7 @@
       .navbar { padding: 0 10px; }
       .navbar-brand { font-size: 0.85rem; }
       .back-btn-top { padding: 3px 6px; font-size: 0.65rem; }
-      main { margin-top: 60px !important; padding: 20px 12px !important; padding-top: 5px !important; padding-bottom: calc(var(--footer-height, 80px) + 20px) !important; }
+      main { margin-top: 60px !important; padding: 20px 12px !important; padding-top: 15px !important; padding-bottom: calc(var(--footer-height, 68px) + 20px) !important; }
       .container { padding-left: 10px; padding-right: 10px }
       .top-controls .form-label { font-size: 0.9rem }
       .table-responsive { padding: 0 }
@@ -305,19 +305,19 @@
     });
   </script>
   <script>
-    // Ensure the main area reserves footer height + 20px gap dynamically and respects navbar
+    // Ensure the main area reserves footer height + 20px gap dynamically and respects navbar - FORCED on mobile
     (function(){
       function updateFooterHeight(){
         const footer = document.querySelector('footer');
         const main = document.querySelector('main');
         if (!footer || !main) return;
-        const footerH = footer.offsetHeight || 80;
+        const footerH = footer.offsetHeight || 48;
         document.documentElement.style.setProperty('--footer-height', footerH + 'px');
-        // set padding-bottom to footer height + 20px gap
-        main.style.paddingBottom = (footerH + 20) + 'px';
-        // ensure main has margin-top (navbar height: 60px) and padding-top (5px gap from navbar)
-        main.style.marginTop = '60px';
-        main.style.paddingTop = '5px';
+        // set padding-bottom to footer height + 20px gap - FORCE with !important
+        main.style.setProperty('padding-bottom', (footerH + 20) + 'px', 'important');
+        // ensure main has margin-top (navbar height: 60px) and padding-top (15px gap from navbar) - FORCE on mobile
+        main.style.setProperty('margin-top', '60px', 'important');
+        main.style.setProperty('padding-top', '15px', 'important');
       }
       document.addEventListener('DOMContentLoaded', function(){
         updateFooterHeight();
