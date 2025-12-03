@@ -7,79 +7,122 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
   <style>
+    :root { --bs-body-font-size: 0.95rem; }
+    html, body { height: 100%; margin: 0; overflow: hidden; }
     body {
-      margin: 0;
-      padding-top: 60px;
       background-color: #f9f9f9;
       font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
     }
     .navbar {
-      background-color: #283593;
+      background-color: #dc3545;
       height: 60px;
+      display: flex;
+      align-items: center;
+      padding: 0 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      flex-shrink: 0;
     }
     .navbar-brand {
-      color: #fff !important;
+      color: white !important;
       font-weight: bold;
+      font-size: 0.95rem;
+      margin: 0;
     }
     .nav-btn-top {
-      background-color: #f5f5f5;
-      color: #283593;
-      font-size: 0.9rem;
+      background-color: white;
+      color: #dc3545;
+      font-size: 0.75rem;
       border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
+      padding: 4px 8px;
+      border-radius: 4px;
       text-decoration: none;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
     }
     .nav-btn-top:hover {
-      background-color: #e0e0e0;
-      color: #1a237e;
+      background-color: #f5f5f5;
+      color: #dc3545;
+    }
+    .nav-btn-top i {
+      font-size: 0.8rem;
+      color: #dc3545;
     }
     .form-section {
-      background: #fff;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      background: white;
+      padding: 15px;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
     }
     main {
+      flex: 1;
       overflow-y: auto;
       overflow-x: hidden;
-      padding-bottom: 160px;
+      padding: 12px;
+      padding-bottom: 20px;
+      -webkit-overflow-scrolling: touch;
+    }
+    main::-webkit-scrollbar {
+      width: 6px;
+    }
+    main::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    main::-webkit-scrollbar-thumb {
+      background: #dc3545;
+      border-radius: 3px;
     }
     .form-label {
       font-weight: 500;
+      font-size: 0.9rem;
     }
     .submit-btn {
-      background-color: #00796b;
-      color: #fff;
+      background-color: #28a745;
+      color: white;
       border: none;
-      padding: 10px 20px;
-      border-radius: 6px;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      font-weight: 600;
     }
     .submit-btn:hover {
-      background-color: #004d40;
+      background-color: #218838;
     }
-    .nav-btn {
-      margin-top: 15px;
-      margin-right: 10px;
+    footer {
+      margin-top: auto;
+      min-height: 60px;
+      background: white;
+      border-top: 1px solid #e9ecef;
+      flex-shrink: 0;
+    }
+    @media (max-width: 576px) {
+      .navbar { padding: 0 10px; }
+      .navbar-brand { font-size: 0.85rem; }
+      .nav-btn-top { padding: 3px 6px; font-size: 0.65rem; }
+      .form-label { font-size: 0.85rem; }
+      .form-section { padding: 12px; margin-bottom: 15px; }
+      main { padding: 12px; padding-bottom: 20px; }
     }
   </style>
 </head>
 <body>
-  <!-- ✅ Navbar -->
-  <nav class="navbar fixed-top">
-    <div class="container-fluid px-3 d-flex justify-content-between align-items-center">
-      <a class="navbar-brand" href="#">
-        <i class="bi bi-pencil-square me-2"></i> Manage Pupils Marks
-      </a>
-      <!-- ✅ Back Button with Door Icon -->
-      <a href="{{ url_for('teacher_routes.dashboard') }}" class="nav-btn-top" title="Back to Dashboard">
-        <i class="bi bi-door-open me-1"></i> Back
-      </a>
-    </div>
+  <!-- ✅ Red Navbar -->
+  <nav class="navbar">
+    <span class="navbar-brand">
+      <i class="bi bi-pencil-square me-2"></i> Marks
+    </span>
+    <a href="{{ url_for('teacher_routes.dashboard') }}" class="nav-btn-top">
+      <i class="bi bi-arrow-left"></i> Back
+    </a>
   </nav>
 
-  <!-- ✅ Main Content -->
-  <main class="container mt-4">
+  <!-- ✅ Main Content (scrollable) -->
+  <main>
     <div class="form-section">
       <form method="POST" action="{{ url_for('teacher_routes.manage_marks') }}">
 
