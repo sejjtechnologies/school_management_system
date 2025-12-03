@@ -139,12 +139,12 @@
 </head>
 <body>
   <!-- ✅ Navbar -->
-  <nav class="navbar fixed-top">
-    <div class="container-fluid px-3 d-flex justify-content-between align-items-center">
-      <a class="navbar-brand" href="#">
+  <nav class="navbar fixed-top" style="height:50px;">
+    <div class="container-fluid px-3 d-flex align-items-center justify-content-between">
+      <a class="navbar-brand" href="#" style="font-size:0.95rem;">
         <i class="bi bi-people-fill me-2"></i> Pupils Listing
       </a>
-      <a href="{{ url_for('teacher_routes.dashboard') }}" class="back-btn" title="Back to dashboard">
+      <a href="{{ url_for('teacher_routes.dashboard') }}" class="back-btn" title="Back to dashboard" style="font-size:0.78rem; padding:4px 8px;">
         <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Back
       </a>
     </div>

@@ -9,14 +9,14 @@
   <style>
     body {
       margin: 0;
-      padding-top: 60px;
+      padding-top: 50px;
       background-color: #f1f8e9;
       font-family: 'Segoe UI', sans-serif;
       overflow: hidden;
     }
     .navbar {
       background-color: #283593;
-      height: 60px;
+      height: 50px;
     }
     .navbar-brand, .nav-link {
       color: #fff !important;
@@ -41,8 +41,8 @@
       align-items: center;
       justify-content: center;
       text-decoration: none;
-      min-width: 220px;  /* increased for uniform width */
-      height: 50px;       /* fixed height for all buttons */
+      min-width: 180px;  /* slightly smaller for mobile */
+      height: 42px;       /* reduced height for mobile fit */
       padding: 0 16px;    /* horizontal padding */
       margin: 8px;
     }
@@ -115,9 +115,17 @@
         <i class="bi bi-calendar-check-fill"></i> Manage Pupils Attendance
       </a>
 
-      <a href="{% if assignments and assignments|length > 0 %}{{ url_for('teacher_routes.attendance_summary') }}?class_id={{ assignments[0].class_id }}&start={{ (None)|default('') }}{% else %}{{ url_for('teacher_routes.attendance_summary') }}{% endif %}" class="main-btn btn-attendance" style="background:#5c6bc0;">
-        <i class="bi bi-bar-chart-line-fill"></i> View Attendance Summary
+      {% if assignments and assignments|length > 0 %}
+      <a href="{{ url_for('teacher_routes.attendance_summary', class_id=assignments[0].class_id) }}" class="main-btn btn-attendance" style="background:#5c6bc0; font-size:0.82rem; min-width:140px; height:38px;">
+        <i class="bi bi-bar-chart-line-fill"></i>
+        <span style="margin-left:6px;">Summary</span>
       </a>
+      {% else %}
+      <a href="{{ url_for('teacher_routes.attendance_summary') }}" class="main-btn btn-attendance" style="background:#5c6bc0; font-size:0.82rem; min-width:140px; height:38px;">
+        <i class="bi bi-bar-chart-line-fill"></i>
+        <span style="margin-left:6px;">Summary</span>
+      </a>
+      {% endif %}
 
       <a href="#" class="main-btn btn-timetable">
         <i class="bi bi-table"></i> Manage Time Table

@@ -66,13 +66,13 @@
 </head>
 <body>
   <!-- ✅ Navbar -->
-  <nav class="navbar fixed-top">
+  <nav class="navbar fixed-top" style="height:50px;">
     <div class="container-fluid px-3 d-flex justify-content-between align-items-center">
-      <a class="navbar-brand" href="#">
+      <a class="navbar-brand" href="#" style="font-size:0.95rem;">
         <i class="bi bi-pencil-square me-2"></i> Manage Pupils Marks
       </a>
       <!-- ✅ Back Button with Door Icon -->
-      <a href="{{ url_for('teacher_routes.dashboard') }}" class="nav-btn-top" title="Back to Dashboard">
+      <a href="{{ url_for('teacher_routes.dashboard') }}" class="nav-btn-top" title="Back to Dashboard" style="font-size:0.78rem; padding:4px 8px;">
         <i class="bi bi-door-open me-1"></i> Back
       </a>
     </div>
