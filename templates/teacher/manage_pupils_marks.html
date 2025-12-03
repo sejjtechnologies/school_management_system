@@ -78,19 +78,8 @@
     </div>
   </nav>
 
-  <!-- Fixed Search Bar under navbar -->
-  <div class="search-fixed" style="position:fixed; top:60px; left:0; right:0; z-index:1100; background:#fff; padding:8px 0; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
-    <div class="container d-flex">
-      <div class="input-group">
-        <button id="searchBtn" class="btn input-group-text" type="button" title="Search"><i class="bi bi-search"></i></button>
-        <input id="searchInput" type="text" class="form-control" placeholder="Filter pupil dropdown by name..." />
-        <button id="clearSearch" class="btn ms-2" type="button" title="Clear search"><i class="bi bi-x-lg"></i></button>
-      </div>
-    </div>
-  </div>
-
   <!-- ✅ Main Content -->
-  <main class="container mt-4" style="margin-top:16px; padding-bottom:80px; overflow-y:auto;">
+  <main class="container mt-4">
     <div class="form-section">
       <form method="POST" action="{{ url_for('teacher_routes.manage_marks') }}">
 
@@ -176,23 +165,6 @@
       document.getElementById('class_name').value = selectedOption.getAttribute('data-class') || '';
       document.getElementById('stream_name').value = selectedOption.getAttribute('data-stream') || '';
     }
-    // filter pupil dropdown by search box
-    (function(){
-      var input = document.getElementById('searchInput');
-      var clearBtn = document.getElementById('clearSearch');
-      var select = document.getElementById('pupil_id');
-      if (!input || !select) return;
-      function applyFilter(){
-        var q = input.value.trim().toLowerCase();
-        for (var i=0;i<select.options.length;i++){
-          var opt = select.options[i];
-          var txt = (opt.text || '').toLowerCase();
-          opt.style.display = (!q || txt.indexOf(q)!==-1) ? '' : 'none';
-        }
-      }
-      input.addEventListener('input', applyFilter);
-      clearBtn && clearBtn.addEventListener('click', function(){ input.value=''; applyFilter(); input.focus(); });
-    })();
   </script>
 </body>
 </html>
