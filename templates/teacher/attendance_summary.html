@@ -433,15 +433,20 @@
                                     {% for date in dates %}
                                         <td>
                                             {% if date.iso in pupil_record.attendance_by_date %}
-                                                {% if pupil_record.attendance_by_date[date.iso] == 'present' %}
-                                                    <span class="mark-present">✓</span>
-                                                {% elif pupil_record.attendance_by_date[date.iso] == 'absent' %}
-                                                    <span class="mark-absent">✗</span>
+                                                {% set status = pupil_record.attendance_by_date[date.iso] %}
+                                                {% if status == 'present' %}
+                                                    <span class="mark-present" title="Present">✓</span>
+                                                {% elif status == 'absent' %}
+                                                    <span class="mark-absent" title="Absent">✗</span>
+                                                {% elif status == 'late' %}
+                                                    <span class="mark-present" title="Late" style="color: #ffc107;">L</span>
+                                                {% elif status == 'leave' %}
+                                                    <span style="color: #0dcaf0; font-weight: bold;" title="Leave">V</span>
                                                 {% else %}
-                                                    <span class="mark-empty">—</span>
+                                                    <span class="mark-empty" title="No record">—</span>
                                                 {% endif %}
                                             {% else %}
-                                                <span class="mark-empty">—</span>
+                                                <span class="mark-empty" title="No record">—</span>
                                             {% endif %}
                                         </td>
                                     {% endfor %}
@@ -468,6 +473,8 @@
                                 <th style="text-align:left; min-width:140px;">Name</th>
                                 <th>Presents</th>
                                 <th>Absents</th>
+                                <th>Late</th>
+                                <th>Leave</th>
                                 <th>Total Days</th>
                                 <th>Attendance %</th>
                             </tr>
@@ -477,15 +484,19 @@
                                 {% for pupil_record in summary.data %}
                                 {% set present = pupil_record.counts.present|default(0) %}
                                 {% set absent = pupil_record.counts.absent|default(0) %}
+                                {% set late = pupil_record.counts.late|default(0) %}
+                                {% set leave = pupil_record.counts.leave|default(0) %}
                                 {% set total = summary.total_days %}
-                                {% set perc = (present / total * 100) if total > 0 else 0 %}
+                                {% set perc = ((present + late) / total * 100) if total > 0 else 0 %}
                                 <tr>
                                     <td>{{ loop.index }}</td>
                                     <td class="pupil-name">{{ pupil_record.name|default('Unknown', true) }}</td>
-                                    <td><strong>{{ present }}</strong></td>
-                                    <td><strong>{{ absent }}</strong></td>
+                                    <td><strong style="color: #28a745;">{{ present }}</strong></td>
+                                    <td><strong style="color: #dc3545;">{{ absent }}</strong></td>
+                                    <td><strong style="color: #ffc107;">{{ late }}</strong></td>
+                                    <td><strong style="color: #0dcaf0;">{{ leave }}</strong></td>
                                     <td>{{ total }}</td>
-                                    <td>{{ perc|round(1) }}%</td>
+                                    <td><strong>{{ perc|round(1) }}%</strong></td>
                                 </tr>
                                 {% endfor %}
                             {% else %}
@@ -506,7 +517,13 @@
         <div class="card">
             <div class="card-body">
                 <h6 class="card-title"><i class="bi bi-info-circle"></i> Legend</h6>
-                <p><span class="mark-present">✓</span> = Present | <span class="mark-absent">✗</span> = Absent | <span class="mark-empty">—</span> = No Record</p>
+                <p>
+                    <span class="mark-present">✓</span> = Present | 
+                    <span class="mark-absent">✗</span> = Absent | 
+                    <span style="color: #ffc107; font-weight: bold;">L</span> = Late | 
+                    <span style="color: #0dcaf0; font-weight: bold;">V</span> = Leave | 
+                    <span class="mark-empty">—</span> = No Record
+                </p>
             </div>
         </div>
     </main>
