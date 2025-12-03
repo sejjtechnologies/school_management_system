@@ -15,6 +15,8 @@
       display: flex;
       flex-direction: column;
     }
+
+    /* Fixed Navbar */
     .navbar {
       background-color: #dc3545;
       height: 60px;
@@ -23,6 +25,11 @@
       padding: 0 15px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       flex-shrink: 0;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
     }
     .navbar-brand {
       color: white !important;
@@ -52,19 +59,27 @@
       font-size: 0.8rem;
       color: #dc3545;
     }
-    .form-section {
+
+    /* Footer */
+    footer {
+      min-height: 60px;
       background: white;
-      padding: 15px;
-      border-radius: 6px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-      margin-bottom: 20px;
+      border-top: 1px solid #e9ecef;
+      flex-shrink: 0;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
     }
+
+    /* Main scrollable section */
     main {
       flex: 1;
       overflow-y: auto;
       overflow-x: hidden;
       padding: 12px;
-      padding-bottom: 20px;
+      padding-bottom: 80px; /* leave 20px gap above footer */
       -webkit-overflow-scrolling: touch;
     }
     main::-webkit-scrollbar {
@@ -77,10 +92,20 @@
       background: #dc3545;
       border-radius: 3px;
     }
+
+    .form-section {
+      background: white;
+      padding: 15px;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+
     .form-label {
       font-weight: 500;
       font-size: 0.9rem;
     }
+
     .submit-btn {
       background-color: #28a745;
       color: white;
@@ -89,29 +114,26 @@
       border-radius: 4px;
       font-size: 0.9rem;
       font-weight: 600;
+      display: block;
+      width: 100%;
+      margin-top: 12px;
     }
     .submit-btn:hover {
       background-color: #218838;
     }
-    footer {
-      margin-top: auto;
-      min-height: 60px;
-      background: white;
-      border-top: 1px solid #e9ecef;
-      flex-shrink: 0;
-    }
+
     @media (max-width: 576px) {
       .navbar { padding: 0 10px; }
       .navbar-brand { font-size: 0.85rem; }
       .nav-btn-top { padding: 3px 6px; font-size: 0.65rem; }
       .form-label { font-size: 0.85rem; }
       .form-section { padding: 12px; margin-bottom: 15px; }
-      main { padding: 12px; padding-bottom: 20px; }
+      main { padding: 12px; padding-bottom: 80px; }
     }
   </style>
 </head>
 <body>
-  <!-- ✅ Red Navbar -->
+  <!-- ✅ Fixed Navbar -->
   <nav class="navbar">
     <span class="navbar-brand">
       <i class="bi bi-pencil-square me-2"></i> Marks
@@ -121,7 +143,7 @@
     </a>
   </nav>
 
-  <!-- ✅ Main Content (scrollable) -->
+  <!-- ✅ Main Content -->
   <main>
     <div class="form-section">
       <form method="POST" action="{{ url_for('teacher_routes.manage_marks') }}">
