@@ -363,130 +363,179 @@ def attendance_view():
 
     # GET: render new attendance marking page with all teacher assignments auto-loaded
     if request.method == 'GET':
-        # fetch teacher assignments
+        # Fetch teacher assignments with relationships eager-loaded
         assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
 
         if not assignments:
             flash('You have no class assignments. Contact admin.', 'warning')
             return redirect(url_for('teacher_routes.dashboard'))
 
-        # Load pupils across all assignments (include class and stream names)
+        # Load pupils across all assignments with real database data
         pupils_list = []
         seen = set()
-        for a in assignments:
-            ps = Pupil.query.filter_by(class_id=a.class_id, stream_id=a.stream_id).order_by(Pupil.last_name).all()
-            for p in ps:
-                if p.id in seen:
-                    continue
-                seen.add(p.id)
-                cls = Class.query.get(p.class_id)
-                s = Stream.query.get(p.stream_id)
-                pupils_list.append({
-                    'id': p.id,
-                    'first_name': p.first_name,
-                    'last_name': p.last_name,
-                    'class_id': p.class_id,
-                    'class_name': cls.name if cls else '',
-                    'stream_id': p.stream_id,
-                    'stream_name': s.name if s else ''
-                })
+        classes_seen = set()
+        streams_data = {}
 
-        # Build unique streams list from pupils (ensure correct names from Stream model)
-        all_streams = []
-        seen_streams = set()
-        for p in pupils_list:
-            sid = p.get('stream_id')
-            if sid and sid not in seen_streams:
-                seen_streams.add(sid)
-                s = Stream.query.get(sid)
-                all_streams.append({'id': sid, 'name': s.name if s else p.get('stream_name', '')})
+        for assignment in assignments:
+            # Query pupils for this specific assignment
+            pupils = Pupil.query.filter_by(
+                class_id=assignment.class_id,
+                stream_id=assignment.stream_id
+            ).order_by(Pupil.last_name, Pupil.first_name).all()
 
-        # determine a primary class/stream to show in top nav (choose first pupil's)
-        class_name = pupils_list[0]['class_name'] if pupils_list else ''
-        stream_name = pupils_list[0]['stream_name'] if pupils_list else ''
+            # Get class and stream info once
+            class_obj = Class.query.get(assignment.class_id)
+            stream_obj = Stream.query.get(assignment.stream_id)
 
-        # pass raw Python lists to the template and let Jinja's |tojson handle serialization
-        return render_template('teacher/attendance_new.html', teacher=teacher, pupils_json=pupils_list, all_streams_json=all_streams, class_name=class_name, stream_name=stream_name)
+            class_name = class_obj.name if class_obj else f"Class {assignment.class_id}"
+            stream_name = stream_obj.name if stream_obj else f"Stream {assignment.stream_id}"
 
-    # POST: bulk upsert attendance (expects JSON payload)
+            # Store stream info
+            if assignment.stream_id and assignment.stream_id not in streams_data:
+                streams_data[assignment.stream_id] = stream_name
+
+            # Add pupils to list (avoid duplicates)
+            for pupil in pupils:
+                if pupil.id not in seen:
+                    seen.add(pupil.id)
+                    pupils_list.append({
+                        'id': pupil.id,
+                        'admission_number': pupil.admission_number,
+                        'first_name': pupil.first_name,
+                        'last_name': pupil.last_name,
+                        'full_name': f"{pupil.first_name} {pupil.last_name}",
+                        'class_id': pupil.class_id,
+                        'class_name': class_name,
+                        'stream_id': pupil.stream_id,
+                        'stream_name': stream_name
+                    })
+
+        # Build unique streams list
+        all_streams = [
+            {'id': stream_id, 'name': name}
+            for stream_id, name in sorted(streams_data.items(), key=lambda x: x[1])
+        ]
+
+        # Determine primary class/stream from first assignment
+        primary_class_name = ''
+        primary_stream_name = ''
+        if assignments:
+            primary_class = Class.query.get(assignments[0].class_id)
+            primary_stream = Stream.query.get(assignments[0].stream_id)
+            primary_class_name = primary_class.name if primary_class else f"Class {assignments[0].class_id}"
+            primary_stream_name = primary_stream.name if primary_stream else f"Stream {assignments[0].stream_id}"
+
+        return render_template(
+            'teacher/attendance_new.html',
+            teacher=teacher,
+            pupils=pupils_list,
+            pupils_count=len(pupils_list),
+            all_streams=all_streams,
+            class_name=primary_class_name,
+            stream_name=primary_stream_name
+        )
+
+    # POST: bulk upsert attendance (expects JSON payload with real data)
     try:
         payload = request.get_json(force=True)
-    except Exception:
-        payload = None
+    except Exception as e:
+        return (json.dumps({'error': f'Invalid JSON: {str(e)}'}), 400, {'Content-Type': 'application/json'})
 
     if not payload:
-        flash('Invalid attendance payload', 'danger')
-        return redirect(url_for('teacher_routes.dashboard'))
+        return (json.dumps({'error': 'Empty payload'}), 400, {'Content-Type': 'application/json'})
 
-    class_id = int(payload.get('class_id')) if payload.get('class_id') else None
+    # Validate required fields
+    class_id = payload.get('class_id')
     entries = payload.get('entries', [])
-    confirm_period = bool(payload.get('confirm_period', False))
+    attendance_date = payload.get('date')
 
-    # permission check
+    if not class_id or not entries or not attendance_date:
+        return (json.dumps({'error': 'Missing required fields: class_id, date, entries'}), 400, {'Content-Type': 'application/json'})
+
+    # Validate teacher has permission for this class
     assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
-    if class_id and not any(a.class_id == class_id for a in assignments):
-        return (json.dumps({'error':'not allowed'}), 403, {'Content-Type':'application/json'})
+    if not any(a.class_id == int(class_id) for a in assignments):
+        return (json.dumps({'error': 'Not authorized for this class'}), 403, {'Content-Type': 'application/json'})
 
-    # Prepare list of dicts for insert
-    to_insert = []
-    for e in entries:
+    try:
+        class_id = int(class_id)
+        attendance_date_obj = datetime.strptime(attendance_date, '%Y-%m-%d').date()
+    except (ValueError, TypeError) as e:
+        return (json.dumps({'error': f'Invalid date format: {str(e)}'}), 400, {'Content-Type': 'application/json'})
+
+    # Prepare records for upsert with validation
+    to_upsert = []
+    logs_to_create = []
+
+    for entry in entries:
         try:
-            pid = int(e.get('pupil_id'))
-            dt_raw = e.get('date')
-            # expect 'YYYY-MM-DD' from frontend; normalize to date object
-            dt_obj = datetime.strptime(dt_raw, '%Y-%m-%d').date()
-            status = (e.get('status') or 'absent').lower()
+            pupil_id = int(entry.get('pupil_id'))
+            status = (entry.get('status') or 'absent').lower().strip()
+
+            # Validate status
             if status not in ('present', 'absent', 'late', 'leave'):
                 status = 'absent'
-        except Exception:
-            continue
-        entry_class = int(e.get('class_id')) if e.get('class_id') else class_id
-        entry_stream = int(e.get('stream_id')) if e.get('stream_id') else None
-        to_insert.append({
-            'pupil_id': pid,
-            'class_id': entry_class,
-            'stream_id': entry_stream,
-            'date': dt_obj,
-            'status': status,
-            'reason': e.get('reason') or None,
-            'recorded_by': teacher.id,
-            'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow()
-        })
 
-    # Audit: fetch existing attendance for these pupil/date keys and create logs for changes
-    keys = [(item['pupil_id'], item['date']) for item in to_insert]
-    existing = {}
-    if keys:
-        pupil_ids = list({k[0] for k in keys})
-        dates = [k[1] for k in keys]
-        rows = Attendance.query.filter(Attendance.pupil_id.in_(pupil_ids), Attendance.date.in_(dates)).all()
-        for r in rows:
-            existing[(r.pupil_id, r.date.isoformat())] = r
+            # Verify pupil exists and belongs to this class
+            pupil = Pupil.query.filter_by(id=pupil_id, class_id=class_id).first()
+            if not pupil:
+                continue  # Skip invalid pupils
 
-    logs = []
-    for item in to_insert:
-        key = (item['pupil_id'], item['date'].isoformat())
-        ex = existing.get(key)
-        old_status = ex.status if ex else None
-        new_status = item['status']
-        if old_status != new_status:
-            logs.append(AttendanceLog(
-                attendance_id=ex.id if ex else None,
-                pupil_id=item['pupil_id'],
-                date=item['date'],
-                old_status=old_status,
-                new_status=new_status,
-                changed_by=teacher.id,
-                reason=item.get('reason')
-            ))
+            # Check for existing attendance record
+            existing = Attendance.query.filter_by(
+                pupil_id=pupil_id,
+                date=attendance_date_obj
+            ).first()
 
-    if logs:
-        db.session.bulk_save_objects(logs)
-        db.session.flush()
+            # Log status changes for audit trail
+            if existing and existing.status != status:
+                log_entry = AttendanceLog(
+                    attendance_id=existing.id,
+                    pupil_id=pupil_id,
+                    date=attendance_date_obj,
+                    old_status=existing.status,
+                    new_status=status,
+                    changed_by=teacher.id,
+                    reason=entry.get('reason')
+                )
+                logs_to_create.append(log_entry)
+            elif not existing:
+                # New attendance record - log creation
+                log_entry = AttendanceLog(
+                    pupil_id=pupil_id,
+                    date=attendance_date_obj,
+                    old_status=None,
+                    new_status=status,
+                    changed_by=teacher.id,
+                    reason=entry.get('reason')
+                )
+                logs_to_create.append(log_entry)
 
-    if to_insert:
-        stmt = pg_insert(Attendance.__table__).values(to_insert)
+            to_upsert.append({
+                'pupil_id': pupil_id,
+                'class_id': class_id,
+                'stream_id': pupil.stream_id,
+                'date': attendance_date_obj,
+                'status': status,
+                'reason': entry.get('reason') or None,
+                'recorded_by': teacher.id,
+                'created_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            })
+        except (ValueError, TypeError, KeyError):
+            continue  # Skip invalid entries
+
+    if not to_upsert:
+        return (json.dumps({'error': 'No valid attendance records to save'}), 400, {'Content-Type': 'application/json'})
+
+    try:
+        # Save audit logs first
+        if logs_to_create:
+            db.session.bulk_save_objects(logs_to_create)
+            db.session.flush()
+
+        # Upsert attendance records
+        stmt = pg_insert(Attendance.__table__).values(to_upsert)
         upsert = stmt.on_conflict_do_update(
             index_elements=['pupil_id', 'date'],
             set_={
@@ -499,8 +548,15 @@ def attendance_view():
         db.session.execute(upsert)
         db.session.commit()
 
+        return (json.dumps({
+            'ok': True,
+            'message': f'Successfully saved {len(to_upsert)} attendance records',
+            'count': len(to_upsert)
+        }), 200, {'Content-Type': 'application/json'})
 
-    return (json.dumps({'ok':True}), 200, {'Content-Type':'application/json'})
+    except Exception as e:
+        db.session.rollback()
+        return (json.dumps({'error': f'Database error: {str(e)}'}), 500, {'Content-Type': 'application/json'})
 
 
 @teacher_routes.route('/attendance/export')
@@ -510,54 +566,94 @@ def attendance_export():
         return redirect_resp
 
     class_id = request.args.get('class_id', type=int)
-    start = request.args.get('start')
-    period = request.args.get('period', 'week')  # 'week' or 'month'
+    start_date_str = request.args.get('start')
+    period = request.args.get('period', 'week')
+    days = request.args.get('days', type=int, default=6)
 
-    # basic permission check
+    # Validate parameters
+    if not class_id:
+        flash('Class ID is required', 'danger')
+        return redirect(url_for('teacher_routes.attendance_summary'))
+
+    # Permission check
     assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
-    if class_id and not any(a.class_id == class_id for a in assignments):
-        flash('Not allowed', 'danger')
+    if not any(a.class_id == class_id for a in assignments):
+        flash('Not authorized to export attendance for this class', 'danger')
         return redirect(url_for('teacher_routes.dashboard'))
 
+    # Parse start date
     try:
-        if start:
-            start_date = datetime.strptime(start, '%Y-%m-%d').date()
+        if start_date_str:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         else:
             today = datetime.today().date()
             start_date = today - timedelta(days=today.weekday())
-    except Exception:
-        flash('Invalid date', 'danger')
-        return redirect(url_for('teacher_routes.dashboard'))
+    except ValueError:
+        flash('Invalid start date format', 'danger')
+        return redirect(url_for('teacher_routes.attendance_summary'))
 
+    # Calculate end date based on period
     if period == 'week':
-        # respect days parameter if provided (default Mon-Sat -> 6 days)
-        days = request.args.get('days', default=6, type=int)
         if days not in (5, 6):
             days = 6
-        end_date = start_date + timedelta(days=days-1)
+        end_date = start_date + timedelta(days=days - 1)
+    elif period == 'month':
+        # Last day of month
+        next_month = start_date.replace(day=1) + timedelta(days=32)
+        end_date = next_month.replace(day=1) - timedelta(days=1)
+    elif period == 'term':
+        days = days if days > 0 and days <= 365 else 105
+        end_date = start_date + timedelta(days=days - 1)
     else:
-        # month: use first day of month
-        end_date = (start_date.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        end_date = start_date + timedelta(days=29)
 
-    # fetch attendance
-    rows = Attendance.query.join(Pupil).filter(
+    # Query attendance data from database
+    attendance_records = Attendance.query.join(Pupil).filter(
         Pupil.class_id == class_id,
         Attendance.date.between(start_date, end_date)
-    ).order_by(Pupil.last_name, Attendance.date).all()
+    ).order_by(Pupil.last_name, Pupil.first_name, Attendance.date).all()
 
+    # Generate CSV
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['Pupil ID', 'First Name', 'Last Name', 'Date', 'Status', 'Reason'])
-    for r in rows:
-        pupil = Pupil.query.get(r.pupil_id)
-        writer.writerow([r.pupil_id, pupil.first_name if pupil else '', pupil.last_name if pupil else '', r.date.isoformat(), r.status, r.reason or ''])
+    writer.writerow([
+        'Admission Number',
+        'Pupil Name',
+        'Date',
+        'Status',
+        'Reason',
+        'Recorded By',
+        'Last Updated'
+    ])
 
-    resp = output.getvalue()
-    filename = f"attendance_{class_id}_{start_date.isoformat()}_{period}.csv"
-    return (resp, 200, {
-        'Content-Type': 'text/csv',
-        'Content-Disposition': f'attachment; filename={filename}'
-    })
+    for record in attendance_records:
+        pupil = Pupil.query.get(record.pupil_id)
+        recorded_by_user = User.query.get(record.recorded_by)
+
+        writer.writerow([
+            pupil.admission_number if pupil else '',
+            f"{pupil.first_name} {pupil.last_name}" if pupil else '',
+            record.date.isoformat(),
+            record.status,
+            record.reason or '',
+            recorded_by_user.email if recorded_by_user else '',
+            record.updated_at.strftime('%Y-%m-%d %H:%M:%S') if record.updated_at else ''
+        ])
+
+    # Prepare response
+    csv_content = output.getvalue()
+    class_obj = Class.query.get(class_id)
+    class_name = class_obj.name if class_obj else f"Class_{class_id}"
+    filename = f"attendance_{class_name}_{start_date.isoformat()}_to_{end_date.isoformat()}.csv"
+
+    return (
+        csv_content,
+        200,
+        {
+            'Content-Type': 'text/csv; charset=utf-8',
+            'Content-Disposition': f'attachment; filename="{filename}"'
+        }
+    )
 
 
 @teacher_routes.route('/attendance/summary')
@@ -567,121 +663,171 @@ def attendance_summary():
         return redirect_resp
 
     class_id = request.args.get('class_id', type=int)
-    start = request.args.get('start')
+    start_date_str = request.args.get('start')
     period = request.args.get('period', 'week')
+    days = request.args.get('days', type=int, default=6)
 
+    # Parse start date
     try:
-        if start:
-            start_date = datetime.strptime(start, '%Y-%m-%d').date()
+        if start_date_str:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         else:
             today = datetime.today().date()
             start_date = today - timedelta(days=today.weekday())
-    except Exception:
-        flash('Invalid date', 'danger')
+    except ValueError:
+        flash('Invalid date format', 'danger')
         return redirect(url_for('teacher_routes.dashboard'))
 
+    # Calculate end date based on period
     if period == 'week':
-        days = request.args.get('days', default=6, type=int)
         if days not in (5, 6):
             days = 6
-        end_date = start_date + timedelta(days=days-1)
+        end_date = start_date + timedelta(days=days - 1)
+    elif period == 'month':
+        # Last day of month
+        next_month = start_date.replace(day=1) + timedelta(days=32)
+        end_date = next_month.replace(day=1) - timedelta(days=1)
     elif period == 'term':
-        # term defined as 3.5 months ~= 105 days (approx). Use 105 days for counting.
-        days = request.args.get('days', default=105, type=int)
-        # safeguard
-        if days <= 0 or days > 365:
-            days = 105
-        end_date = start_date + timedelta(days=days-1)
+        days = days if days > 0 and days <= 365 else 105
+        end_date = start_date + timedelta(days=days - 1)
     else:
-        end_date = (start_date.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        end_date = start_date + timedelta(days=29)
 
-    # permission
+    # Permission check
     assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
     if class_id and not any(a.class_id == class_id for a in assignments):
-        flash('Not allowed', 'danger')
+        flash('Not authorized for this class', 'danger')
         return redirect(url_for('teacher_routes.dashboard'))
 
-    # if no class_id, default to first assignment's class
+    # Set default class_id from first assignment if not provided
     if not class_id and assignments:
         class_id = assignments[0].class_id
 
-    # Determine the stream assigned to this teacher for the given class (if any)
+    # Get assigned stream for this teacher/class combination
     assigned_stream_id = None
     assigned_stream_name = None
-    for a in assignments:
-        if a.class_id == class_id:
-            assigned_stream_id = a.stream_id
+
+    for assignment in assignments:
+        if assignment.class_id == class_id:
+            assigned_stream_id = assignment.stream_id
             break
-    # If we still don't have an assigned stream, use the first assignment's stream as fallback
+
     if not assigned_stream_id and assignments:
         assigned_stream_id = assignments[0].stream_id
 
     if assigned_stream_id:
-        s_obj = Stream.query.get(assigned_stream_id)
-        assigned_stream_name = s_obj.name if s_obj else None
+        stream_obj = Stream.query.get(assigned_stream_id)
+        assigned_stream_name = stream_obj.name if stream_obj else None
 
-    # Only fetch pupils in the requested class AND the teacher's assigned stream
+    # Query pupils for this class and stream
     if assigned_stream_id:
-        pupils = Pupil.query.filter_by(class_id=class_id, stream_id=assigned_stream_id).order_by(Pupil.last_name).all()
+        pupils = Pupil.query.filter_by(
+            class_id=class_id,
+            stream_id=assigned_stream_id
+        ).order_by(Pupil.last_name, Pupil.first_name).all()
     else:
-        pupils = Pupil.query.filter_by(class_id=class_id).order_by(Pupil.last_name).all()
-    pupil_ids = [p.id for p in pupils]
+        pupils = Pupil.query.filter_by(class_id=class_id).order_by(Pupil.last_name, Pupil.first_name).all()
 
-    # Build date range with formatted labels (only for day-by-day views)
-    date_range = []
-    if period in ('week', 'month'):
-        current = start_date
-        while current <= end_date:
-            date_range.append({
-                'iso': current.isoformat(),
-                'short': current.strftime('%a'),  # Mon, Tue, etc.
-                'full': current.strftime('%m/%d')  # 01/20, etc.
-            })
-            current += timedelta(days=1)
-    else:
-        # for term view we will not render per-day columns (too many). date_range stays empty.
-        pass
+    # Calculate total possible days in period
+    total_days_in_period = (end_date - start_date).days + 1
 
-    # aggregate attendance data
+    # Build attendance summary for each pupil
     summary_data = []
-    for p in pupils:
-        counts = {
+    for pupil in pupils:
+        # Query attendance records for this pupil in date range
+        attendance_records = Attendance.query.filter_by(pupil_id=pupil.id).filter(
+            Attendance.date.between(start_date, end_date)
+        ).all()
+
+        # Count by status
+        status_counts = {
             'present': 0,
             'absent': 0,
             'late': 0,
             'leave': 0
         }
         attendance_by_date = {}
-        rows = Attendance.query.filter_by(pupil_id=p.id).filter(Attendance.date.between(start_date, end_date)).all()
-        for r in rows:
-            if r.status in counts:
-                counts[r.status] += 1
-            attendance_by_date[r.date.isoformat()] = r.status
-        # include stream info per pupil for client-side filtering/labeling
-        stream_obj = Stream.query.get(p.stream_id)
+
+        for record in attendance_records:
+            if record.status in status_counts:
+                status_counts[record.status] += 1
+            attendance_by_date[record.date.isoformat()] = record.status
+
+        # For term view: calculate percentage based on total days in period
+        # For other views: calculate based on recorded days
+        if period == 'term':
+            total_days_for_calc = total_days_in_period
+        else:
+            total_days_for_calc = len(attendance_records)
+
+        # Calculate attendance percentage
+        attendance_percentage = round(
+            (status_counts['present'] + status_counts['late']) / total_days_for_calc * 100, 1
+        ) if total_days_for_calc > 0 else 0
+
         summary_data.append({
-            'pupil_id': p.id,
-            'name': f"{p.first_name} {p.last_name}",
-            'counts': counts,
+            'pupil_id': pupil.id,
+            'admission_number': pupil.admission_number,
+            'name': f"{pupil.first_name} {pupil.last_name}",
+            'first_name': pupil.first_name,
+            'last_name': pupil.last_name,
+            'counts': status_counts,
             'attendance_by_date': attendance_by_date,
-            'stream': p.stream_id,
-            'stream_name': stream_obj.name if stream_obj else None
+            'attendance_percentage': attendance_percentage,
+            'total_days': len(attendance_records),
+            'stream_id': pupil.stream_id,
+            'stream_name': (Stream.query.get(pupil.stream_id).name if pupil.stream_id else None)
         })
 
-    total_days = (end_date - start_date).days + 1
+    # Build date range for display (only for day-by-day views)
+    date_range = []
+    if period in ('week', 'month'):
+        current = start_date
+        while current <= end_date:
+            date_range.append({
+                'iso': current.isoformat(),
+                'short': current.strftime('%a'),
+                'full': current.strftime('%m/%d'),
+                'numeric': current.strftime('%d')
+            })
+            current += timedelta(days=1)
+
+    # Get class info
+    class_obj = Class.query.get(class_id)
+    class_name = class_obj.name if class_obj else f"Class {class_id}"
+
+    # Check if period is confirmed
+    period_confirmed = PeriodConfirmation.query.filter_by(
+        class_id=class_id,
+        start_date=start_date,
+        period_type=period,
+        days=days
+    ).first() is not None
+
+    # Prepare summary object
     summary = {
         'start': start_date.isoformat(),
         'end': end_date.isoformat(),
+        'start_formatted': start_date.strftime('%B %d, %Y'),
+        'end_formatted': end_date.strftime('%B %d, %Y'),
         'data': summary_data,
-        'total_days': total_days,
-        'period': period
+        'total_days': total_days_in_period,
+        'period': period,
+        'period_confirmed': period_confirmed,
+        'pupils_count': len(pupils)
     }
 
-    return render_template('teacher/attendance_summary.html',
-                          teacher=teacher,
-                          summary=summary,
-                          dates=date_range,
-                          stream_name=assigned_stream_name)
+    return render_template(
+        'teacher/attendance_summary.html',
+        teacher=teacher,
+        summary=summary,
+        dates=date_range,
+        class_name=class_name,
+        stream_name=assigned_stream_name,
+        start_date=start_date.isoformat(),
+        period=period,
+        days=days
+    )
 
 
 @teacher_routes.route('/attendance/confirm', methods=['POST'])
@@ -692,47 +838,140 @@ def attendance_confirm():
 
     try:
         payload = request.get_json(force=True)
-    except Exception:
-        payload = None
+    except Exception as e:
+        return (
+            json.dumps({'error': f'Invalid JSON: {str(e)}'}),
+            400,
+            {'Content-Type': 'application/json'}
+        )
 
     if not payload:
-        return json.dumps({'error':'invalid payload'}), 400, {'Content-Type':'application/json'}
+        return (
+            json.dumps({'error': 'Empty payload'}),
+            400,
+            {'Content-Type': 'application/json'}
+        )
 
-    class_id = int(payload.get('class_id')) if payload.get('class_id') else None
-    start = payload.get('start')
+    # Extract parameters
+    class_id = payload.get('class_id')
+    start_date_str = payload.get('start')
     period = payload.get('period', 'week')
     days = int(payload.get('days', 6))
     confirm = bool(payload.get('confirm', True))
 
-    if not class_id or not start:
-        return json.dumps({'error':'missing params'}), 400, {'Content-Type':'application/json'}
+    # Validate required fields
+    if not class_id or not start_date_str:
+        return (
+            json.dumps({'error': 'Missing required fields: class_id, start'}),
+            400,
+            {'Content-Type': 'application/json'}
+        )
 
-    # permission
+    # Permission check
     assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
-    if class_id and not any(a.class_id == class_id for a in assignments):
-        return json.dumps({'error':'not allowed'}), 403, {'Content-Type':'application/json'}
+    if not any(a.class_id == int(class_id) for a in assignments):
+        return (
+            json.dumps({'error': 'Not authorized for this class'}),
+            403,
+            {'Content-Type': 'application/json'}
+        )
+
+    # Parse dates
+    try:
+        class_id = int(class_id)
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+    except (ValueError, TypeError) as e:
+        return (
+            json.dumps({'error': f'Invalid date format: {str(e)}'}),
+            400,
+            {'Content-Type': 'application/json'}
+        )
+
+    # Calculate end date
+    if period == 'week':
+        if days not in (5, 6):
+            days = 6
+        end_date = start_date + timedelta(days=days - 1)
+    elif period == 'month':
+        next_month = start_date.replace(day=1) + timedelta(days=32)
+        end_date = next_month.replace(day=1) - timedelta(days=1)
+    elif period == 'term':
+        days = days if days > 0 and days <= 365 else 105
+        end_date = start_date + timedelta(days=days - 1)
+    else:
+        end_date = start_date + timedelta(days=29)
 
     try:
-        start_date = datetime.strptime(start, '%Y-%m-%d').date()
-    except Exception:
-        return json.dumps({'error':'invalid date'}), 400, {'Content-Type':'application/json'}
+        if confirm:
+            # Check if already confirmed
+            existing = PeriodConfirmation.query.filter_by(
+                class_id=class_id,
+                start_date=start_date,
+                period_type=period,
+                days=days
+            ).first()
 
-    if period == 'week':
-        end_date = start_date + timedelta(days=days-1)
-    else:
-        end_date = (start_date.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+            if existing:
+                return (
+                    json.dumps({
+                        'ok': True,
+                        'confirmed': True,
+                        'message': 'Period already confirmed'
+                    }),
+                    200,
+                    {'Content-Type': 'application/json'}
+                )
 
-    existing = PeriodConfirmation.query.filter_by(class_id=class_id, start_date=start_date, period_type=period, days=days).first()
-    if confirm:
-        if existing:
-            # already confirmed
-            return json.dumps({'ok':True, 'confirmed':True}), 200, {'Content-Type':'application/json'}
-        pc = PeriodConfirmation(class_id=class_id, start_date=start_date, end_date=end_date, period_type=period, days=days, confirmed_by=teacher.id, confirmed_at=datetime.utcnow())
-        db.session.add(pc)
-        db.session.commit()
-        return json.dumps({'ok':True, 'confirmed':True}), 200, {'Content-Type':'application/json'}
-    else:
-        if existing:
-            db.session.delete(existing)
+            # Create new confirmation record
+            confirmation = PeriodConfirmation(
+                class_id=class_id,
+                start_date=start_date,
+                end_date=end_date,
+                period_type=period,
+                days=days,
+                confirmed_by=teacher.id,
+                confirmed_at=datetime.utcnow()
+            )
+            db.session.add(confirmation)
             db.session.commit()
-        return json.dumps({'ok':True, 'confirmed':False}), 200, {'Content-Type':'application/json'}
+
+            return (
+                json.dumps({
+                    'ok': True,
+                    'confirmed': True,
+                    'message': f'Attendance period confirmed: {start_date.isoformat()} to {end_date.isoformat()}',
+                    'confirmation_id': confirmation.id
+                }),
+                200,
+                {'Content-Type': 'application/json'}
+            )
+        else:
+            # Remove confirmation if it exists
+            existing = PeriodConfirmation.query.filter_by(
+                class_id=class_id,
+                start_date=start_date,
+                period_type=period,
+                days=days
+            ).first()
+
+            if existing:
+                db.session.delete(existing)
+                db.session.commit()
+
+            return (
+                json.dumps({
+                    'ok': True,
+                    'confirmed': False,
+                    'message': 'Period confirmation removed'
+                }),
+                200,
+                {'Content-Type': 'application/json'}
+            )
+
+    except Exception as e:
+        db.session.rollback()
+        return (
+            json.dumps({'error': f'Database error: {str(e)}'}),
+            500,
+            {'Content-Type': 'application/json'}
+        )

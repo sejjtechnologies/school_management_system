@@ -7,121 +7,160 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
   <style>
-    :root { --nav-height: 70px; --search-height: 64px; }
-    html, body { height: 100%; }
+    :root { --bs-body-font-size: 0.95rem; }
+    html, body { height: 100%; margin: 0; overflow: hidden; }
     body {
-      padding-top: var(--nav-height);
-      background-color: #f1f8e9;
+      background-color: #f9f9f9;
       font-family: 'Segoe UI', sans-serif;
       display: flex;
       flex-direction: column;
-      height: 100vh;
-      margin: 0;
     }
-    .navbar { background-color: #283593; }
-    .navbar-brand, .nav-link { color: #fff !important; }
-    .back-btn {
-      background-color: #d32f2f;
-      color: #fff;
-      border: none;
-      padding: 6px 12px;
-      font-size: 0.8rem;
-      line-height: 1.2;
-      border-radius: 4px;
-    }
-    .back-btn:hover { background-color: #b71c1c; color: #fff; }
-    /* Make main area a scroll container so content can scroll above fixed footer */
-    main.main-scroll, main {
-      margin-top: calc(var(--search-height) + 16px);
-      flex: 1 1 auto;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      /* Reserve space for footer (48px) + 20px gap so last row is visible above footer */
-      padding-bottom: calc(48px + 20px);
-    }
-    /* Fixed search bar under the navbar (same style as secretary/manage_pupils) */
-    .search-fixed {
-      position: fixed;
-      top: var(--nav-height);
-      left: 0;
-      right: 0;
-      height: var(--search-height);
-      z-index: 1001;
-      background: rgba(255,255,255,0.98);
+    .navbar-custom {
+      background-color: #dc3545;
+      height: 60px;
       display: flex;
       align-items: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      padding: 8px 0;
+      padding: 0 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      gap: 10px;
     }
-    .search-fixed .input-group {
-      max-width: 720px;
-      width: 100%;
+    .navbar-brand {
+      color: white !important;
+      font-weight: bold;
+      font-size: 0.95rem;
       margin: 0;
     }
-    .search-bar-fixed {
-      border-radius: 28px !important;
-      height: 44px;
-      padding: 10px 14px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-    }
-    .search-fixed .input-group-text {
-      background: transparent;
+    .back-btn-small {
+      background-color: white;
+      color: #dc3545;
       border: none;
-      font-size: 1.05rem;
-      color: #555;
-    }
-    .search-clear-btn {
-      border-radius: 28px;
-      height: 44px;
-      width: 44px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-decoration: none;
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      border: none;
-      background: #f1f3f5;
+      gap: 4px;
+      margin-left: auto;
     }
-    .card-header { background-color: #283593; color: #fff; font-weight: bold; }
-    .table-sm th, .table-sm td { padding: 0.4rem; font-size: 0.8rem; }
-    .search-input { max-width: 300px; }
+    .back-btn-small:hover {
+      background-color: #f5f5f5;
+    }
+    .back-btn-small i {
+      font-size: 0.8rem;
+      color: #dc3545;
+    }
+    .search-fixed {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      right: 0;
+      z-index: 1001;
+      background: white;
+      padding: 8px 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      border-bottom: 1px solid #e9ecef;
+    }
+    main {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      margin-top: 70px;
+      padding: 12px;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 80px;
+    }
+    main::-webkit-scrollbar {
+      width: 6px;
+    }
+    main::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    main::-webkit-scrollbar-thumb {
+      background: #dc3545;
+      border-radius: 3px;
+    }
+    .card {
+      background: white;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      margin-bottom: 12px;
+    }
+    .card-header {
+      background-color: #dc3545;
+      color: white;
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 10px 12px;
+      border-radius: 6px 6px 0 0;
+    }
+    .card-body {
+      padding: 12px;
+    }
+    .table-sm th, .table-sm td {
+      padding: 6px 4px;
+      font-size: 0.75rem;
+      border: 1px solid #e9ecef;
+    }
+    .table-sm th {
+      background-color: #dc3545;
+      color: white;
+      font-weight: 600;
+    }
     .summary-card {
-      color: #fff;
-      padding: 10px;
+      color: white;
+      padding: 12px;
       border-radius: 6px;
       text-align: center;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
+      margin-bottom: 8px;
     }
-    .summary-card h6 { margin: 0; font-size: 0.75rem; }
-    .summary-card p { margin: 0; font-size: 1rem; font-weight: bold; }
-    .bg-total { background-color: #00796b; }
-    .bg-stream { background-color: #283593; }
-    .bg-class { background-color: #d32f2f; }
-    .bg-year { background-color: #f57c00; }
+    .summary-card h6 { margin: 0; font-size: 0.7rem; }
+    .summary-card p { margin: 4px 0 0 0; font-size: 1.2rem; font-weight: bold; }
+    .bg-total { background-color: #28a745; }
+    .bg-stream { background-color: #dc3545; }
+    .bg-class { background-color: #fd7e14; }
+    .bg-year { background-color: #0d6efd; }
+    footer {
+      margin-top: auto;
+      min-height: 50px;
+      background: white;
+      border-top: 1px solid #e9ecef;
+    }
+    @media (max-width: 576px) {
+      .navbar-custom { padding: 0 10px; }
+      .navbar-brand { font-size: 0.85rem; }
+      .back-btn-small { padding: 3px 6px; font-size: 0.65rem; }
+      .table-sm th, .table-sm td { font-size: 0.65rem; padding: 4px 2px; }
+      .summary-card { padding: 8px; margin-bottom: 6px; }
+      .summary-card h6 { font-size: 0.6rem; }
+      .summary-card p { font-size: 1rem; }
+    }
   </style>
 </head>
 <body>
-  <!-- ✅ Navbar -->
-  <nav class="navbar fixed-top navbar-expand-lg" style="height:50px;">
-    <div class="container-fluid px-3 d-flex align-items-center">
-      <a class="navbar-brand fw-bold" href="#" style="font-size:0.95rem;">
-        <i class="bi bi-people-fill me-2"></i>Pupils Details
-      </a>
-      <div class="ms-auto d-flex align-items-center">
-        <a href="{{ url_for('user_routes.teacher_dashboard') }}" class="btn back-btn me-2" style="font-size:0.78rem; padding:4px 8px;">
-          <i class="bi bi-box-arrow-left me-1"></i> Back
-        </a>
-      </div>
-    </div>
+  <!-- ✅ Red Navbar -->
+  <nav class="navbar-custom fixed-top">
+    <span class="navbar-brand">
+      <i class="bi bi-people-fill me-2"></i> Pupils Details
+    </span>
+    <a href="{{ url_for('user_routes.teacher_dashboard') }}" class="back-btn-small">
+      <i class="bi bi-arrow-left"></i> Back
+    </a>
   </nav>
 
-  <!-- Fixed Search Bar (matches secretary/manage_pupils styling) -->
+  <!-- Fixed Search Bar -->
   <div class="search-fixed">
-    <div class="container d-flex">
-      <div class="input-group">
-        <button id="searchBtn" class="btn input-group-text" type="button" title="Search"><i class="bi bi-search"></i></button>
-        <input id="searchInput" type="text" class="form-control search-bar-fixed" placeholder="Search pupils by name, class, or stream..." aria-label="Search pupils">
-        <button id="clearSearch" class="btn search-clear-btn ms-2" type="button" title="Clear search"><i class="bi bi-x-lg"></i></button>
-      </div>
+    <div class="input-group input-group-sm">
+      <input id="searchInput" type="text" class="form-control" placeholder="Search pupils..." />
+      <button id="clearSearch" class="btn btn-outline-secondary" type="button">
+        <i class="bi bi-x-lg"></i>
+      </button>
     </div>
+  </div>
+
+  <!-- ✅ Main Content (scrollable) -->
   </div>
 
   <!-- ✅ Main Content -->

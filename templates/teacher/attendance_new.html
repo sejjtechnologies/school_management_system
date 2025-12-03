@@ -10,14 +10,16 @@
     :root { --bs-body-font-size: 0.95rem; }
     html, body { height: 100%; margin: 0; }
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; }
-    .navbar-custom { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 60px; min-height: 60px; }
-    .navbar-custom .navbar-brand { font-size: 1rem; }
-    .navbar-content { display: flex; align-items: center; gap: 12px; }
-    .card-header-custom { background-color: #667eea; color: white; }
+    .navbar-custom { background: #dc3545; height: 60px; min-height: 60px; display: flex; align-items: center; }
+    .navbar-custom .navbar-brand { font-size: 1rem; color: white !important; }
+    .navbar-content { display: flex; align-items: center; gap: 12px; width: 100%; justify-content: space-between; }
+    .back-btn-custom { color: #dc3545 !important; background-color: white !important; border: none !important; border-radius: 4px; padding: 6px 12px !important; font-size: 1.2rem; }
+    .back-btn-custom:hover { background-color: #f5f5f5 !important; }
+    .card-header-custom { background-color: #dc3545; color: white; }
     .btn-check:checked + .btn { background-color: #28a745; border-color: #28a745; }
     .btn-check:not(:checked) + .btn { background-color: #dc3545; border-color: #dc3545; }
     .roster-table { width: 100%; }
-    .roster-table thead th { background-color: #667eea; color: white; padding: 8px 6px; font-weight: 600; }
+    .roster-table thead th { background-color: #dc3545; color: white; padding: 8px 6px; font-weight: 600; }
     .roster-table tbody tr { border-bottom: 1px solid #e9ecef; }
     .roster-table tbody tr:hover { background-color: #f5f5f5; }
     .roster-table td { padding: 8px 6px; }
@@ -42,16 +44,15 @@
 </head>
 <body>
   <!-- Navbar (fixed) -->
-  <nav class="navbar navbar-expand-lg navbar-dark navbar-custom fixed-top" style="height:50px;">
-    <div class="container-fluid">
-        <div style="display:flex;align-items:center;gap:8px;font-size:0.95rem;">
-          <span class="badge bg-primary">{{ class_name or '' }}</span>
-          <small class="text-muted">{{ stream_name or '' }}</small>
-        </div>
-        <a href="{{ url_for('teacher_routes.dashboard') }}" class="back-btn" title="Back to dashboard" style="font-size:0.78rem; padding:4px 8px;">
-          <i class="bi bi-box-arrow-right"></i>
-        </a>
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-custom fixed-top">
+    <div class="container-fluid navbar-content">
+      <div style="display:flex; align-items:center; gap:8px; font-size:0.95rem;">
+        <span class="badge bg-white text-danger">{{ class_name or 'No Class' }}</span>
+        <small class="text-white">{{ stream_name or '' }}</small>
       </div>
+      <a href="{{ url_for('teacher_routes.dashboard') }}" class="btn back-btn-custom" title="Back to dashboard">
+        <i class="bi bi-arrow-left"></i> Back
+      </a>
     </div>
   </nav>
 
@@ -132,13 +133,10 @@
 
   <div id="alertContainer"></div>
 
+  <script id="pupils-data" type="application/json">{{ pupils|tojson }}</script>
+  <script id="streams-data" type="application/json">{{ all_streams|tojson }}</script>
+
   <script>
-    // Data from template (serialized safely) placed in JSON script blocks to avoid
-    // confusing static JS parsers with Jinja tokens inside script code.
-    </script>
-    <script id="pupils-data" type="application/json">{{ pupils_json|tojson }}</script>
-    <script id="streams-data" type="application/json">{{ all_streams_json|tojson }}</script>
-    <script>
     const pupils = JSON.parse(document.getElementById('pupils-data').textContent || '[]');
     const allStreams = JSON.parse(document.getElementById('streams-data').textContent || '[]');
     const todayIso = new Date().toISOString().split('T')[0];
@@ -146,6 +144,7 @@
     let selectedDate = todayIso;
     let selectedStream = '';
     let searchTerm = '';
+    let classId = null;
 
     // initialize stream filter options
     function populateStreams() {
@@ -208,19 +207,42 @@
 
     async function saveAttendance() {
       if (!selectedDate) { showAlert('warning','Please select a date'); return; }
+      if (pupils.length === 0) { showAlert('warning','No pupils found'); return; }
+
+      classId = pupils[0].class_id;
       const entries = Object.entries(currentAttendance).map(([pid, status]) => {
         const p = pupils.find(x => x.id == pid);
-        return { pupil_id: parseInt(pid), class_id: p.class_id, stream_id: p.stream_id, date: selectedDate, status: status, reason: '' };
+        return {
+          pupil_id: parseInt(pid),
+          status: status,
+          reason: ''
+        };
       });
-      if (entries.length === 0) { showAlert('warning','No attendance to save'); return; }
-      const payload = { class_id: null, entries: entries, days: 6 };
+
+      if (entries.length === 0) { showAlert('warning','No attendance marked'); return; }
+
+      const payload = {
+        class_id: classId,
+        date: selectedDate,
+        entries: entries
+      };
+
       try {
         showAlert('info','Saving attendance...');
-        const resp = await fetch("{{ url_for('teacher_routes.attendance_view') }}", { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+        const resp = await fetch("{{ url_for('teacher_routes.attendance_view') }}", {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
         const data = await resp.json();
-        if (resp.ok) { showAlert('success','Attendance saved'); document.getElementById('viewSummaryBtn').style.display='inline-block'; currentAttendance = {}; renderTable(); }
+        if (resp.ok) {
+          showAlert('success', data.message || 'Attendance saved successfully');
+          document.getElementById('viewSummaryBtn').style.display='inline-block';
+          currentAttendance = {};
+          renderTable();
+        }
         else { showAlert('danger', data.error || 'Failed to save'); }
-      } catch (err) { showAlert('danger', err.message); }
+      } catch (err) { showAlert('danger', 'Error: ' + err.message); }
     }
 
     function scrollToLast() {
@@ -249,7 +271,13 @@
       document.getElementById('markAllPresentBtn').addEventListener('click', ()=>{ getVisiblePupils().forEach(p=> currentAttendance[p.id]='present'); renderTable(); });
       document.getElementById('markAllAbsentBtn').addEventListener('click', ()=>{ getVisiblePupils().forEach(p=> currentAttendance[p.id]='absent'); renderTable(); });
       document.getElementById('saveAttendanceBtn').addEventListener('click', saveAttendance);
-      document.getElementById('viewSummaryBtn').addEventListener('click', ()=>{ const classIds = [...new Set(pupils.map(p=>p.class_id))]; if (classIds.length===1) window.location.href = `{{ url_for('teacher_routes.attendance_summary') }}?class_id=${classIds[0]}&start=${selectedDate}&period=week`; else showAlert('info','Multi-class summary not available'); });
+      document.getElementById('viewSummaryBtn').addEventListener('click', ()=>{
+        if (classId) {
+          window.location.href = `{{ url_for('teacher_routes.attendance_summary') }}?class_id=${classId}&start=${selectedDate}&period=week`;
+        } else {
+          showAlert('info','Please save attendance first');
+        }
+      });
       document.getElementById('searchBox').addEventListener('input', (e)=>{ searchTerm = e.target.value.trim(); renderTable(); });
       document.getElementById('scrollLastBtn').addEventListener('click', scrollToLast);
       // set streams into select (and preselect if stream_name provided)
@@ -267,4 +295,4 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
- 
+

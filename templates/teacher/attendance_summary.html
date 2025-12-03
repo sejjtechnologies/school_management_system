@@ -24,9 +24,12 @@
             font-size: 14px;
         }
         .navbar-custom {
-            background-color: #667eea;
+            background-color: #dc3545;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
         .navbar-custom .navbar-brand,
         .navbar-custom .nav-link {
@@ -39,6 +42,18 @@
         }
         .navbar-text {
             font-size: 12px;
+        }
+        .back-btn-custom {
+            color: #dc3545 !important;
+            background-color: white !important;
+            border: none !important;
+            padding: 4px 8px !important;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .back-btn-custom:hover {
+            background-color: #f5f5f5 !important;
         }
         .container {
             width: 100%;
@@ -61,7 +76,7 @@
             font-size: 12px;
         }
         .summary-table thead {
-            background-color: #667eea;
+            background-color: #dc3545;
             color: white;
             position: sticky;
             top: 0;
@@ -126,8 +141,8 @@
             line-height: 1.4;
         }
         .btn-back {
-            background-color: #667eea;
-            color: white;
+            background-color: white;
+            color: #dc3545;
             border: none;
             padding: 8px 16px;
             border-radius: 4px;
@@ -139,8 +154,8 @@
             font-weight: 500;
         }
         .btn-back:hover {
-            background-color: #5568d3;
-            color: white;
+            background-color: #f5f5f5;
+            color: #dc3545;
             text-decoration: none;
         }
         .stats-row {
@@ -311,14 +326,13 @@
 <body>
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-custom" style="height:50px;">
-        <div class="container-fluid p-0 d-flex align-items-center">
-            <span class="navbar-brand" style="font-size:0.95rem;">
-                <i class="bi bi-calendar-check"></i> Summary
+        <div class="container-fluid p-0 d-flex align-items-center justify-content-between">
+            <span class="navbar-brand" style="font-size:0.95rem; color: white !important;">
+                <i class="bi bi-calendar-check"></i> Attendance Summary
             </span>
-            <span class="navbar-text ms-auto" style="font-size:0.85rem;">
-                <i class="bi bi-person-circle"></i> {{ teacher.first_name }}
-            </span>
-            <a href="{{ url_for('teacher_routes.dashboard') }}" class="btn btn-sm btn-light ms-2" style="font-size:0.78rem; padding:4px 8px;"> <i class="bi bi-box-arrow-left"></i> Back</a>
+            <a href="{{ url_for('teacher_routes.attendance_view') }}" class="btn back-btn-custom ms-2">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
         </div>
     </nav>
 
