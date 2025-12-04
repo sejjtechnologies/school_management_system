@@ -16,6 +16,8 @@
     .navbar-label { color: white !important; font-weight: 600; font-size: 0.95rem !important; margin: 0 !important; white-space: nowrap !important; }
     .back-btn-custom { color: #dc3545 !important; background-color: white !important; border: none !important; border-radius: 4px; padding: 6px 12px !important; font-size: 1.2rem; }
     .back-btn-custom:hover { background-color: #f5f5f5 !important; }
+    /* Mark-all buttons style - balanced size for desktop and mobile */
+    .mark-all-btn { padding: 8px 10px; font-size: 0.95rem; min-height: 40px; }
     .card-header-custom { background-color: #dc3545; color: white; }
     .btn-check:checked + .btn { background-color: #28a745; border-color: #28a745; }
     .btn-check:not(:checked) + .btn { background-color: #dc3545; border-color: #dc3545; }
@@ -78,6 +80,14 @@
       color: #333;
     }
 
+    /* Responsive tweaks for nav/back and action buttons on small screens */
+    @media (max-width: 576px) {
+      .back-btn-custom { padding: 4px 8px !important; font-size: 0.95rem !important; height: 34px; }
+      .back-btn-custom .bi { font-size: 1rem; }
+      .mark-all-btn { padding: 6px 8px !important; font-size: 0.9rem !important; min-height: 34px; }
+      .navbar-label { font-size: 0.9rem !important; }
+    }
+
     /* Adjust main content to account for search bar */
     main { flex: 1; overflow-y: auto; overflow-x: hidden; margin-top: 105px; padding-bottom: calc(var(--footer-height, 68px) + 20px); -webkit-overflow-scrolling: touch; }
   </style>
@@ -128,10 +138,10 @@
             </select>
           </div>
           <div class="col-12 col-md-4 d-flex gap-2">
-            <button id="markAllPresentBtn" class="btn btn-success w-100">
+            <button id="markAllPresentBtn" class="btn btn-success w-100 mark-all-btn">
               <i class="bi bi-check-circle"></i> Mark All Present
             </button>
-            <button id="markAllAbsentBtn" class="btn btn-danger w-100">
+            <button id="markAllAbsentBtn" class="btn btn-danger w-100 mark-all-btn">
               <i class="bi bi-x-circle"></i> Mark All Absent
             </button>
           </div>
