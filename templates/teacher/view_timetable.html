@@ -10,6 +10,13 @@
     body { margin: 0; padding-top: 64px; font-family: 'Segoe UI', sans-serif; background: #f7f7f7; }
     .navbar { background: #283593; height: 56px; }
     .navbar .navbar-brand, .navbar .nav-link { color: #fff; }
+    /* Reduce brand size and ensure it truncates on small screens so controls stay visible */
+    .navbar .container-fluid { position: relative; }
+    .navbar .navbar-brand { font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100% - 140px); display: inline-block; vertical-align: middle; }
+    .navbar .navbar-brand .bi { font-size: 1rem; margin-right: 6px; }
+    /* Make the action buttons compact and lock them to the right on small screens */
+    .ms-auto { display: flex; gap: 0.35rem; align-items: center; flex-shrink: 0; }
+    .ms-auto .btn { padding: 0.25rem 0.5rem; font-size: 0.85rem; height: 34px; line-height: 1; }
     .page-title { padding: 18px 16px; color: #283593; font-weight: 700; }
     .timetable-container { background: #fff; border-radius: 8px; padding: 12px; margin: 12px; overflow: hidden; }
     /* Desktop-friendly grid: time column + 6 day columns */
@@ -32,6 +39,10 @@
       .grid-cell { min-height: 60px; padding: 6px; font-size: 0.8rem; }
       /* Reduce gap and borders to save space */
       .timetable-grid { gap: 1px; }
+      /* On small screens pin the action buttons to the right side of the navbar */
+      .ms-auto { position: absolute; right: 8px; top: 8px; }
+      .navbar .navbar-brand { max-width: calc(100% - 110px); font-size: 0.95rem; }
+      .ms-auto .btn { padding: 0.2rem 0.45rem; font-size: 0.78rem; height: 30px; }
     }
 
     /* Print styles: show only the timetable grid and make it fit nicely on paper */
@@ -62,11 +73,11 @@
         <i class="bi bi-table me-2"></i>Timetable — {{ class_name }} {{ stream_name }}
       </a>
       <div class="ms-auto">
-        <button type="button" class="btn btn-outline-light me-2" id="printBtn" title="Print timetable">
+        <button type="button" class="btn btn-outline-light btn-sm me-2" id="printBtn" title="Print timetable">
           <i class="bi bi-printer-fill"></i> Print
         </button>
-        <a href="{{ url_for('teacher_routes.dashboard') }}" class="btn btn-light" style="margin-right:8px;">
-          <i class="bi bi-box-arrow-right me-1" style="color: #d32f2f;"></i> Back
+        <a href="{{ url_for('teacher_routes.dashboard') }}" class="btn btn-light btn-sm" style="margin-right:8px;">
+          <i class="bi bi-box-arrow-right me-1" style="color: #d32f2f; font-size:0.95rem;"></i> Back
         </a>
       </div>
     </div>
