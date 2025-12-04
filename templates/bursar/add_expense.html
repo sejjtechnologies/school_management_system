@@ -140,5 +140,55 @@
     <div class="fixed-footer">
       {% include 'footer.html' %}
     </div>
+    <script>
+      // Measure footer and ensure focused inputs scroll their card into view on mobile
+      document.addEventListener('DOMContentLoaded', function() {
+        function updateFooterHeight() {
+          try {
+            const footer = document.querySelector('.fixed-footer');
+            if (!footer) return;
+            const rect = footer.getBoundingClientRect();
+            const h = Math.ceil(rect.height);
+            document.documentElement.style.setProperty('--footer-h', h + 'px');
+            return h;
+          } catch (e) { console.warn('footer measure failed', e); return 0; }
+        }
+
+        function ensureCardVisibleOnFocus(e) {
+          try {
+            if (window.innerWidth > 420) return;
+            const target = e.target;
+            if (!target) return;
+            if (!/INPUT|TEXTAREA|SELECT/.test(target.tagName)) return;
+            const card = target.closest('.form-card');
+            if (!card) return;
+            const scrollable = card.closest('.form-scroll') || document.scrollingElement || document.documentElement;
+            const footerHRaw = getComputedStyle(document.documentElement).getPropertyValue('--footer-h') || '0px';
+            const footerH = parseInt(footerHRaw, 10) || 0;
+            const gap = 20;
+            const cardRect = card.getBoundingClientRect();
+            const viewportBottom = window.innerHeight - footerH - gap;
+            if (cardRect.bottom > viewportBottom) {
+              const delta = cardRect.bottom - viewportBottom;
+              if (scrollable === document.scrollingElement || scrollable === document.documentElement) {
+                window.scrollBy({ top: delta + 8, behavior: 'smooth' });
+              } else {
+                scrollable.scrollBy({ top: delta + 8, behavior: 'smooth' });
+              }
+            }
+          } catch (err) { console.warn(err); }
+        }
+
+        updateFooterHeight();
+        setTimeout(updateFooterHeight, 200);
+        window.addEventListener('resize', updateFooterHeight);
+        const footerEl = document.querySelector('.fixed-footer');
+        if (footerEl && window.MutationObserver) {
+          const mo = new MutationObserver(() => updateFooterHeight());
+          mo.observe(footerEl, { childList: true, subtree: true, characterData: true });
+        }
+        document.addEventListener('focusin', ensureCardVisibleOnFocus, true);
+      });
+    </script>
 </body>
 </html>
