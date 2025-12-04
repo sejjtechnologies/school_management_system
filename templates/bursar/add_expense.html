@@ -162,18 +162,37 @@
             if (!/INPUT|TEXTAREA|SELECT/.test(target.tagName)) return;
             const card = target.closest('.form-card');
             if (!card) return;
-            const scrollable = card.closest('.form-scroll') || document.scrollingElement || document.documentElement;
+            // The card itself is usually the scrollable container
+            const scrollable = card.closest('.form-scroll') || card || document.scrollingElement || document.documentElement;
             const footerHRaw = getComputedStyle(document.documentElement).getPropertyValue('--footer-h') || '0px';
             const footerH = parseInt(footerHRaw, 10) || 0;
-            const gap = 20;
+            const navHRaw = getComputedStyle(document.documentElement).getPropertyValue('--nav-h') || '56px';
+            const navH = parseInt(navHRaw, 10) || 56;
+            const gapTop = 20; // desired gap from top nav to card top
+            const gapBottom = 20; // desired gap from card bottom to footer
+
             const cardRect = card.getBoundingClientRect();
-            const viewportBottom = window.innerHeight - footerH - gap;
-            if (cardRect.bottom > viewportBottom) {
-              const delta = cardRect.bottom - viewportBottom;
+            const viewportTop = navH + gapTop;
+            const viewportBottom = window.innerHeight - footerH - gapBottom;
+
+            // If the card top is above desired viewport top, scroll up
+            if (cardRect.top < viewportTop) {
+              const delta = cardRect.top - viewportTop - 8; // negative
               if (scrollable === document.scrollingElement || scrollable === document.documentElement) {
-                window.scrollBy({ top: delta + 8, behavior: 'smooth' });
+                window.scrollBy({ top: delta, behavior: 'smooth' });
               } else {
-                scrollable.scrollBy({ top: delta + 8, behavior: 'smooth' });
+                scrollable.scrollBy({ top: delta, behavior: 'smooth' });
+              }
+              return;
+            }
+
+            // If the card bottom is below the desired viewport bottom, scroll down
+            if (cardRect.bottom > viewportBottom) {
+              const delta = cardRect.bottom - viewportBottom + 8; // positive
+              if (scrollable === document.scrollingElement || scrollable === document.documentElement) {
+                window.scrollBy({ top: delta, behavior: 'smooth' });
+              } else {
+                scrollable.scrollBy({ top: delta, behavior: 'smooth' });
               }
             }
           } catch (err) { console.warn(err); }
