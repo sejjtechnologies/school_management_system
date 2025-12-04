@@ -232,85 +232,84 @@
         return;
       }
 
+      // perform save in a nested function so we can call after confirmation
+      function doSave() {
+        const payload = { amount };
+        if (quantity !== null) payload.quantity = quantity;
+        if (date) payload.date = date;
+        if (term) payload.term = term;
+        if (year !== null) payload.year = year;
+
+        fetch(`/bursar/expense/${currentEditRecordId}/update`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(r => r.json())
+          .then(data => {
+            if (data.success) {
+              // Update the corresponding list-row in-place
+              const row = document.querySelector(`.list-row[data-id="${currentEditRecordId}"]`);
+              if (row) {
+                // update dataset attributes
+                row.dataset.amount = data.data.amount;
+                row.dataset.quantity = data.data.quantity || '';
+                row.dataset.date = data.data.date || '';
+                row.dataset.term = data.data.term || '';
+                row.dataset.year = data.data.year || '';
+
+                // update amount display (assumes view contains a span for amount)
+                const amountSpan = row.querySelector('.view > div span');
+                if (amountSpan) {
+                  const formatted = Number(data.data.amount).toLocaleString(undefined, { maximumFractionDigits: 0 });
+                  amountSpan.textContent = `UGX ${formatted}`;
+                }
+
+                // update small metadata line (date, spent_by, qty, term/year)
+                const small = row.querySelector('.view small');
+                if (small) {
+                  // parse existing spent_by if present
+                  const parts = small.textContent.split('•').map(s => s.trim());
+                  let spentBy = 'N/A';
+                  if (parts.length > 1 && parts[1].includes('👤')) {
+                    spentBy = parts[1].replace('👤', '').trim();
+                  }
+
+                  const d = data.data.date || '';
+                  const dateDisplay = d ? `📅 ${formatDateForDisplay(d)}` : (parts[0] || '📅 -');
+                  const qtyDisplay = data.data.quantity ? ` • 📦 Qty: ${data.data.quantity}` : '';
+                  const termDisplay = ` • 📋 ${data.data.term || '-'} / ${data.data.year || '-'} `;
+                  small.textContent = `${dateDisplay} • 👤 ${spentBy}${qtyDisplay}${termDisplay}`;
+                }
+
+                // small visual cue: highlight briefly
+                row.style.transition = 'background 0.35s';
+                const prevBg = row.style.background;
+                row.style.background = '#e8f5e9';
+                setTimeout(() => { row.style.background = ''; }, 700);
+              }
+
+              // recompute footer/scroll layout by triggering resize handler
+              try { window.dispatchEvent(new Event('resize')); } catch (e) { /* ignore */ }
+
+            } else {
+              showAlert('Error: ' + (data.error || 'Unknown'));
+            }
+          })
+          .catch(err => {
+            console.error(err);
+            showAlert('Error updating record');
+          });
+        // close modal after save attempt (success path will have already updated)
+        closeEditModal();
+      }
+
       // Ask user to confirm save
       showConfirm({ title: 'Save changes?', message: 'Do you want to save the changes to this expense record?' })
         .then(confirmed => {
           if (!confirmed) return;
-
           doSave();
         });
-
-      // perform save in a nested function so we can call after confirmation
-      function doSave() {
-
-      const payload = { amount };
-      if (quantity !== null) payload.quantity = quantity;
-      if (date) payload.date = date;
-      if (term) payload.term = term;
-      if (year !== null) payload.year = year;
-
-      fetch(`/bursar/expense/${currentEditRecordId}/update`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-        .then(r => r.json())
-        .then(data => {
-          if (data.success) {
-            // Update the corresponding list-row in-place
-            const row = document.querySelector(`.list-row[data-id="${currentEditRecordId}"]`);
-            if (row) {
-              // update dataset attributes
-              row.dataset.amount = data.data.amount;
-              row.dataset.quantity = data.data.quantity || '';
-              row.dataset.date = data.data.date || '';
-              row.dataset.term = data.data.term || '';
-              row.dataset.year = data.data.year || '';
-
-              // update amount display (assumes view contains a span for amount)
-              const amountSpan = row.querySelector('.view > div span');
-              if (amountSpan) {
-                const formatted = Number(data.data.amount).toLocaleString(undefined, { maximumFractionDigits: 0 });
-                amountSpan.textContent = `UGX ${formatted}`;
-              }
-
-              // update small metadata line (date, spent_by, qty, term/year)
-              const small = row.querySelector('.view small');
-              if (small) {
-                // parse existing spent_by if present
-                const parts = small.textContent.split('•').map(s => s.trim());
-                let spentBy = 'N/A';
-                if (parts.length > 1 && parts[1].includes('👤')) {
-                  spentBy = parts[1].replace('👤', '').trim();
-                }
-
-                const d = data.data.date || '';
-                const dateDisplay = d ? `📅 ${formatDateForDisplay(d)}` : (parts[0] || '📅 -');
-                const qtyDisplay = data.data.quantity ? ` • 📦 Qty: ${data.data.quantity}` : '';
-                const termDisplay = ` • 📋 ${data.data.term || '-'} / ${data.data.year || '-'} `;
-                small.textContent = `${dateDisplay} • 👤 ${spentBy}${qtyDisplay}${termDisplay}`;
-              }
-
-              // small visual cue: highlight briefly
-              row.style.transition = 'background 0.35s';
-              const prevBg = row.style.background;
-              row.style.background = '#e8f5e9';
-              setTimeout(() => { row.style.background = ''; }, 700);
-            }
-
-            // recompute footer/scroll layout by triggering resize handler
-            try { window.dispatchEvent(new Event('resize')); } catch (e) { /* ignore */ }
-
-          } else {
-            showAlert('Error: ' + (data.error || 'Unknown'));
-          }
-        })
-        .catch(err => {
-          console.error(err);
-          showAlert('Error updating record');
-        });
-      // close modal after save attempt (success path will have already updated)
-      closeEditModal();
     }
 
     // Delete the current record via AJAX (uses confirmation modal)
@@ -478,6 +477,23 @@
       // Attach focus handler (use capturing to catch focus events)
       document.addEventListener('focusin', ensureCardVisibleOnFocus, true);
     });
+
+    // Event delegation fallback: ensure clicking a .list-row opens the edit modal
+    document.addEventListener('click', function (e) {
+      try {
+        const row = e.target.closest && e.target.closest('.list-row');
+        if (row) {
+          // ignore if clicking inside the modal controls
+          if (row.closest && row.closest('#editModal')) return;
+          // call toggleEditModal if available
+          if (typeof toggleEditModal === 'function') {
+            toggleEditModal(row);
+          } else {
+            console.warn('toggleEditModal not defined yet');
+          }
+        }
+      } catch (err) { console.warn('delegation click error', err); }
+    }, true);
 
     // --- Confirmation modal helpers ---
     function showConfirm(opts) {
