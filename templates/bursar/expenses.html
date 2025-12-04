@@ -276,21 +276,35 @@
                 }
 
                 // update small metadata line (date, spent_by, qty, term/year)
-                const small = row.querySelector('.view small');
-                if (small) {
-                  // parse existing spent_by if present
-                  const parts = small.textContent.split('•').map(s => s.trim());
+                  // rebuild the view content robustly so changes reflect immediately
+                  const strong = row.querySelector('.view strong');
+                  const itemName = strong ? strong.textContent : (row.dataset.description || 'Item');
+                  const small = row.querySelector('.view small');
+                  // determine spent_by from existing small if present
                   let spentBy = 'N/A';
-                  if (parts.length > 1 && parts[1].includes('👤')) {
-                    spentBy = parts[1].replace('👤', '').trim();
+                  if (small) {
+                    const parts = small.textContent.split('•').map(s => s.trim());
+                    if (parts.length > 1 && parts[1].includes('👤')) {
+                      spentBy = parts[1].replace('👤', '').trim();
+                    }
                   }
 
                   const d = data.data.date || '';
-                  const dateDisplay = d ? `📅 ${formatDateForDisplay(d)}` : (parts[0] || '📅 -');
+                  const dateDisplay = d ? `📅 ${formatDateForDisplay(d)}` : '📅 -';
                   const qtyDisplay = data.data.quantity ? ` • 📦 Qty: ${data.data.quantity}` : '';
                   const termDisplay = ` • 📋 ${data.data.term || '-'} / ${data.data.year || '-'} `;
-                  small.textContent = `${dateDisplay} • 👤 ${spentBy}${qtyDisplay}${termDisplay}`;
-                }
+
+                  // Reconstruct innerHTML for .view to ensure consistent formatting
+                  const view = row.querySelector('.view');
+                  if (view) {
+                    view.innerHTML = `
+                      <div style="display:flex; justify-content:space-between; margin-bottom:6px; align-items:baseline;">
+                        <strong style="flex:1; word-break:break-word;">${escapeHtml(itemName)}</strong>
+                        <span style="text-align:right; font-weight:600; white-space:nowrap; margin-left:8px;">UGX ${Number(data.data.amount).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                      </div>
+                      <small style="color:#666;">${dateDisplay} • 👤 ${escapeHtml(spentBy)}${qtyDisplay}${termDisplay}</small>
+                    `;
+                  }
 
                 // small visual cue: highlight briefly
                 row.style.transition = 'background 0.35s';
@@ -298,6 +312,9 @@
                 row.style.background = '#e8f5e9';
                 setTimeout(() => { row.style.background = ''; }, 700);
               }
+
+              // update totals displayed on the page
+              try { recomputeTotals(); } catch (e) { /* ignore */ }
 
               // recompute footer/scroll layout by triggering resize handler
               try { window.dispatchEvent(new Event('resize')); } catch (e) { /* ignore */ }
@@ -349,6 +366,7 @@
                 setTimeout(() => { row.remove(); }, 300);
               }
               try { window.dispatchEvent(new Event('resize')); } catch (e) { }
+              try { recomputeTotals(); } catch (e) { }
             } else {
               showAlert('Error deleting record: ' + (data && data.error ? data.error : 'Unknown'));
             }
@@ -487,6 +505,27 @@
       // Attach focus handler (use capturing to catch focus events)
       document.addEventListener('focusin', ensureCardVisibleOnFocus, true);
     });
+
+    // Recompute totals displayed in the totals row
+    function recomputeTotals() {
+      try {
+        const rows = Array.from(document.querySelectorAll('.list-row'));
+        let total = 0;
+        rows.forEach(r => { total += Number(r.dataset.amount || 0); });
+        const totalDiv = document.querySelector('.totals > div:first-child');
+        if (totalDiv) totalDiv.textContent = '💰 Total: UGX ' + Math.round(total).toLocaleString();
+        const countDiv = document.querySelector('.totals > div:nth-child(2)');
+        if (countDiv) countDiv.textContent = `📊 ${rows.length} item(s)`;
+      } catch (e) { /* ignore */ }
+    }
+
+    // Escape HTML to avoid injection when rebuilding innerHTML
+    function escapeHtml(str) {
+      if (!str && str !== 0) return '';
+      return String(str).replace(/[&<>"'`]/g, function (s) {
+        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;","`":"&#96;"})[s];
+      });
+    }
 
     // Event delegation fallback: ensure clicking a .list-row opens the edit modal
     document.addEventListener('click', function (e) {
