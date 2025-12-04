@@ -19,6 +19,12 @@
     /* grouped fields grid */
     .field-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
     @media (max-width:420px){.field-grid{grid-template-columns:1fr}}
+    @media (max-width:420px){
+      .btn-back{padding:6px 8px; border-radius:6px;}
+      .btn-back svg{width:14px;height:14px}
+      .top-nav{height:48px}
+      :root{--nav-h:48px}
+    }
     .actions{display:flex;gap:8px;margin-top:12px}
     .btn{padding:10px 14px;border-radius:6px;text-decoration:none;color:#fff}
     .btn.save{background:#388e3c}
@@ -36,13 +42,14 @@
   <div class="top-nav">
     <div class="nav-title">Add Expense</div>
     <div class="nav-actions">
-      <a class="btn-back" href="{{ url_for('bursar_routes.dashboard') }}">
-        <!-- signout / power icon -->
+      <a class="btn-back" href="{{ url_for('bursar_routes.dashboard') }}" title="Back to dashboard">
+        <!-- logout / sign-out icon (box with arrow) -->
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M12 2v10" stroke="#b71c1c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M5 12a7 7 0 0014 0" stroke="#b71c1c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8" stroke="#b71c1c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M20 12h-9" stroke="#b71c1c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M17 9l3 3-3 3" stroke="#b71c1c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        Back
+        <span style="margin-left:6px; font-weight:600; color:#b71c1c;">Back</span>
       </a>
     </div>
   </div>
@@ -77,18 +84,28 @@
         </div>
         <div>
           <label for="term">Term</label>
-          <input name="term" id="term" placeholder="Term 1 / Term 2" tabindex="7" />
+          <select name="term" id="term" tabindex="7">
+            <option value="">-- Select term --</option>
+            <option value="Term 1">Term 1</option>
+            <option value="Term 2">Term 2</option>
+            <option value="Term 3">Term 3</option>
+          </select>
         </div>
       </div>
 
       <div class="field-grid">
         <div>
           <label for="year">Year</label>
-          <input name="year" id="year" placeholder="2025" tabindex="8" />
+          <select name="year" id="year" tabindex="8">
+            <option value="">-- Select year --</option>
+            {% for y in range(2025, 2036) %}
+              <option value="{{ y }}">{{ y }}</option>
+            {% endfor %}
+          </select>
         </div>
         <div>
           <label for="spent_by">Recorded by (name)</label>
-          <input name="spent_by" id="spent_by" placeholder="e.g. Adegi Dennis" value="{{ bursar_name or '' }}" tabindex="6" />
+          <input name="spent_by" id="spent_by" placeholder="e.g. Adegi Dennis" value="{{ bursar_name or '' }}" tabindex="6" readonly aria-readonly="true" />
         </div>
       </div>
 
