@@ -37,10 +37,10 @@ class TimeTableSlot(db.Model):
     subject = db.relationship("Subject", backref="timetable_slots", lazy=True)
 
     # Unique constraints:
-    # 1. A teacher cannot teach the SAME STREAM at the same time on the same day (allows multi-stream teaching)
+    # 1. A teacher cannot teach the SAME CLASS+STREAM at the same time on the same day (prevents double-booking a teacher in a class)
     # 2. A class/stream cannot have multiple teachers at the same time (prevents double-booking classes)
     __table_args__ = (
-        db.UniqueConstraint('teacher_id', 'stream_id', 'day_of_week', 'start_time', name='unique_teacher_stream_slot'),
+        db.UniqueConstraint('teacher_id', 'class_id', 'stream_id', 'day_of_week', 'start_time', name='unique_teacher_class_slot'),
         db.UniqueConstraint('class_id', 'stream_id', 'day_of_week', 'start_time', name='unique_class_slot'),
     )
 

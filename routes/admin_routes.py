@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from models.user_models import db, User, Role
+from sqlalchemy import func
 from models.class_model import Class
 from models.stream_model import Stream
 from models.marks_model import Subject
@@ -129,10 +130,11 @@ def delete_user(user_id):
 @admin_routes.route("/admin/assign-teacher", methods=["GET", "POST"])
 def assign_teacher():
     # Query teachers (users whose role is Teacher)
-    teacher_role = Role.query.filter_by(role_name="Teacher").first()
+    teacher_role = Role.query.filter(Role.role_name.ilike('teacher')).first()
     teachers = []
     if teacher_role:
-        teachers = User.query.filter_by(role_id=teacher_role.id).order_by(User.first_name.asc()).all()
+        # fetch all users whose role name is teacher (case-insensitive)
+        teachers = User.query.join(Role).filter(Role.role_name.ilike('teacher')).order_by(User.first_name.asc(), User.last_name.asc()).all()
 
     # Query classes and streams
     classes = Class.query.order_by(Class.name.asc()).all()
@@ -184,16 +186,54 @@ def manage_timetables():
     subjects = Subject.query.order_by(Subject.name.asc()).all()
 
     # Get all teacher assignments (teachers assigned to classes)
-    teacher_role = Role.query.filter_by(role_name="Teacher").first()
+    teacher_role = Role.query.filter(Role.role_name.ilike('teacher')).first()
     teachers = []
     if teacher_role:
-        teachers = User.query.filter_by(role_id=teacher_role.id).order_by(User.first_name.asc()).all()
+        # fetch all users whose role name is teacher (case-insensitive)
+        teachers = User.query.join(Role).filter(Role.role_name.ilike('teacher')).order_by(User.first_name.asc(), User.last_name.asc()).all()
 
     return render_template("admin/manage_timetables.html",
                          classes=classes,
                          streams=streams,
                          subjects=subjects,
                          teachers=teachers)
+
+
+@admin_routes.route('/admin/teachers')
+def list_teachers():
+    """Return all users who have a Role named 'teacher' (case-insensitive). No additional filtering applied."""
+    teachers = User.query.join(Role).filter(Role.role_name.ilike('teacher')).order_by(User.first_name.asc(), User.last_name.asc()).all()
+    data = []
+    for t in teachers:
+        data.append({
+            'id': t.id,
+            'first_name': t.first_name,
+            'last_name': t.last_name,
+            'email': t.email,
+            'role_name': t.role.role_name if t.role else None
+        })
+    return jsonify({'teachers': data}), 200
+
+
+@admin_routes.route('/admin/teachers/count')
+def count_teachers():
+    """Return total number of teachers found by role join (case-insensitive)."""
+    total = User.query.join(Role).filter(Role.role_name.ilike('teacher')).count()
+    return jsonify({'teacher_count': total}), 200
+
+
+@admin_routes.route('/admin/teachers/names')
+def list_teacher_names():
+    """Return only first and last names of all teachers (no email or other fields)."""
+    teachers = User.query.join(Role).filter(Role.role_name.ilike('teacher')).order_by(User.first_name.asc(), User.last_name.asc()).all()
+    data = []
+    for t in teachers:
+        data.append({
+            'id': t.id,
+            'first_name': t.first_name,
+            'last_name': t.last_name
+        })
+    return jsonify({'teacher_names': data}), 200
 
 
 @admin_routes.route("/admin/timetable/get/<int:class_id>/<int:stream_id>")
@@ -245,6 +285,62 @@ def generate_timetable(class_id, stream_id):
     Each teacher teaches different subjects in different streams.
     Includes 20-minute break at 10:00 AM and 40-minute lunch at 1:00 PM."""
 
+    # delegate to shared helper
+    success, payload = _generate_timetable_core(class_id, stream_id)
+    if not success:
+        return jsonify({'error': payload}), 400
+    return jsonify(payload), 201
+
+
+@admin_routes.route("/admin/timetable/generate-all", methods=["POST"])
+def generate_all_timetables():
+    """Generate timetables for all classes and streams. Returns a summary per stream."""
+    classes = Class.query.all()
+    streams = Stream.query.all()
+    results = []
+
+    for class_obj in classes:
+        for stream in streams:
+            success, payload = _generate_timetable_core(class_obj.id, stream.id)
+            results.append({
+                'class_id': class_obj.id,
+                'class_name': class_obj.name,
+                'stream_id': stream.id,
+                'stream_name': stream.name,
+                'success': success,
+                'payload': payload
+            })
+
+    return jsonify({'results': results}), 200
+
+
+@admin_routes.route("/admin/timetable/counts")
+def timetable_counts():
+    """Return counts of timetable slots grouped by class and stream."""
+    rows = db.session.query(TimeTableSlot.class_id, TimeTableSlot.stream_id, func.count().label('slots'))\
+        .group_by(TimeTableSlot.class_id, TimeTableSlot.stream_id)\
+        .order_by(TimeTableSlot.class_id, TimeTableSlot.stream_id).all()
+
+    data = []
+    for r in rows:
+        # resolve names
+        cls = Class.query.get(r[0])
+        strm = Stream.query.get(r[1])
+        data.append({
+            'class_id': r[0],
+            'class_name': cls.name if cls else None,
+            'stream_id': r[1],
+            'stream_name': strm.name if strm else None,
+            'slots': int(r[2])
+        })
+
+    return jsonify({'counts': data}), 200
+
+
+def _generate_timetable_core(class_id, stream_id):
+    """Core routine to generate timetable for a single class_id and stream_id.
+    Returns (True, dict) on success or (False, error_message) on failure.
+    """
     # Get the assigned class teacher (must be included)
     class_teacher_assignment = TeacherAssignment.query.filter_by(
         class_id=class_id,
@@ -252,16 +348,21 @@ def generate_timetable(class_id, stream_id):
     ).first()
 
     if not class_teacher_assignment:
-        return jsonify({'error': 'No class teacher assigned to this class/stream'}), 400
+        return False, 'No class teacher assigned to this class/stream'
 
-    # Get ALL teachers with role "Teacher"
-    teacher_role = Role.query.filter_by(role_name="Teacher").first()
+    # Get ALL teachers with role "Teacher" (case-insensitive), excluding auto-created placeholders
+    teacher_role = Role.query.filter(Role.role_name.ilike('teacher')).first()
     if not teacher_role:
-        return jsonify({'error': 'Teacher role not found in database'}), 400
+        return False, 'Teacher role not found in database'
 
-    all_teachers = User.query.filter_by(role_id=teacher_role.id).all()
+    # Get ALL real teachers (exclude auto-created: emails ending with @example.local or first_name starting with "Teacher")
+    all_teachers = User.query.join(Role).filter(
+        Role.role_name.ilike('teacher'),
+        ~User.email.ilike('%@example.local'),  # exclude placeholder auto teachers
+        ~User.first_name.ilike('teacher%')     # exclude names starting with "Teacher"
+    ).order_by(User.first_name.asc(), User.last_name.asc()).all()
     if not all_teachers:
-        return jsonify({'error': 'No teachers available in the system'}), 400
+        return False, 'No real teachers found (only auto-created placeholders exist)'
 
     # Ensure class teacher is included in the list
     all_teacher_ids = [t.id for t in all_teachers]
@@ -277,13 +378,12 @@ def generate_timetable(class_id, stream_id):
     # Get all subjects
     subjects = Subject.query.all()
     if not subjects:
-        return jsonify({'error': 'No subjects available in the database'}), 400
+        return False, 'No subjects available in the database'
 
     days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
     # Generate 40-minute time slots from 8:00 AM to 5:00 PM with breaks
     times = []
-    from datetime import datetime, timedelta
     current_time = datetime.strptime('08:00', '%H:%M')
     end_time = datetime.strptime('17:00', '%H:%M')  # 5:00 PM
 
@@ -316,6 +416,8 @@ def generate_timetable(class_id, stream_id):
     subject_idx = 0
     teacher_idx = 0
 
+    slots_to_save = []
+
     # For each time slot, assign one teacher teaching one subject
     # Rotate through all teachers and subjects
     for day in days:
@@ -334,7 +436,7 @@ def generate_timetable(class_id, stream_id):
             end_dt = start_dt + timedelta(minutes=duration)
             end_time_str = end_dt.strftime('%H:%M')
 
-            # Create slot
+            # Create slot (collect)
             new_slot = TimeTableSlot(
                 teacher_id=teacher.id,
                 class_id=class_id,
@@ -344,19 +446,27 @@ def generate_timetable(class_id, stream_id):
                 start_time=time_str,
                 end_time=end_time_str
             )
-            db.session.add(new_slot)
+            slots_to_save.append(new_slot)
             slots_created += 1
 
             # Rotate to next teacher and subject
             teacher_idx += 1
             subject_idx += 1
 
-    db.session.commit()
-    return jsonify({
+    # persist
+    try:
+        if slots_to_save:
+            db.session.bulk_save_objects(slots_to_save)
+            db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return False, f'Database error while saving slots: {str(e)}'
+
+    return True, {
         'message': f'✓ Timetable generated! {slots_created} lessons scheduled for {len(all_teachers)} teachers!',
         'slots_created': slots_created,
         'total_teachers': len(all_teachers)
-    }), 201
+    }
 
 
 

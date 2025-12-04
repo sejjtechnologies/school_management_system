@@ -576,9 +576,7 @@
               <label for="teacherSelect" class="form-label">Teacher</label>
               <select id="teacherSelect" class="form-control" required>
                 <option value="">-- Select Teacher --</option>
-                {% for teacher in teachers %}
-                <option value="{{ teacher.id }}">{{ teacher.first_name }} {{ teacher.last_name }}</option>
-                {% endfor %}
+                <!-- options will be populated dynamically via JS from /admin/teachers/names -->
               </select>
             </div>
 
@@ -614,14 +612,12 @@
         <div class="modal-body">
           <form id="editSlotForm">
             <input type="hidden" id="editSlotId">
-            
+
             <div class="mb-3">
               <label for="editTeacherSelect" class="form-label">Teacher</label>
               <select id="editTeacherSelect" class="form-control" required>
                 <option value="">-- Select Teacher --</option>
-                {% for teacher in teachers %}
-                <option value="{{ teacher.id }}">{{ teacher.first_name }} {{ teacher.last_name }}</option>
-                {% endfor %}
+                <!-- options will be populated dynamically via JS from /admin/teachers/names -->
               </select>
             </div>
 
@@ -656,6 +652,23 @@
     document.addEventListener('DOMContentLoaded', function() {
       slotModal = new bootstrap.Modal(document.getElementById('slotModal'));
       editSlotModal = new bootstrap.Modal(document.getElementById('editSlotModal'));
+      // populate teacher selects from server (names only, no email)
+      fetch('/admin/teachers/names')
+        .then(r => r.json())
+        .then(payload => {
+          const list = payload.teacher_names || [];
+          const teacherSelect = document.getElementById('teacherSelect');
+          const editTeacherSelect = document.getElementById('editTeacherSelect');
+          list.forEach(t => {
+            const text = t.first_name + ' ' + t.last_name;
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = text;
+            teacherSelect.appendChild(opt.cloneNode(true));
+            editTeacherSelect.appendChild(opt);
+          });
+        })
+        .catch(err => console.error('Could not load teacher names:', err));
     });
 
     // ✅ Show alert message
@@ -665,7 +678,7 @@
       alertDiv.className = `alert-message ${type}`;
       alertDiv.textContent = message;
       alertContainer.appendChild(alertDiv);
-      
+
       setTimeout(() => alertDiv.remove(), 5000);
     }
 
@@ -684,10 +697,10 @@
         // Display assigned teachers
         const infoDiv = document.getElementById('assignedTeachersInfo');
         const listDiv = document.getElementById('assignedTeachersList');
-        
+
         if (assignedTeachers.length > 0) {
           infoDiv.style.display = 'block';
-          listDiv.innerHTML = assignedTeachers.map(t => 
+          listDiv.innerHTML = assignedTeachers.map(t =>
             `<span style="display: inline-block; background: #81c784; color: white; padding: 4px 8px; border-radius: 3px; margin-right: 8px; margin-bottom: 4px; font-size: 0.85rem;">✓ ${t.name}</span>`
           ).join('');
         } else {
@@ -740,7 +753,7 @@
         const hours = String(current.getHours()).padStart(2, '0');
         const minutes = String(current.getMinutes()).padStart(2, '0');
         const timeStr = `${hours}:${minutes}`;
-        
+
         // Add 20-minute break at 10:00 AM
         if (timeStr === '10:00') {
           slots.push({ time: timeStr, type: 'break', label: '☕ 20 MIN BREAK' });
@@ -755,13 +768,13 @@
         else {
           // Calculate remaining time until 5:00 PM
           const remainingMinutes = (endTime - current) / (1000 * 60);
-          
+
           // If remaining time is less than 40, use all remaining time
           // Otherwise use 40 minutes
           const lessonDuration = remainingMinutes <= 40 ? Math.ceil(remainingMinutes) : 40;
-          
-          slots.push({ 
-            time: timeStr, 
+
+          slots.push({
+            time: timeStr,
             type: 'lesson',
             duration: lessonDuration
           });
@@ -775,12 +788,12 @@
     function populateTimeSelector(selectId) {
       const select = document.getElementById(selectId);
       const times = generateTimeSlots();
-      
+
       // Clear existing options (except the first placeholder)
       while (select.options.length > 1) {
         select.remove(1);
       }
-      
+
       // Add only lesson time slots (skip breaks and lunch)
       times.forEach(timeObj => {
         if (timeObj.type === 'lesson') {
@@ -816,7 +829,7 @@
       times.forEach(timeObj => {
         const time = timeObj.time;
         const timeType = timeObj.type;
-        
+
         // Display time header
         if (timeType === 'break') {
           html += `<div class="grid-time" style="background-color: #fff9c4; color: #f57f17; font-weight: bold;">☕ BREAK</div>`;
@@ -833,10 +846,10 @@
           } else {
             // Get all slots for this day and time (regular lesson slots)
             const slots = currentSlots.filter(s => s.day_of_week === day && s.start_time === time);
-            
+
             if (slots.length > 0) {
               html += `<div class="grid-cell occupied">`;
-              
+
               // Show each teacher's assignment for this time slot
               slots.forEach((slot, idx) => {
                 html += `
@@ -851,7 +864,7 @@
                   </div>
                 `;
               });
-              
+
               html += `</div>`;
             } else {
               html += '<div class="grid-cell" onclick="openAddModalForCell(\'' + day + '\', \'' + time + '\')"><small style="color: #999; cursor: pointer;">+ Add</small></div>';
