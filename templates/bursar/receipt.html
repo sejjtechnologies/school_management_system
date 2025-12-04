@@ -246,6 +246,8 @@
 
     .cashier-line {
       margin-top: 2px;
+      font-size: 9pt;
+      font-weight: 700;
     }
 
     /* Print Styles */
@@ -276,6 +278,12 @@
         box-shadow: none;
         border: none;
         page-break-inside: avoid;
+      }
+
+      /* ensure cashier line is larger and visible when printing */
+      .footer-line.cashier-line, .cashier-line {
+        font-size: 9pt !important;
+        font-weight: 700 !important;
       }
 
       .receipt * {
@@ -392,7 +400,15 @@
   <!-- Footer -->
   <div class="footer">
     <div class="footer-line">Date: {{ receipt_date }}</div>
-    <div class="footer-line">Cashier: {{ cashier_name }}</div>
+    {# Show cashier with role (User model has role relationship: current_user.role.role_name) #}
+    {# Use values passed from the route #}
+    {% if current_user and current_user.is_authenticated and bursar_role_name %}
+      {% set display_name = current_user.first_name ~ ' ' ~ current_user.last_name %}
+      <div class="footer-line cashier-line">{{ display_name }} &#8212; {{ bursar_role_name }}</div>
+    {% else %}
+      <div class="footer-line cashier-line">Cashier: {{ cashier_name }}</div>
+    {% endif %}
+
     <div class="footer-line" style="margin-top: 3px; font-size: 6pt;">*** Thank You ***</div>
   </div>
 </div>
