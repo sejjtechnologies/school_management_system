@@ -23,6 +23,11 @@
     .timetable-grid { display: grid; grid-template-columns: 90px repeat(6, 1fr); gap: 2px; background: #ddd; padding: 2px; min-width: 100%; }
     .grid-header { background-color: #4a148c; color: #fff; font-weight: bold; padding: 8px; text-align: center; font-size: 0.9rem; }
     .grid-time { background-color: #7b1fa2; color: #fff; font-weight: bold; padding: 8px; text-align: center; font-size: 0.9rem; }
+    /* Special styling for break and lunch rows */
+    .grid-time.break-time { background-color: #fff9c4 !important; color: #f57f17 !important; font-weight: 800; }
+    .grid-time.lunch-time { background-color: #ffecb3 !important; color: #e65100 !important; font-weight: 800; }
+    .grid-cell.break-cell { background-color: #fffde7 !important; color: #6d4c41; text-align: center; font-weight: 700; }
+    .grid-cell.lunch-cell { background-color: #fff3e0 !important; color: #bf360c; text-align: center; font-weight: 700; }
     .grid-cell { background: #f5f5f5; padding: 6px; min-height: 70px; display: flex; flex-direction: column; justify-content: center; font-size: 0.85rem; }
     .grid-cell.occupied { background-color: #c8e6c9; border: 2px solid #388e3c; }
     .slot-subject { font-weight: bold; color: #1b5e20; }
@@ -178,16 +183,17 @@
         const time = timeObj.time;
         const timeType = timeObj.type;
         if (timeType === 'break') {
-          html += `<div class="grid-time" style="background-color: #fff9c4; color: #f57f17; font-weight: bold;">☕ BREAK</div>`;
+          html += `<div class="grid-time break-time">☕ BREAK</div>`;
         } else if (timeType === 'lunch') {
-          html += `<div class="grid-time" style="background-color: #ffecb3; color: #e65100; font-weight: bold;">🍽️ LUNCH</div>`;
+          html += `<div class="grid-time lunch-time">🍽️ LUNCH</div>`;
         } else {
           html += `<div class="grid-time">${convertTo12Hour(time)}</div>`;
         }
 
         days.forEach(day => {
           if (timeType === 'break' || timeType === 'lunch') {
-            html += `<div class="grid-cell" style="background-color: ${timeType === 'break' ? '#fff9c4' : '#ffecb3'}; text-align: center; font-weight: bold; color: #666;">${timeObj.label}</div>`;
+            const cellClass = timeType === 'break' ? 'grid-cell break-cell' : 'grid-cell lunch-cell';
+            html += `<div class="${cellClass}">${timeObj.label}</div>`;
           } else {
             const slots = currentSlots.filter(s => s.day_of_week === day && s.start_time === time);
             if (slots.length > 0) {
@@ -232,6 +238,45 @@
 
     window.addEventListener('load', function(){ loadAndRender(); computeTimetableHeight(); });
     window.addEventListener('resize', function(){ setTimeout(computeTimetableHeight, 120); });
+
+    // Try to scale the timetable grid to fit on a single printed page when printing
+    function adjustTimetableForPrint() {
+      try {
+        const container = document.getElementById('timetableContainer');
+        if (!container) return;
+        const grid = container.querySelector('.timetable-grid');
+        if (!grid) return;
+        // measure widths
+        const scrollW = grid.scrollWidth || grid.offsetWidth;
+        const availW = window.innerWidth - 40; // leave some margin
+        let scale = 1;
+        if (scrollW > availW && scrollW > 0) {
+          scale = availW / scrollW;
+          // clamp scale so it doesn't get too small
+          if (scale < 0.6) scale = 0.6;
+        }
+        container.style.transformOrigin = 'top left';
+        container.style.transform = `scale(${scale})`;
+        // store scale so afterprint can restore
+        container.dataset._printScale = scale;
+      } catch (e) { console.error('adjustTimetableForPrint', e); }
+    }
+
+    function restoreTimetableAfterPrint() {
+      try {
+        const container = document.getElementById('timetableContainer');
+        if (!container) return;
+        container.style.transform = '';
+        delete container.dataset._printScale;
+      } catch (e) { /* ignore */ }
+    }
+
+    if (window.matchMedia) {
+      try {
+        window.addEventListener('beforeprint', function(){ adjustTimetableForPrint(); const pd = document.getElementById('printDate'); if (pd) pd.textContent = new Date().toLocaleDateString(); });
+        window.addEventListener('afterprint', function(){ restoreTimetableAfterPrint(); });
+      } catch (e) { /* ignore for older browsers */ }
+    }
 
     // Wire print button: call window.print() after a short delay
     document.addEventListener('DOMContentLoaded', function(){
