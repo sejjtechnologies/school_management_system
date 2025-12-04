@@ -415,6 +415,33 @@
           </span>
         </div>
       </div>
+      <!-- Fee Breakdown (compact) -->
+      <div class="fee-breakdown" style="margin-top:12px; padding:8px; background-color:#fff9e6; border-radius:4px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <strong style="color:#d32f2f;">Fee Breakdown</strong>
+          <small style="color:#666;">(required / paid / remaining)</small>
+        </div>
+        <table class="payments-table" style="margin:0; width:100%; font-size:0.85rem;">
+          <thead>
+            <tr>
+              <th style="width:50%">Fee Item</th>
+              <th style="text-align:right; width:16%">Required</th>
+              <th style="text-align:right; width:16%">Paid</th>
+              <th style="text-align:right; width:18%">Remaining</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for fee in pupil_fees %}
+            <tr>
+              <td style="padding:6px 8px;">{{ fee.item_name }}</td>
+              <td class="amount text-end" style="padding:6px 8px;">{{ "{:,.0f}".format(fee.amount) }}</td>
+              <td class="amount text-end" style="padding:6px 8px;">{{ "{:,.0f}".format(paid_lookup.get(fee.id, 0)) }}</td>
+              <td class="amount text-end" style="padding:6px 8px;">{{ "{:,.0f}".format(fee.amount - paid_lookup.get(fee.id, 0)) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
       <!-- Footer & Cashier -->
       <div class="footer-text">
