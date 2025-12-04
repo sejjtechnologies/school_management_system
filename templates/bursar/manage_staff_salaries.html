@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Manage Staff Salaries</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    :root { --nav-h: 60px; --footer-h: 56px; }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f0f5fa;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .top-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--nav-h);
+      background: #b71c1c;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      z-index: 999;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .nav-title {
+      font-weight: 700;
+      flex: 1;
+      font-size: 14px;
+    }
+
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fff;
+      color: #b71c1c;
+      padding: 6px 8px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 600;
+      border: 1px solid rgba(0,0,0,0.06);
+      font-size: 13px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+
+    .btn-back:hover { background: #f5f5f5; }
+
+    .content {
+      padding-top: calc(var(--nav-h) + 20px);
+      padding-bottom: calc(var(--footer-h) + 20px);
+      padding-left: 12px;
+      padding-right: 12px;
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .filter-section {
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .filter-section h5 {
+      margin-bottom: 12px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .card {
+      background: #fbfdff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border: 1px solid #e6eef7;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .staff-row {
+      padding: 12px;
+      border-bottom: 1px solid #e6eef7;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .staff-row:hover { background: #f7fbff; }
+    .staff-row:last-child { border-bottom: none; }
+
+    .staff-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .staff-name {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 3px;
+      word-break: break-word;
+    }
+
+    .staff-meta {
+      font-size: 12px;
+      color: #666;
+      word-break: break-word;
+    }
+
+    .staff-salary {
+      text-align: right;
+      margin: 0 12px;
+      flex-shrink: 0;
+    }
+
+    .salary-amount {
+      font-weight: 600;
+      font-size: 14px;
+      color: #388e3c;
+      white-space: nowrap;
+    }
+
+    .status-badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .badge-paid {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .badge-unpaid {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    .btn-action {
+      padding: 6px 10px;
+      font-size: 11px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .btn-mark-paid {
+      background: #388e3c;
+      color: #fff;
+    }
+
+    .btn-mark-paid:hover { background: #2e7d32; }
+
+    .btn-mark-unpaid {
+      background: #d32f2f;
+      color: #fff;
+    }
+
+    .btn-mark-unpaid:hover { background: #c62828; }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      overflow-y: auto;
+    }
+
+    .modal-overlay.show { display: flex; }
+
+    .modal-content {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+      margin: auto;
+    }
+
+    .modal-header { margin-bottom: 15px; }
+    .modal-title { font-weight: 700; font-size: 16px; margin: 0; }
+    .modal-body { margin-bottom: 15px; }
+
+    .form-group { margin-bottom: 12px; }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 3px solid #1976d2;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1976d2;
+    }
+
+    /* Mobile optimizations */
+    @media (max-width: 768px) {
+      .content {
+        padding-top: calc(var(--nav-h) + 20px);
+        padding-bottom: calc(var(--footer-h) + 20px);
+      }
+
+      .stats-row {
+        grid-template-columns: 1fr;
+      }
+
+      .filter-section {
+        padding: 12px;
+      }
+
+      .staff-row {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px;
+      }
+
+      .staff-info {
+        width: 100%;
+      }
+
+      .staff-salary {
+        width: 100%;
+        text-align: left;
+        margin: 0;
+      }
+
+      .salary-amount {
+        display: inline-block;
+      }
+
+      .status-badge,
+      .btn-action {
+        font-size: 12px;
+        padding: 5px 8px;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .nav-title {
+        font-size: 13px;
+      }
+
+      .btn-back {
+        font-size: 12px;
+        padding: 5px 7px;
+      }
+
+      .content {
+        padding-left: 8px;
+        padding-right: 8px;
+      }
+
+      .filter-section {
+        padding: 10px;
+        margin-bottom: 15px;
+      }
+
+      .filter-section h5 {
+        font-size: 13px;
+        margin-bottom: 10px;
+      }
+
+      .form-label {
+        font-size: 11px !important;
+        margin-bottom: 3px !important;
+      }
+
+      .form-select {
+        font-size: 13px !important;
+      }
+
+      .stats-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+
+      .stat-card {
+        padding: 12px;
+      }
+
+      .stat-label {
+        font-size: 11px;
+      }
+
+      .stat-value {
+        font-size: 18px;
+      }
+
+      .card {
+        border-radius: 6px;
+        margin-bottom: 10px;
+      }
+
+      .staff-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        padding: 8px;
+        border-bottom: 1px solid #e6eef7;
+      }
+
+      .staff-info {
+        width: 100%;
+      }
+
+      .staff-name {
+        font-size: 13px;
+        margin-bottom: 2px;
+      }
+
+      .staff-meta {
+        font-size: 11px;
+      }
+
+      .staff-salary {
+        width: 100%;
+        text-align: left;
+        margin: 0;
+      }
+
+      .salary-amount {
+        font-size: 13px;
+      }
+
+      .status-badge {
+        font-size: 10px;
+        padding: 3px 6px;
+      }
+
+      .btn-action {
+        font-size: 11px;
+        padding: 5px 8px;
+      }
+
+      .modal-content {
+        max-width: 95vw;
+        padding: 15px;
+      }
+
+      .modal-title {
+        font-size: 15px;
+      }
+
+      .form-group {
+        margin-bottom: 10px;
+      }
+
+      .form-group label {
+        font-size: 11px;
+        margin-bottom: 3px;
+      }
+
+      .form-group input,
+      .form-group textarea {
+        padding: 6px;
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body data-current-month="{{ current_month }}" data-current-year="{{ current_year }}">
+  <!-- Top Nav -->
+  <div class="top-nav">
+    <div class="nav-title">📊 Manage Staff Salaries</div>
+    <div style="display: flex; gap: 8px;">
+      <a href="{{ url_for('bursar_routes.dashboard') }}" class="btn-back">⏻ Back</a>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="content">
+    <div class="container">
+
+      <!-- Statistics Cards -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Total Staff</div>
+          <div class="stat-value">{{ staff|length }}</div>
+        </div>
+        <div class="stat-card" style="border-left-color: #388e3c;">
+          <div class="stat-label">Paid This Period</div>
+          <div class="stat-value" style="color: #388e3c;">{{ staff|selectattr('is_paid')|list|length }}</div>
+        </div>
+        <div class="stat-card" style="border-left-color: #d32f2f;">
+          <div class="stat-label">Unpaid This Period</div>
+          <div class="stat-value" style="color: #d32f2f;">{{ staff|rejectattr('is_paid')|list|length }}</div>
+        </div>
+      </div>
+
+      <!-- Filter Section -->
+      <div class="filter-section">
+        <h5>🔍 Filters</h5>
+        <form method="get" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; align-items: end;">
+          <div>
+            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">Role</label>
+            <select name="role_id" class="form-select" style="font-size: 14px;" onchange="this.form.submit()">
+              <option value="">-- All Roles --</option>
+              {% for role in roles %}
+                <option value="{{ role.id }}" {% if role.id == selected_role_id %}selected{% endif %}>{{ role.role_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">Month</label>
+            <select name="month" class="form-select" style="font-size: 14px;" onchange="this.form.submit()">
+              {% for m in range(1, 13) %}
+                <option value="{{ m }}" {% if m == current_month %}selected{% endif %}>
+                  {% set months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] %}
+                  {{ months[m-1] }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">Year</label>
+            <select name="year" class="form-select" style="font-size: 14px;" onchange="this.form.submit()">
+              {% for y in range(2020, 2036) %}
+                <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">Status</label>
+            <select name="status" class="form-select" style="font-size: 14px;" onchange="this.form.submit()">
+              <option value="all" {% if filter_status == 'all' %}selected{% endif %}>-- All --</option>
+              <option value="paid" {% if filter_status == 'paid' %}selected{% endif %}>✓ Paid</option>
+              <option value="unpaid" {% if filter_status == 'unpaid' %}selected{% endif %}>✗ Unpaid</option>
+            </select>
+          </div>
+        </form>
+      </div>
+
+      <!-- Staff List -->
+      <div class="card">
+        {% if staff and staff|length > 0 %}
+          {% for s in staff %}
+            <div class="staff-row" data-user-id="{{ s.id }}">
+              <div class="staff-info">
+                <div class="staff-name">{{ s.first_name }} {{ s.last_name }}</div>
+                <div class="staff-meta">
+                  {{ s.role }} • {{ s.email }}
+                </div>
+              </div>
+
+              <div class="staff-salary">
+                <div class="salary-amount">UGX {{ '{:,.0f}'.format(s.salary_amount) }}</div>
+              </div>
+
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <span class="status-badge {% if s.is_paid %}badge-paid{% else %}badge-unpaid{% endif %}">
+                  {% if s.is_paid %}✓ Paid{% else %}✗ Unpaid{% endif %}
+                </span>
+                <button type="button" class="btn-action btn-open-payment {% if s.is_paid %}btn-mark-unpaid{% else %}btn-mark-paid{% endif %}"
+                        data-user='{{ s.id|tojson }}'
+                        data-name='{{ (s.first_name ~ " " ~ s.last_name)|tojson }}'
+                        data-salary='{{ s.salary_amount|default(0)|tojson }}'
+                        data-ispaid='{{ s.is_paid|tojson }}'>
+                  {% if s.is_paid %}Unmark{% else %}Mark Paid{% endif %}
+                </button>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div style="padding: 30px; text-align: center; color: #999;">
+            <i class="bi bi-inbox" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>
+            <p>No staff found matching the selected filters.</p>
+          </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Payment Modal -->
+  <div id="paymentModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Mark Staff as Paid</h4>
+      </div>
+      <div class="modal-body">
+        <div id="staffInfo" style="margin-bottom: 15px; padding: 10px; background: #f5f5f5; border-radius: 4px;"></div>
+
+        <form id="paymentForm" style="display: flex; flex-direction: column; gap: 12px;">
+          <input type="hidden" id="userId" />
+
+          <div class="form-group">
+            <label>Amount (UGX)</label>
+            <input type="number" id="amount" step="0.01" required min="0" />
+          </div>
+
+          <div class="form-group">
+            <label>Payment Method</label>
+            <select id="paymentMethod" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+              <option value="CASH">💵 Cash</option>
+              <option value="BANK">🏦 Bank Transfer</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="bankNameGroup" style="display: none;">
+            <label>Bank Name</label>
+            <select id="bankName" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+              <option value="">-- Select Bank --</option>
+              <option value="Centenary">Centenary Bank</option>
+              <option value="Stanbic">Stanbic Bank</option>
+              <option value="ABSA">ABSA Bank</option>
+              <option value="Other">Other Bank</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Reference (optional)</label>
+            <input type="text" id="reference" placeholder="e.g., Check #1234" />
+          </div>
+
+          <div class="form-group">
+            <label>Notes (optional)</label>
+            <textarea id="notes" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;" rows="3" placeholder="e.g., partial payment, advance, etc."></textarea>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closePaymentModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="submitPayment()">Confirm & Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirmModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title" id="confirmTitle">Please confirm</h4>
+      </div>
+      <div class="modal-body" id="confirmBody">
+        Are you sure?
+      </div>
+      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+        <button type="button" class="btn btn-secondary" onclick="closeConfirmModal()">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirmOkBtn">Yes, proceed</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Message Modal (for success / error) -->
+  <div id="messageModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title" id="messageTitle">Message</h4>
+      </div>
+      <div class="modal-body" id="messageBody"></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+        <button type="button" class="btn btn-primary" onclick="closeMessageModal()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Include footer -->
+  {% include 'footer.html' %}
+
+  <script>
+    let currentUserId = null;
+    // read month/year from body dataset to avoid embedding Jinja directly inside JS
+    let currentMonth = parseInt(document.body.getAttribute('data-current-month')) || (new Date()).getMonth() + 1;
+    let currentYear = parseInt(document.body.getAttribute('data-current-year')) || (new Date()).getFullYear();
+    let _pendingConfirmAction = null;
+
+    function showPaymentModal(userId, staffName, salary, isPaid) {
+      currentUserId = userId;
+      // if already paid, open confirm modal for unmark
+      if (isPaid) {
+        showConfirm(`Unmark payment for ${staffName}?`, function() { doUnmark(userId); });
+        return;
+      }
+
+      document.getElementById('userId').value = userId;
+      document.getElementById('amount').value = salary;
+      document.getElementById('reference').value = '';
+      document.getElementById('notes').value = '';
+      document.getElementById('staffInfo').innerHTML = `
+        <div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(staffName)}</div>
+        <div style="font-size: 12px; color: #666;">
+          Salary: UGX ${Number(salary).toLocaleString()}
+        </div>
+      `;
+
+      document.getElementById('paymentModal').classList.add('show');
+    }
+
+    function closePaymentModal() {
+      document.getElementById('paymentModal').classList.remove('show');
+      try { document.getElementById('paymentForm').reset(); } catch(e){}
+      currentUserId = null;
+    }
+
+    function submitPayment() {
+      const amount = parseFloat(document.getElementById('amount').value);
+      const reference = document.getElementById('reference').value.trim();
+      const notes = document.getElementById('notes').value.trim();
+      const paymentMethod = document.getElementById('paymentMethod').value;
+      const bankName = document.getElementById('bankName').value;
+
+      if (!amount || amount <= 0) {
+        showMessage('Error', 'Please enter a valid amount', true);
+        return;
+      }
+
+      if (paymentMethod === 'BANK' && !bankName) {
+        showMessage('Error', 'Please select a bank for bank transfer', true);
+        return;
+      }
+
+      const payload = {
+        amount: amount,
+        period_month: currentMonth,
+        period_year: currentYear,
+        reference: reference || null,
+        notes: notes || null,
+        payment_method: paymentMethod,
+        bank_name: paymentMethod === 'BANK' ? bankName : null
+      };
+
+      // ask confirmation before saving
+      showConfirm(`Mark payment of UGX ${Number(amount).toLocaleString()} as paid?`, function() {
+        // perform actual save
+        fetch(`/bursar/staff/${currentUserId}/mark-paid`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            closePaymentModal();
+            showMessage('Success', data.message, false, function(){
+              // Navigate to the manage staff salaries page (same page or refresh with current filters)
+              window.location.href = "{{ url_for('bursar_routes.manage_staff_salaries') }}";
+            });
+          } else {
+            showMessage('Error', data.error || 'Unknown error', true);
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          showMessage('Error', 'Error saving payment', true);
+        });
+      });
+    }
+
+    function doUnmark(userId) {
+      // confirm already handled, call unmark endpoint
+      fetch(`/bursar/staff/${userId}/mark-unpaid`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_id: null })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          showMessage('Success', data.message || 'Payment reversed', false, function(){
+            window.location.href = "{{ url_for('bursar_routes.manage_staff_salaries') }}";
+          });
+        } else {
+          showMessage('Error', data.error || 'Unable to reverse payment', true);
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        showMessage('Error', 'Error reversing payment', true);
+      });
+    }
+
+    // Confirmation modal helpers
+    let _reopenPaymentModal = false;
+    function showConfirm(message, onConfirm) {
+      document.getElementById('confirmTitle').innerText = 'Please confirm';
+      document.getElementById('confirmBody').innerText = message;
+      _pendingConfirmAction = onConfirm;
+      const okBtn = document.getElementById('confirmOkBtn');
+      okBtn.onclick = function(){
+        // Close confirm without reopening the payment modal (we are proceeding with the action).
+        closeConfirmModal(/*confirmed=*/true);
+        if (typeof _pendingConfirmAction === 'function') _pendingConfirmAction();
+      };
+
+      // If the payment modal is open, hide it while showing confirm to avoid visual jumbling.
+      const pm = document.getElementById('paymentModal');
+      _reopenPaymentModal = false;
+      if (pm && pm.classList.contains('show')) {
+        pm.classList.remove('show');
+        _reopenPaymentModal = true;
+      }
+
+      document.getElementById('confirmModal').classList.add('show');
+    }
+
+    function closeConfirmModal(confirmed=false){
+      document.getElementById('confirmModal').classList.remove('show');
+      // Only reopen the payment modal when the user cancelled the confirmation.
+      if (!confirmed && _reopenPaymentModal) {
+        const pm = document.getElementById('paymentModal');
+        if (pm) pm.classList.add('show');
+        _reopenPaymentModal = false;
+      } else {
+        // If confirmed or no modal was open, just reset the flag.
+        _reopenPaymentModal = false;
+      }
+      _pendingConfirmAction = null;
+    }
+
+    // Message modal
+    function showMessage(title, message, isError, onClose){
+      document.getElementById('messageTitle').innerText = title || 'Notice';
+      document.getElementById('messageBody').innerText = message || '';
+      const m = document.getElementById('messageModal');
+      m.classList.add('show');
+      // style adjustments
+      const titleEl = document.getElementById('messageTitle');
+      titleEl.style.color = isError ? '#c62828' : '#2e7d32';
+      // attach close handler
+      document.querySelector('#messageModal .btn-primary').onclick = function(){
+        closeMessageModal();
+        if (onClose) onClose();
+      };
+    }
+
+    function closeMessageModal(){
+      document.getElementById('messageModal').classList.remove('show');
+    }
+
+    // Utility
+    function escapeHtml(text){
+      var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+      return String(text).replace(/[&<>"']/g, function(m){ return map[m]; });
+    }
+
+    // Close modals on outside click
+    document.getElementById('paymentModal').addEventListener('click', function(e) { if (e.target === this) closePaymentModal(); });
+    document.getElementById('confirmModal').addEventListener('click', function(e) { if (e.target === this) closeConfirmModal(); });
+    document.getElementById('messageModal').addEventListener('click', function(e) { if (e.target === this) closeMessageModal(); });
+
+    // Show/hide bank name dropdown based on payment method
+    document.getElementById('paymentMethod').addEventListener('change', function(e) {
+      const bankGroup = document.getElementById('bankNameGroup');
+      if (e.target.value === 'BANK') {
+        bankGroup.style.display = 'block';
+      } else {
+        bankGroup.style.display = 'none';
+        document.getElementById('bankName').value = '';
+      }
+    });
+
+    // Delegate click handler for buttons that open payment modal
+    document.addEventListener('click', function(e){
+      const btn = e.target.closest && e.target.closest('.btn-open-payment');
+      if (!btn) return;
+      try {
+        const userId = JSON.parse(btn.getAttribute('data-user'));
+        const name = JSON.parse(btn.getAttribute('data-name'));
+        const salary = JSON.parse(btn.getAttribute('data-salary'));
+        const isPaid = JSON.parse(btn.getAttribute('data-ispaid'));
+        showPaymentModal(userId, name, salary, isPaid);
+      } catch(err) {
+        console.error('Failed to open payment modal', err);
+      }
+    });
+  </script>
+</body>
+</html>

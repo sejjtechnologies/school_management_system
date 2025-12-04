@@ -22,6 +22,9 @@ class User(db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.Text, nullable=False)  # hashed with werkzeug
     role_id = db.Column(db.Integer, db.ForeignKey("roles.id"), nullable=False)
+    
+    # Optional: per-user salary override (if None, use role's default salary)
+    salary_amount = db.Column(db.Numeric(12, 2), nullable=True)
 
     def __repr__(self):
         return f"<User {self.email}>"
