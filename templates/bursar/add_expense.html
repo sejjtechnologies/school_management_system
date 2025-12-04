@@ -156,6 +156,17 @@
             if (!h) h = 48;
             document.documentElement.style.setProperty('--footer-h', h + 'px');
             document.documentElement.style.setProperty('--footer-height', h + 'px');
+
+            // Ensure form-scroll containers have enough bottom padding so last controls
+            // are accessible above the footer (use footer height + gap)
+            try {
+              const gap = 20; // px desired gap above footer
+              document.querySelectorAll('.form-scroll').forEach(el => {
+                // set padding-bottom to footer height + gap so Save button can scroll into view
+                el.style.paddingBottom = (h + gap) + 'px';
+              });
+            } catch (e) { /* ignore */ }
+
             return h;
           } catch (e) { console.warn('footer measure failed', e); return 48; }
         }
@@ -205,13 +216,13 @@
               }
             }
 
-            // As a robust fallback, if Save button exists, try to bring it into view
+            // Robust fallback: make sure Save button is visible by centering it
             try {
               const saveBtn = card.querySelector('.actions .btn.save');
               if (saveBtn) {
-                // small delay to allow previous scrolling to finish
+                // small delay to allow previous scrolling to finish and keyboard settle
                 setTimeout(() => {
-                  saveBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                  saveBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }, 220);
               }
             } catch (e) { /* ignore */ }
