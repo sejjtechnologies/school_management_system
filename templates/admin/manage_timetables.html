@@ -426,6 +426,16 @@
         padding: 8px;
       }
 
+      /* Make timetable card scrollable on mobile and leave 20px gap from footer */
+      .timetable-container {
+        /* reserve space for header + control panel + footer; adjust if needed */
+        max-height: calc(100vh - 160px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 20px; /* ensures content doesn't butt up against card edge */
+        margin-bottom: 20px; /* gap between card and footer when scrolled to bottom */
+      }
+
       .timetable-grid {
         grid-template-columns: 55px repeat(6, 1fr);
         min-width: 550px;
@@ -878,6 +888,39 @@
 
       html += '</div>';
       container.innerHTML = html;
+      // After rendering, compute & apply appropriate max-height for the timetable container
+      computeTimetableHeight();
+    }
+
+    // Calculate and set timetable container max-height so it scrolls vertically on small screens
+    function computeTimetableHeight() {
+      try {
+        const container = document.getElementById('timetableContainer');
+        if (!container) return;
+
+        const navbar = document.querySelector('.navbar');
+        const control = document.querySelector('.control-panel');
+        const footer = document.querySelector('footer');
+
+        const navH = navbar ? navbar.getBoundingClientRect().height : 0;
+        const controlH = control ? control.getBoundingClientRect().height : 0;
+        const footerH = footer ? footer.getBoundingClientRect().height : 0;
+
+        const extraGap = 20; // user-desired gap between timetable card bottom and footer
+
+        const viewportH = window.innerHeight;
+
+        // Compute available height for timetable container
+        let available = viewportH - navH - controlH - footerH - extraGap;
+        // Safety minimum
+        if (available < 200) available = 200;
+
+        container.style.maxHeight = available + 'px';
+        container.style.overflowY = 'auto';
+        container.style.webkitOverflowScrolling = 'touch';
+      } catch (e) {
+        console.error('computeTimetableHeight error', e);
+      }
     }
 
     // ✅ Open add modal (general)
@@ -925,6 +968,29 @@
       document.getElementById('editSubjectSelect').value = subjectId;
       editSlotModal.show();
     }
+
+    // Recompute timetable height on resize/orientation change and when content changes
+    (function() {
+      let resizeTimer = null;
+      window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(computeTimetableHeight, 150);
+      });
+      window.addEventListener('orientationchange', function() {
+        setTimeout(computeTimetableHeight, 200);
+      });
+
+      document.addEventListener('DOMContentLoaded', function() {
+        computeTimetableHeight();
+        const timetableEl = document.getElementById('timetableContainer');
+        if (timetableEl) {
+          const mo = new MutationObserver(function() {
+            computeTimetableHeight();
+          });
+          mo.observe(timetableEl, { childList: true, subtree: true });
+        }
+      });
+    })();
   </script>
 </body>
 </html>
