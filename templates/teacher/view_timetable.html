@@ -22,7 +22,7 @@
     /* Desktop-friendly grid: time column + 6 day columns */
     .timetable-grid { display: grid; grid-template-columns: 90px repeat(6, 1fr); gap: 2px; background: #ddd; padding: 2px; min-width: 100%; }
     .grid-header { background-color: #4a148c; color: #fff; font-weight: bold; padding: 8px; text-align: center; font-size: 0.9rem; }
-    .grid-time { background-color: #7b1fa2; color: #fff; font-weight: bold; padding: 8px; text-align: center; font-size: 0.9rem; }
+    .grid-time { background-color: #7b1fa2; color: #b71c1c; font-weight: bold; padding: 8px; text-align: center; font-size: 0.9rem; }
     /* Special styling for break and lunch rows */
     .grid-time.break-time { background-color: #fff9c4 !important; color: #f57f17 !important; font-weight: 800; }
     .grid-time.lunch-time { background-color: #ffecb3 !important; color: #e65100 !important; font-weight: 800; }
@@ -52,7 +52,7 @@
 
     /* Print styles: show only the timetable grid and make it fit nicely on paper */
     @media print {
-      @page { size: A4 landscape; margin: 6mm; }
+      @page { size: A4 landscape; margin: 4mm; }
       html, body { background: #fff; color: #000; }
       /* show print-header, hide non-essential UI */
       .print-header { display: block !important; position: fixed; top: 0; left: 0; right: 0; background: #fff; z-index: 9999; }
@@ -60,19 +60,25 @@
       main.main-scroll { margin: 0; padding: 0; }
 
       /* print header styling */
-      .print-school { font-weight: 900; font-size: 20pt; color: #2b3e94; }
-      .print-motto { font-style: italic; font-size: 11pt; color: #6a1b9a; margin-top: 2px; }
+      .print-header { position: static !important; display: block !important; }
+      .print-school { font-weight: 900; font-size: 22pt; color: #2b3e94; }
+      .print-motto { font-style: italic; font-size: 12pt; color: #6a1b9a; margin-top: 2px; }
       .print-teacher { font-size: 11pt; color: #1b5e20; margin-top: 4px; }
 
       /* Force timetable to fit the printable width, avoid horizontal overflow */
-      .timetable-container { box-shadow: none; border-radius: 0; padding: 2mm; margin: 0; width: 100% !important; overflow: visible !important; }
-      .timetable-grid { gap: 1px; background: #bbb; width: 100% !important; min-width: 0 !important; grid-template-columns: 80px repeat(6, 1fr) !important; }
+      html, body { margin: 0; padding: 0; }
+      .timetable-container { box-shadow: none; border-radius: 0; padding: 1mm; margin: 0; width: 100% !important; overflow: visible !important; }
+      .timetable-grid { gap: 1px; background: #bbb; width: 100% !important; min-width: 0 !important; grid-template-columns: 70px repeat(6, 1fr) !important; }
       .grid-header, .grid-time, .grid-cell { page-break-inside: avoid; break-inside: avoid; }
       /* slightly smaller font for print to help fit on a single page */
-      .grid-header, .grid-time { font-size: 8.5pt !important; padding: 6px !important; }
-      .grid-cell { font-size: 7.5pt !important; padding: 3px !important; min-height: 36px !important; }
-      /* ensure header area doesn't overlap content */
-      .timetable-container { margin-top: 100px; }
+      .grid-header, .grid-time { font-size: 7.5pt !important; padding: 4px !important; }
+      /* Ensure time column prints in strong red */
+      .grid-time { color: #b71c1c !important; }
+      .grid-cell { font-size: 6.5pt !important; padding: 1px !important; min-height: 20px !important; }
+      /* ensure header area doesn't overlap content and keep header on same page */
+      .print-header { page-break-after: avoid; }
+      .timetable-container { margin-top: 6mm !important; }
+      .timetable-grid { page-break-inside: avoid; }
     }
   </style>
 </head>
@@ -246,28 +252,38 @@
         if (!container) return;
         const grid = container.querySelector('.timetable-grid');
         if (!grid) return;
-        // measure widths
-        const scrollW = grid.scrollWidth || grid.offsetWidth;
-        const availW = window.innerWidth - 40; // leave some margin
-        let scale = 1;
-        if (scrollW > availW && scrollW > 0) {
-          scale = availW / scrollW;
-          // clamp scale so it doesn't get too small
-          if (scale < 0.6) scale = 0.6;
-        }
-        container.style.transformOrigin = 'top left';
-        container.style.transform = `scale(${scale})`;
-        // store scale so afterprint can restore
-        container.dataset._printScale = scale;
+        const headerEl = document.querySelector('.print-header');
+        const headerH = headerEl ? headerEl.getBoundingClientRect().height : 60;
+        // measure grid dimensions
+        const gridW = grid.scrollWidth || grid.offsetWidth;
+        const gridH = grid.scrollHeight || grid.offsetHeight;
+        // approximate printable area in px (A4 landscape at typical screen dpi)
+        const printableW = Math.min(window.innerWidth, 1120) - 20; // small safety margin
+        const printableH = Math.min(window.innerHeight, 768) - headerH - 20;
+        let scaleW = printableW / gridW;
+        let scaleH = printableH / gridH;
+        let scale = Math.min(scaleW, scaleH, 1);
+        if (scale < 0.45) scale = 0.45; // clamp to avoid unreadable text
+
+        // compute vertical centering translation so grid sits nicely below header
+        const scaledGridH = gridH * scale;
+        let topOffset = headerH + Math.max(4, (printableH - scaledGridH) / 2);
+
+        // apply transform: translateY then scale
+        grid.style.transformOrigin = 'top left';
+        grid.style.transform = `translate(0px, ${topOffset}px) scale(${scale})`;
+        grid.dataset._printScale = scale;
+        grid.dataset._printTranslate = topOffset;
       } catch (e) { console.error('adjustTimetableForPrint', e); }
     }
 
     function restoreTimetableAfterPrint() {
       try {
-        const container = document.getElementById('timetableContainer');
-        if (!container) return;
-        container.style.transform = '';
-        delete container.dataset._printScale;
+        const grid = document.querySelector('.timetable-grid');
+        if (!grid) return;
+        grid.style.transform = '';
+        delete grid.dataset._printScale;
+        delete grid.dataset._printTranslate;
       } catch (e) { /* ignore */ }
     }
 
