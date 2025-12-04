@@ -113,6 +113,10 @@ class Payment(db.Model):
     payment_date = db.Column(db.DateTime, default=datetime.utcnow)
     payment_method = db.Column(db.String(50), nullable=True)
     reference = db.Column(db.String(100), nullable=True)
+    
+    # Academic period tracking
+    year = db.Column(db.Integer, nullable=True)
+    term = db.Column(db.String(20), nullable=True)
 
     # Relationships
     pupil = db.relationship("Pupil", back_populates="payments")

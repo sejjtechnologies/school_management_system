@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from models.register_pupils import db, Pupil, ClassFeeStructure, Payment
 from models.class_model import Class
 from models.stream_model import Stream
@@ -70,6 +70,8 @@ def add_payment(pupil_id):
         fee_id = int(request.form.get("fee_id"))
         amount_paid = float(request.form.get("amount_paid"))
         payment_method = request.form.get("payment_method")
+        year = request.form.get("year")
+        term = request.form.get("term")
 
         # Check if fee item exists
         fee_item = ClassFeeStructure.query.get_or_404(fee_id)
@@ -92,12 +94,14 @@ def add_payment(pupil_id):
             fee_id=fee_id,
             amount_paid=amount_paid,
             payment_method=payment_method,
-            reference=str(fee_id)
+            reference=str(fee_id),
+            year=int(year) if year else None,
+            term=term if term else None
         )
 
         db.session.add(payment)
         db.session.commit()
-        flash(f"Payment of UGX {amount_paid:,.0f} added successfully for {fee_item.item_name}.", "success")
+        flash(f"Payment of UGX {amount_paid:,.0f} added successfully for {fee_item.item_name} ({term} {year}).", "success")
 
     except Exception as e:
         db.session.rollback()
@@ -181,3 +185,147 @@ def view_pupil_fees_structure(pupil_id):
         total_paid=total_paid,
         balance=balance
     )
+
+
+# ---------------------------------------------------------
+# 8️⃣ API: ADD PAYMENT (JSON endpoint for AJAX)
+# ---------------------------------------------------------
+@bursar_routes.route("/bursar/api/add-payment/<int:pupil_id>", methods=["POST"])
+def api_add_payment(pupil_id):
+    """JSON API endpoint for adding payments via AJAX"""
+    pupil = Pupil.query.get_or_404(pupil_id)
+
+    try:
+        data = request.get_json()
+        fee_id = int(data.get("fee_id"))
+        amount_paid = float(data.get("amount_paid"))
+        payment_method = data.get("payment_method")
+        year = data.get("year")
+        term = data.get("term")
+
+        # Check if fee item exists
+        fee_item = ClassFeeStructure.query.get_or_404(fee_id)
+
+        # Calculate total already paid for this fee item
+        already_paid = sum(p.amount_paid for p in pupil.payments if p.fee_id == fee_id)
+
+        # Prevent adding payment if fully paid
+        if already_paid >= fee_item.amount:
+            return jsonify({"success": False, "error": f"The fee item '{fee_item.item_name}' is already fully paid."}), 400
+
+        # Prevent overpayment
+        if already_paid + amount_paid > fee_item.amount:
+            return jsonify({"success": False, "error": f"Payment exceeds required amount for '{fee_item.item_name}'."}), 400
+
+        payment = Payment(
+            pupil_id=pupil.id,
+            fee_id=fee_id,
+            amount_paid=amount_paid,
+            payment_method=payment_method,
+            reference=str(fee_id),
+            year=int(year) if year else None,
+            term=term if term else None
+        )
+
+        db.session.add(payment)
+        db.session.commit()
+
+        # Return updated totals for live refresh
+        return jsonify({
+            "success": True,
+            "message": f"Payment of UGX {amount_paid:,.0f} added successfully",
+            "payment": {
+                "id": payment.id,
+                "fee_name": fee_item.item_name,
+                "amount_paid": amount_paid,
+                "payment_method": payment_method,
+                "payment_date": payment.payment_date.strftime('%Y-%m-%d'),
+                "year": payment.year,
+                "term": payment.term
+            },
+            "pupil_totals": {
+                "total_paid": sum(p.amount_paid for p in pupil.payments),
+                "balance": sum(f.amount for f in pupil.class_fees) - sum(p.amount_paid for p in pupil.payments)
+            }
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ---------------------------------------------------------
+# 9️⃣ INVOICES / BILLING (View all payments for receipts)
+# ---------------------------------------------------------
+@bursar_routes.route("/bursar/invoices")
+def invoices():
+    """Display all students with payments for receipt generation"""
+    # Get all pupils that have made at least one payment
+    pupils_with_payments = db.session.query(Pupil).join(
+        Payment, Pupil.id == Payment.pupil_id
+    ).distinct().options(
+        db.joinedload(Pupil.class_),
+        db.joinedload(Pupil.stream),
+        db.joinedload(Pupil.payments)
+    ).order_by(Pupil.first_name).all()
+
+    # Build invoice data
+    invoice_data = []
+    for pupil in pupils_with_payments:
+        total_required = sum(f.amount for f in pupil.class_fees)
+        total_paid = sum(p.amount_paid for p in pupil.payments)
+        balance = total_required - total_paid
+
+        invoice_data.append({
+            "pupil_id": pupil.id,
+            "first_name": pupil.first_name,
+            "last_name": pupil.last_name,
+            "admission_number": pupil.admission_number,
+            "class_name": pupil.class_.name if pupil.class_ else "N/A",
+            "stream_name": pupil.stream.name if pupil.stream else "N/A",
+            "total_required": total_required,
+            "total_paid": total_paid,
+            "balance": balance,
+            "payments": pupil.payments,
+            "fees": pupil.class_fees,
+        })
+
+    return render_template("bursar/invoices.html", invoices=invoice_data)
+
+
+# ---------------------------------------------------------
+# 🔟 RECEIPT (Print individual student receipt)
+# ---------------------------------------------------------
+@bursar_routes.route("/bursar/receipt/<int:pupil_id>")
+def student_receipt(pupil_id):
+    """Generate printable receipt for a student"""
+    from datetime import datetime
+    
+    pupil = Pupil.query.get_or_404(pupil_id)
+    
+    fees_for_class = pupil.class_fees
+    payments = pupil.payments
+    
+    # Map each fee item → total paid toward that item
+    paid_lookup = {
+        fee.id: sum(p.amount_paid for p in payments if p.fee_id == fee.id)
+        for fee in fees_for_class
+    }
+    
+    total_required = sum(f.amount for f in fees_for_class)
+    total_paid = sum(paid_lookup.values())
+    balance = total_required - total_paid
+    receipt_date = datetime.now().strftime('%d/%m/%Y %H:%M')
+    
+    return render_template(
+        "bursar/student_receipt.html",
+        pupil=pupil,
+        pupil_fees=fees_for_class,
+        paid_lookup=paid_lookup,
+        payments=payments,
+        total_required=total_required,
+        total_paid=total_paid,
+        balance=balance,
+        receipt_date=receipt_date
+    )
+

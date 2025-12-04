@@ -144,6 +144,7 @@
             <th>Fee Type</th>
             <th>Amount Paid (UGX)</th>
             <th>Payment Method</th>
+            <th>Year / Term</th>
             <th>Date</th>
             <th>Actions</th>
           </tr>
@@ -160,6 +161,17 @@
             </td>
             <td>{{ "{:,.0f}".format(payment.amount_paid or 0) }}</td>
             <td>{{ payment.payment_method }}</td>
+            <td>
+              {% if payment.year and payment.term %}
+                {{ payment.term }} {{ payment.year }}
+              {% elif payment.year %}
+                {{ payment.year }}
+              {% elif payment.term %}
+                {{ payment.term }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
             <td>{{ payment.payment_date.strftime('%Y-%m-%d') }}</td>
             <td>
               <button type="button" class="btn btn-danger btn-sm px-2 py-1" data-bs-toggle="modal" data-bs-target="#deleteModal{{ payment.id }}">
@@ -200,11 +212,11 @@
     <div class="card mt-3 mb-5">
       <div class="card-header bg-success text-white py-2">Add Payment</div>
       <div class="card-body p-2">
-        <form action="{{ url_for('bursar_routes.add_payment', pupil_id=pupil.id) }}" method="POST">
+        <form id="addPaymentForm">
           <div class="row mb-2">
             <div class="col-md-6">
               <label class="form-label">Select Fee Item</label>
-              <select name="fee_id" class="form-select form-select-sm" required>
+              <select id="feeId" name="fee_id" class="form-select form-select-sm" required>
                 <option value="">-- Choose Fee Item --</option>
                 {% for item in pupil.class_fees %}
                   {% set paid = paid_lookup[item.id] %}
@@ -222,14 +234,14 @@
             </div>
             <div class="col-md-6">
               <label class="form-label">Amount Paid (UGX)</label>
-              <input type="number" class="form-control form-control-sm" name="amount_paid" min="0" required>
+              <input type="number" id="amountPaid" class="form-control form-control-sm" name="amount_paid" min="0" required>
             </div>
           </div>
 
           <div class="row mb-2">
             <div class="col-md-6">
               <label class="form-label">Payment Method</label>
-              <select name="payment_method" class="form-select form-select-sm" required>
+              <select id="paymentMethod" name="payment_method" class="form-select form-select-sm" required>
                 <option>Cash</option>
                 <option>Mobile Money</option>
                 <option>Bank Deposit</option>
@@ -238,7 +250,7 @@
             </div>
             <div class="col-md-6">
               <label class="form-label">Year</label>
-              <select name="year" class="form-select form-select-sm" required>
+              <select id="year" name="year" class="form-select form-select-sm" required>
                 {% for y in range(2020, 2031) %}
                   <option value="{{ y }}">{{ y }}</option>
                 {% endfor %}
@@ -249,7 +261,7 @@
           <div class="row mb-2">
             <div class="col-md-6">
               <label class="form-label">Term</label>
-              <select name="term" class="form-select form-select-sm" required>
+              <select id="term" name="term" class="form-select form-select-sm" required>
                 <option value="Term 1">Term 1</option>
                 <option value="Term 2">Term 2</option>
                 <option value="Term 3">Term 3</option>
@@ -257,7 +269,8 @@
             </div>
           </div>
 
-          <button type="submit" class="btn btn-success btn-sm mt-2"><i class="bi bi-save"></i> Save Payment</button>
+          <button type="submit" id="savePaymentBtn" class="btn btn-success btn-sm mt-2"><i class="bi bi-save"></i> Save Payment</button>
+          <div id="paymentMessage" class="mt-2"></div>
         </form>
       </div>
     </div>
@@ -291,6 +304,109 @@
       const ro = new MutationObserver(() => { if (document.querySelector('footer')) updateVars(); });
       ro.observe(document.body, { childList: true, subtree: true });
     })();
+  </script>
+
+  <!-- Payment Form AJAX Handler -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('addPaymentForm');
+      const msgDiv = document.getElementById('paymentMessage');
+      const pupilId = {{ pupil.id }};
+
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const feeId = document.getElementById('feeId').value;
+        const amountPaid = document.getElementById('amountPaid').value;
+        const paymentMethod = document.getElementById('paymentMethod').value;
+        const year = document.getElementById('year').value;
+        const term = document.getElementById('term').value;
+
+        // Validation
+        if (!feeId || !amountPaid || !paymentMethod || !year || !term) {
+          msgDiv.innerHTML = '<div class="alert alert-warning">All fields are required</div>';
+          return;
+        }
+
+        msgDiv.innerHTML = '<div class="alert alert-info">Saving payment...</div>';
+
+        try {
+          const response = await fetch(`{{ url_for('bursar_routes.api_add_payment', pupil_id='PUPIL_ID') }}`.replace('PUPIL_ID', pupilId), {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              fee_id: parseInt(feeId),
+              amount_paid: parseFloat(amountPaid),
+              payment_method: paymentMethod,
+              year: year,
+              term: term
+            })
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            // Show success message
+            msgDiv.innerHTML = `<div class="alert alert-success alert-dismissible fade show" role="alert">
+              ✅ ${data.message}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>`;
+
+            // Add new payment row to table
+            const tbody = document.querySelector('.table-responsive tbody');
+            if (tbody) {
+              const newRow = document.createElement('tr');
+              const yearTermStr = data.payment.term && data.payment.year ? `${data.payment.term} ${data.payment.year}` : (data.payment.year || data.payment.term || '-');
+              newRow.innerHTML = `
+                <td>${tbody.querySelectorAll('tr').length + 1}</td>
+                <td>
+                  ${data.payment.fee_name}
+                  <span class="text-success ms-1"><i class="bi bi-check-circle-fill"></i></span>
+                </td>
+                <td>${(parseFloat(data.payment.amount_paid)).toLocaleString('en-US', {minimumFractionDigits: 0})}</td>
+                <td>${data.payment.payment_method}</td>
+                <td>${yearTermStr}</td>
+                <td>${data.payment.payment_date}</td>
+                <td>
+                  <button type="button" class="btn btn-danger btn-sm px-2 py-1" onclick="alert('Delete functionality coming soon')">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </td>
+              `;
+              tbody.insertBefore(newRow, tbody.firstChild);
+            }
+
+            // Update summary alert
+            const balanceAlert = document.querySelector('.alert-info');
+            if (balanceAlert) {
+              balanceAlert.innerHTML = `
+                <strong>Total Required:</strong> UGX {{ "{:,.0f}".format(total_required) }} |
+                <strong>Total Paid:</strong> UGX ${(data.pupil_totals.total_paid).toLocaleString('en-US', {minimumFractionDigits: 0})} |
+                <strong>Balance:</strong> <span class="fw-bold text-danger">UGX ${(data.pupil_totals.balance).toLocaleString('en-US', {minimumFractionDigits: 0})}</span>
+              `;
+            }
+
+            // Reset form
+            form.reset();
+
+            // Hide message after 5 seconds
+            setTimeout(() => {
+              msgDiv.innerHTML = '';
+            }, 5000);
+          } else {
+            msgDiv.innerHTML = `<div class="alert alert-danger alert-dismissible fade show" role="alert">
+              ❌ ${data.error}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>`;
+          }
+        } catch (error) {
+          msgDiv.innerHTML = `<div class="alert alert-danger alert-dismissible fade show" role="alert">
+            ❌ Error: ${error.message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>`;
+        }
+      });
+    });
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

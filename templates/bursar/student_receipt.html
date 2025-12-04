@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Receipt - {{ pupil.first_name }} {{ pupil.last_name }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+
+  <style>
+    :root {
+      --vh: 1vh;
+      --navbar-height: 60px;
+      --footer-height: 60px;
+      --footer-gap: 20px; /* leave 20px gap above footer when scrolling */
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f5f5f5;
+    }
+
+    .navbar {
+      height: var(--navbar-height);
+      background-color: #d32f2f;
+      z-index: 1100;
+    }
+
+    .navbar-brand { color: #fff !important; }
+
+    .navbar .action-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .navbar .action-buttons .btn {
+      font-size: 0.8rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 5px;
+    }
+
+    main {
+      position: fixed;
+      top: calc(var(--navbar-height));
+      left: 0;
+      right: 0;
+      bottom: calc(var(--footer-height) + var(--footer-gap));
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 20px;
+      box-sizing: border-box;
+      background-color: transparent;
+    }
+
+    main > .container { padding-bottom: calc(var(--footer-gap) + 20px); }
+
+    /* Receipt Styling */
+    .receipt-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .receipt-header {
+      text-align: center;
+      border-bottom: 2px dashed rgba(0,0,0,0.08);
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+    }
+
+    .school-name {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #d32f2f;
+      letter-spacing: 0.4px;
+    }
+
+    .school-subtitle {
+      font-size: 0.85rem;
+      color: #444;
+      margin-top: 6px;
+      font-style: italic;
+    }
+
+    .school-address {
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    .receipt-title {
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #333;
+      margin-top: 15px;
+    }
+
+    .pupil-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin: 20px 0;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border-radius: 5px;
+    }
+
+    .pupil-info-item {
+      font-size: 0.95rem;
+    }
+
+    .pupil-info-label {
+      font-weight: bold;
+      color: #333;
+      margin-right: 5px;
+    }
+
+    .pupil-info-value {
+      color: #666;
+    }
+
+    .payments-table {
+      width: 100%;
+      margin: 20px 0;
+      border-collapse: collapse;
+    }
+
+    .payments-table th {
+      background-color: #d32f2f;
+      color: white;
+      padding: 10px;
+      text-align: left;
+      font-size: 0.9rem;
+      border: none;
+    }
+
+    .payments-table td {
+      padding: 10px;
+      border-bottom: 1px solid #e0e0e0;
+      font-size: 0.9rem;
+    }
+
+    .payments-table td.amount,
+    .payments-table td.text-end {
+      font-family: 'Courier New', Courier, monospace;
+      letter-spacing: 0.3px;
+    }
+
+    .payments-table tr:hover {
+      background-color: #f9f9f9;
+    }
+
+    .summary-section {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f0f0f0;
+      border-radius: 5px;
+      border-left: 4px solid #d32f2f;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 0.95rem;
+    }
+
+    .summary-label {
+      font-weight: bold;
+      color: #333;
+    }
+
+    .summary-value {
+      color: #666;
+      text-align: right;
+    }
+
+    .summary-row.total {
+      border-top: 1px solid #ddd;
+      padding-top: 12px;
+      margin-top: 12px;
+      font-size: 1.1rem;
+    }
+
+    .summary-row.total .summary-label,
+    .summary-row.total .summary-value {
+      color: #d32f2f;
+      font-weight: bold;
+    }
+
+    .summary-row.balance {
+      color: #f57c00;
+    }
+
+    .footer-text {
+      text-align: center;
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #e0e0e0;
+      font-size: 0.85rem;
+      color: #999;
+    }
+
+    .print-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .print-buttons .btn {
+      font-size: 0.9rem;
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background-color: white;
+      }
+
+      .navbar, footer, .print-buttons {
+        display: none !important;
+      }
+
+      main {
+        position: static;
+        top: 0;
+        bottom: 0;
+        padding: 0;
+      }
+
+      .receipt-container {
+        box-shadow: none;
+        max-width: 100%;
+        padding: 20px;
+      }
+
+      @page {
+        margin: 10mm;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .receipt-container {
+        padding: 12px;
+        max-width: 420px;
+      }
+
+      .pupil-info {
+        grid-template-columns: 1fr;
+      }
+
+      .payments-table th, .payments-table td {
+        padding: 6px;
+        font-size: 0.8rem;
+      }
+
+      .school-name {
+        font-size: 1.2rem;
+      }
+
+      .receipt-title {
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<nav class="navbar fixed-top navbar-expand-lg d-flex align-items-center">
+  <div class="container-fluid px-3 d-flex justify-content-between align-items-center">
+    <a class="navbar-brand fw-bold" href="#"><i class="bi bi-receipt me-2"></i>Receipt</a>
+    <div class="action-buttons">
+      <button class="btn btn-light" onclick="window.print()" title="Print Receipt">
+        <i class="bi bi-printer"></i> Print
+      </button>
+      <a href="javascript:history.back()" class="btn btn-warning">
+        <i class="bi bi-box-arrow-right"></i> Back
+      </a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="container">
+    <div class="receipt-container">
+
+      <!-- Receipt Header -->
+      <div class="receipt-header">
+        <div class="school-name">Hope Full Future P/s</div>
+        <div class="school-subtitle">Nuturing Minds, Shaping Future</div>
+        <div class="school-address">Entebbe - Wakiso</div>
+        <div class="receipt-title">Payment Receipt</div>
+      </div>
+
+      <!-- Pupil Information -->
+      <div class="pupil-info">
+        <div class="pupil-info-item">
+          <span class="pupil-info-label">Student Name:</span>
+          <span class="pupil-info-value">{{ pupil.first_name }} {{ pupil.middle_name }} {{ pupil.last_name }}</span>
+        </div>
+        <div class="pupil-info-item">
+          <span class="pupil-info-label">Admission No:</span>
+          <span class="pupil-info-value">{{ pupil.admission_number }}</span>
+        </div>
+        <div class="pupil-info-item">
+          <span class="pupil-info-label">Class:</span>
+          <span class="pupil-info-value">{{ pupil.class_.name if pupil.class_ else 'N/A' }}</span>
+        </div>
+        <div class="pupil-info-item">
+          <span class="pupil-info-label">Stream:</span>
+          <span class="pupil-info-value">{{ pupil.stream.name if pupil.stream else 'N/A' }}</span>
+        </div>
+      </div>
+
+      <!-- Payments Table -->
+      <table class="payments-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Fee Item</th>
+            <th>Amount Paid (UGX)</th>
+            <th>Payment Method</th>
+            <th>Term / Year</th>
+            <th>Payment Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for payment in payments %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ payment.fee_item.item_name }}</td>
+            <td class="amount text-end">{{ "{:,.0f}".format(payment.amount_paid) }}</td>
+            <td>{{ payment.payment_method or '-' }}</td>
+            <td>
+              {% if payment.term and payment.year %}
+                {{ payment.term }} {{ payment.year }}
+              {% elif payment.year %}
+                {{ payment.year }}
+              {% elif payment.term %}
+                {{ payment.term }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>{{ payment.payment_date.strftime('%d/%m/%Y') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Summary Section -->
+      <div class="summary-section">
+        <div class="summary-row">
+          <span class="summary-label">Total Required:</span>
+          <span class="summary-value">UGX {{ "{:,.0f}".format(total_required) }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Total Paid (All Fees):</span>
+          <span class="summary-value text-success fw-bold">UGX {{ "{:,.0f}".format(total_paid) }}</span>
+        </div>
+        <div class="summary-row balance">
+          <span class="summary-label">Outstanding Balance:</span>
+          <span class="summary-value">UGX {{ "{:,.0f}".format(balance) }}</span>
+        </div>
+        <div class="summary-row total">
+          <span class="summary-label">Payment Status:</span>
+          <span class="summary-value">
+            {% if balance <= 0 %}
+              ✅ FULLY PAID
+            {% else %}
+              ⚠️ BALANCE PENDING
+            {% endif %}
+          </span>
+        </div>
+      </div>
+
+      <!-- Fee Breakdown -->
+      <div style="margin-top: 25px; padding: 15px; background-color: #fff9e6; border-radius: 5px;">
+        <h6 style="color: #d32f2f; margin-bottom: 12px; font-weight: bold;">Fee Breakdown by Item</h6>
+        <table class="payments-table" style="margin: 0;">
+          <thead>
+            <tr>
+              <th>Fee Item</th>
+              <th style="text-align: right;">Required (UGX)</th>
+              <th style="text-align: right;">Paid (UGX)</th>
+              <th style="text-align: right;">Balance (UGX)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for fee in pupil_fees %}
+            <tr>
+              <td>{{ fee.item_name }}</td>
+              <td class="amount text-end">{{ "{:,.0f}".format(fee.amount) }}</td>
+              <td class="amount text-end">{{ "{:,.0f}".format(paid_lookup[fee.id]) }}</td>
+              <td class="amount text-end">{{ "{:,.0f}".format(fee.amount - paid_lookup[fee.id]) }}</td>
+              <td>
+                {% if paid_lookup[fee.id] >= fee.amount %}
+                  <span style="color: #4caf50; font-weight: bold;">✅ Paid</span>
+                {% else %}
+                  <span style="color: #f57c00; font-weight: bold;">⚠️ Pending</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer-text">
+        <p>
+          <strong>Receipt Date:</strong> {{ receipt_date }}<br>
+          This is an official payment receipt. Please keep for your records.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+{% include 'footer.html' %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  (function setVhAndFooter(){
+    function updateVars(){
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', (vh) + 'px');
+
+      const footer = document.querySelector('footer');
+      if (footer) {
+        const h = footer.offsetHeight || 60;
+        document.documentElement.style.setProperty('--footer-height', h + 'px');
+      }
+    }
+    updateVars();
+    window.addEventListener('resize', updateVars);
+    window.addEventListener('orientationchange', updateVars);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', updateVars);
+    }
+    const ro = new MutationObserver(() => { if (document.querySelector('footer')) updateVars(); });
+    ro.observe(document.body, { childList: true, subtree: true });
+  })();
+</script>
+</body>
+</html>
