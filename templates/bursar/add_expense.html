@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Add Expense</title>
+  <style>
+    body{font-family:'Segoe UI',sans-serif;margin:0;padding:0;background:#f7f7f7}
+    :root{--nav-h:56px;--footer-h:56px}
+    .top-nav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);background:#b71c1c;color:#fff;display:flex;align-items:center;padding:0 12px;z-index:999}
+    .nav-title{flex:1;font-weight:700}
+    .nav-actions{display:flex;gap:8px}
+    .btn-back{display:inline-flex;align-items:center;gap:8px;background:#fff;color:#b71c1c;padding:8px 12px;border-radius:8px;text-decoration:none;font-weight:600;border:1px solid rgba(0,0,0,0.06);box-shadow:0 1px 2px rgba(0,0,0,0.04)}
+    .content{padding:12px; padding-top:calc(var(--nav-h) + 12px)}
+    label{display:block;margin:6px 0 4px;font-weight:600;font-size:13px}
+    /* modern light inputs */
+    input,select,textarea{width:100%;padding:8px 10px;border:1px solid #e6eef7;background:#f7fbff;border-radius:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.6);font-size:14px}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:#7fb3ff;box-shadow:0 0 0 3px rgba(127,179,255,0.12)}
+    /* grouped fields grid */
+    .field-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+    @media (max-width:420px){.field-grid{grid-template-columns:1fr}}
+    .actions{display:flex;gap:8px;margin-top:12px}
+    .btn{padding:10px 14px;border-radius:6px;text-decoration:none;color:#fff}
+    .btn.save{background:#388e3c}
+    .btn.cancel{background:#777}
+    .fixed-footer{position:fixed;left:0;right:0;bottom:0;height:var(--footer-h);background:#fff;border-top:1px solid #ddd;padding:8px 12px;text-align:center;display:flex;align-items:center;justify-content:center}
+    /* Scrollable card for inputs that leaves 20px gap on mobile */
+    .form-card{background:#fbfdff;border-radius:10px;padding:12px;box-shadow:0 6px 18px rgba(16,24,40,0.04);margin-bottom:12px;overflow:auto}
+    .form-scroll{max-height:calc(100vh - var(--nav-h) - var(--footer-h) - 20px);overflow-y:auto;padding-bottom:20px}
+    .form-scroll::-webkit-scrollbar{width:8px}
+    .form-scroll::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.08);border-radius:8px}
+    .form-card .small{font-size:13px;color:#555}
+  </style>
+</head>
+<body>
+  <div class="top-nav">
+    <div class="nav-title">Add Expense</div>
+    <div class="nav-actions">
+      <a class="btn-back" href="{{ url_for('bursar_routes.dashboard') }}">
+        <!-- signout / power icon -->
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 2v10" stroke="#b71c1c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M5 12a7 7 0 0014 0" stroke="#b71c1c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Back
+      </a>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="form-wrap">
+      <div class="form-card form-scroll">
+      <form method="post" action="{{ url_for('bursar_routes.add_expense') }}">
+      <label for="item_id">Item / Equipment (optional)</label>
+      <select name="item_id" id="item_id" tabindex="1" autofocus>
+        <option value="">-- Select item or leave blank --</option>
+        {% for it in items %}
+          <option value="{{ it.id }}">{{ it.name }}</option>
+        {% endfor %}
+      </select>
+
+      <div class="field-grid">
+        <div>
+          <label for="amount">Amount (UGX)</label>
+          <input name="amount" id="amount" type="number" step="0.01" required tabindex="2" />
+        </div>
+        <div>
+          <label for="quantity">Quantity</label>
+          <input name="quantity" id="quantity" type="number" step="1" min="1" tabindex="3" />
+        </div>
+      </div>
+
+      <div class="field-grid">
+        <div>
+          <label for="payment_date">Date</label>
+          <input name="payment_date" id="payment_date" type="date" tabindex="4" />
+        </div>
+        <div>
+          <label for="term">Term</label>
+          <input name="term" id="term" placeholder="Term 1 / Term 2" tabindex="7" />
+        </div>
+      </div>
+
+      <div class="field-grid">
+        <div>
+          <label for="year">Year</label>
+          <input name="year" id="year" placeholder="2025" tabindex="8" />
+        </div>
+        <div>
+          <label for="spent_by">Recorded by (name)</label>
+          <input name="spent_by" id="spent_by" placeholder="e.g. Adegi Dennis" value="{{ bursar_name or '' }}" tabindex="6" />
+        </div>
+      </div>
+
+      <label for="description">Description</label>
+      <textarea name="description" id="description" rows="3" tabindex="5"></textarea>
+
+      <div class="actions">
+        <button class="btn save" type="submit" tabindex="9">Save</button>
+        <a class="btn cancel" href="{{ url_for('bursar_routes.expenses') }}" tabindex="10">Cancel</a>
+      </div>
+    </form>
+
+    {% if added %}
+      <div style="margin-top:12px">
+        <p class="small">Expense added. View records for the same filter:</p>
+        <a class="btn" href="{{ url_for('bursar_routes.expenses', term=added_term, year=added_year, date=added_date) }}">See expenses (Term={{ added_term }} Year={{ added_year }})</a>
+      </div>
+    {% endif %}
+
+    <script>
+      // Allow Enter to move focus to the next field (vertical navigation)
+      document.addEventListener('DOMContentLoaded', function () {
+        const form = document.querySelector('form');
+        if (!form) return;
+        const focusable = Array.from(form.querySelectorAll('select, input, textarea, button'))
+          .filter(el => !el.disabled && el.type !== 'hidden');
+
+        focusable.forEach((el, idx) => {
+          el.dataset.idx = idx;
+          el.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+              // If it's a button or submit, allow default submit
+              const tag = el.tagName.toLowerCase();
+              const isButton = (tag === 'button') || (el.type === 'submit');
+              if (!isButton) {
+                e.preventDefault();
+                const next = focusable[idx + 1];
+                if (next) next.focus();
+              }
+            }
+          });
+        });
+      });
+    </script>
+      </div> <!-- .form-card -->
+    </div> <!-- .form-wrap -->
+  </div> <!-- .content -->
+
+    <div class="fixed-footer">
+      {% include 'footer.html' %}
+    </div>
+</body>
+</html>

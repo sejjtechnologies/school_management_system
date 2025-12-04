@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Expenses & Disbursements</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; margin:0; padding:0; background:#f0f5fa; }
+    :root{ --nav-h:56px; --footer-h:56px; }
+    /* Fixed top nav - red background */
+    .top-nav { position:fixed; top:0; left:0; right:0; height:var(--nav-h); background:#b71c1c; color:#fff; display:flex; align-items:center; padding:0 12px; z-index:999; justify-content:space-between; }
+    .nav-title { font-weight:700; flex:1; }
+    .nav-actions { display:flex; gap:8px; }
+    .btn-back { display:inline-flex; align-items:center; gap:8px; background:#fff; color:#b71c1c; padding:8px 12px; border-radius:8px; text-decoration:none; font-weight:600; border:1px solid rgba(0,0,0,0.06); }
+    .btn-signout { background:#c62828; color:#fff; padding:8px 12px; border-radius:8px; text-decoration:none; font-weight:600; border:1px solid rgba(0,0,0,0.1); }
+    .btn-signout:hover { background:#d32f2f; }
+    /* Content area with top nav spacing */
+    .content { padding-top:calc(var(--nav-h) + 12px); padding-bottom:calc(var(--footer-h) + 20px); padding-left:12px; padding-right:12px; }
+    .container { padding: 12px; max-width:600px; margin:0 auto; }
+     /* Scrollable table/list area. Uses the real footer height (updated via JS) so
+       the scrollable card stops 20px above the footer regardless of footer content. */
+     .scrollable-area { max-height:calc(100vh - var(--nav-h) - var(--footer-h) - 20px); overflow-y:auto; padding-right:8px; padding-bottom:20px; box-sizing:border-box; }
+    .scrollable-area::-webkit-scrollbar { width:8px; }
+    .scrollable-area::-webkit-scrollbar-thumb { background:rgba(0,0,0,0.1); border-radius:8px; }
+    .card { background:#fbfdff; border-radius:8px; padding:10px; box-shadow:0 1px 3px rgba(0,0,0,0.08); margin-bottom:12px; border:1px solid #e6eef7; margin-bottom:0; }
+    .list-row { padding:10px; background:#f7fbff; margin-bottom:8px; border-radius:6px; border-left:3px solid #1976d2; cursor:pointer; transition:all 0.2s; }
+    .list-row:hover { background:#ecf3ff; box-shadow:0 2px 6px rgba(25,118,210,0.08); }
+    .list-row.editing { background:#fff3cd; border-left-color:#ffc107; }
+    .list-row small { color:#666; display:block; }
+    /* Inline edit fields */
+    .edit-field { display:none; width:100%; padding:8px; border:1px solid #1976d2; border-radius:4px; font-size:14px; }
+    .list-row.editing .view { display:none; }
+    .list-row.editing .edit-field { display:inline-block; }
+    .edit-actions { margin-top:8px; display:flex; gap:8px; }
+    .edit-actions button { padding:6px 10px; border-radius:4px; border:none; cursor:pointer; font-size:12px; }
+    .edit-actions .btn-save { background:#388e3c; color:#fff; }
+    .edit-actions .btn-cancel { background:#757575; color:#fff; }
+    .totals { display:flex; justify-content:space-between; font-weight:700; padding:8px 0; }
+    .fixed-footer { position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid #ddd; padding:8px; text-align:center; }
+    .btn { display:inline-block; padding:8px 12px; background:#388e3c; color:#fff; border-radius:6px; text-decoration:none; }
+    .btn.add { background:#1976d2; }
+    .small { font-size:13px; }
+    /* Edit Modal */
+    .edit-modal { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:1000; }
+    .modal-content { background:#fff; border-radius:8px; padding:20px; max-width:400px; width:90%; box-shadow:0 4px 12px rgba(0,0,0,0.15); }
+    .form-group { display:flex; flex-direction:column; }
+    .form-group label { font-size:12px; font-weight:600; margin-bottom:4px; color:#333; }
+    .form-group input { padding:8px; border:1px solid #ccc; border-radius:4px; font-size:14px; }
+    .form-group input:focus { border-color:#1976d2; outline:none; }
+    .btn-save-modal, .btn-cancel-modal { padding:8px 16px; border-radius:4px; border:none; cursor:pointer; font-size:14px; font-weight:600; }
+    .btn-save-modal { background:#388e3c; color:#fff; flex:1; }
+    .btn-cancel-modal { background:#757575; color:#fff; flex:1; }
+    .btn-save-modal:hover { background:#2e7d32; }
+    .btn-cancel-modal:hover { background:#616161; }
+    @media (max-width:420px) {
+      .container { padding:8px; }
+      .card { padding:8px; }
+      .scrollable-area { max-height:calc(100vh - var(--nav-h) - var(--footer-h) - 20px); }
+      .list-row { padding:8px; font-size:13px; }
+      .nav-title { font-size:15px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Fixed top nav -->
+  <div class="top-nav">
+    <div class="nav-title">Expenses & Disbursements</div>
+    <div class="nav-actions">
+      <a class="btn-back" href="{{ url_for('bursar_routes.dashboard') }}" title="Go back and sign out">
+        <!-- sign-out icon -->
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17 16l4-4m0 0l-4-4m4 4H7m6-11v2a1 1 0 001 1h2a1 1 0 011 1v10a1 1 0 01-1 1h-2a1 1 0 01-1-1v2" stroke="#b71c1c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Content area -->
+  <div class="content">
+    <div class="container">
+      <div class="card">
+        <h3 style="margin:0 0 10px 0; font-size:15px;">Filters</h3>
+        <form method="get" action="{{ url_for('bursar_routes.expenses') }}" style="margin-bottom:8px;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <input name="term" value="{{ selected_term or '' }}" placeholder="Term" style="flex:1; min-width:80px; padding:8px; border:1px solid #ddd; border-radius:6px; font-size:13px;" />
+            <input name="year" value="{{ selected_year or '' }}" placeholder="Year" style="width:70px; padding:8px; border:1px solid #ddd; border-radius:6px; font-size:13px;" />
+            <input name="date" value="{{ selected_date or '' }}" placeholder="Date" type="date" style="min-width:130px; padding:8px; border:1px solid #ddd; border-radius:6px; font-size:13px;" />
+            <button type="submit" style="padding:8px 12px; background:#1976d2; color:#fff; border:none; border-radius:6px; cursor:pointer;">Filter</button>
+          </div>
+        </form>
+
+        <div class="totals small" style="font-size:12px;">
+          <div>💰 Total: UGX {{ "%.0f"|format(total_spent) }}</div>
+          <div>📊 {{ total_count }} item(s)</div>
+        </div>
+      </div>
+
+      <div class="card scrollable-area">
+        <h3 style="margin:0 0 12px 0; font-size:14px; color:#333;">Records (Click to edit)</h3>
+        {% if records %}
+          {% for r in records %}
+            <div class="list-row" data-id="{{ r.id }}" data-amount="{{ r.amount }}" data-quantity="{{ r.quantity or '' }}" data-date="{{ r.payment_date.strftime('%Y-%m-%d') if r.payment_date else '' }}" data-term="{{ r.term or '' }}" data-year="{{ r.year or '' }}" onclick="toggleEditModal(this)">
+              <div class="view">
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px; align-items:baseline;">
+                  <strong style="flex:1; word-break:break-word;">{{ r.item.name if r.item else (r.description[:30] or 'Other') }}</strong>
+                  <span style="text-align:right; font-weight:600; white-space:nowrap; margin-left:8px;">UGX {{ "%.0f"|format(r.amount) }}</span>
+                </div>
+                <small style="color:#666;">📅 {{ r.payment_date.strftime('%d/%m/%Y') }} • 👤 {{ r.spent_by or 'N/A' }}{% if r.quantity %} • 📦 Qty: {{ r.quantity }}{% endif %} • 📋 {{ r.term or '-' }} / {{ r.year or '-' }}</small>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="small" style="padding:12px; text-align:center; color:#999;">📭 No expenses recorded yet.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal Overlay -->
+  <div id="editModal" class="edit-modal" style="display:none;">
+    <div class="modal-content">
+      <h3 style="margin:0 0 16px 0;">Edit Expense</h3>
+      <form id="editForm" style="display:flex; flex-direction:column; gap:12px;">
+        <div class="form-group">
+          <label for="editAmount">Amount (UGX)</label>
+          <input type="number" id="editAmount" step="0.01" required style="padding:8px; border:1px solid #ccc; border-radius:4px; font-size:14px;" />
+        </div>
+        <div class="form-group">
+          <label for="editQuantity">Quantity</label>
+          <input type="number" id="editQuantity" min="1" style="padding:8px; border:1px solid #ccc; border-radius:4px; font-size:14px;" />
+        </div>
+        <div class="form-group">
+          <label for="editDate">Date</label>
+          <input type="date" id="editDate" style="padding:8px; border:1px solid #ccc; border-radius:4px; font-size:14px;" />
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div class="form-group">
+            <label for="editTerm">Term</label>
+            <input type="text" id="editTerm" placeholder="e.g. Term 1" style="padding:8px; border:1px solid #ccc; border-radius:4px; font-size:14px;" />
+          </div>
+          <div class="form-group">
+            <label for="editYear">Year</label>
+            <input type="number" id="editYear" min="2000" placeholder="e.g. 2025" style="padding:8px; border:1px solid #ccc; border-radius:4px; font-size:14px;" />
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:12px;">
+          <button type="button" class="btn-save-modal" onclick="saveEditModal()">Save</button>
+          <button type="button" class="btn-cancel-modal" onclick="closeEditModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="fixed-footer">
+    <a href="{{ url_for('bursar_routes.add_expense') }}" class="btn add">+ Add Expense</a>
+    &nbsp;&nbsp;
+    {% include 'footer.html' %}
+  </div>
+
+  <script>
+    let currentEditRecordId = null;
+
+    // Open edit modal
+    function toggleEditModal(row) {
+      currentEditRecordId = row.dataset.id;
+      document.getElementById('editAmount').value = row.dataset.amount;
+      document.getElementById('editQuantity').value = row.dataset.quantity;
+      document.getElementById('editDate').value = row.dataset.date;
+      document.getElementById('editTerm').value = row.dataset.term;
+      document.getElementById('editYear').value = row.dataset.year;
+      document.getElementById('editModal').style.display = 'flex';
+    }
+
+    // Helper to format yyyy-mm-dd => dd/mm/yyyy for display
+    function formatDateForDisplay(isoDate) {
+      if (!isoDate) return '';
+      const parts = isoDate.split('-');
+      if (parts.length !== 3) return isoDate;
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+
+    // Close edit modal
+    function closeEditModal() {
+      document.getElementById('editModal').style.display = 'none';
+      currentEditRecordId = null;
+    }
+
+    // Save all edited fields via AJAX and update the row in-place (no reload)
+    function saveEditModal() {
+      const amount = parseFloat(document.getElementById('editAmount').value);
+      const quantity = document.getElementById('editQuantity').value ? parseInt(document.getElementById('editQuantity').value) : null;
+      const date = document.getElementById('editDate').value;
+      const term = document.getElementById('editTerm').value || null;
+      const year = document.getElementById('editYear').value ? parseInt(document.getElementById('editYear').value) : null;
+
+      if (!amount || amount <= 0) {
+        alert('Please enter a valid amount');
+        return;
+      }
+
+      const payload = { amount };
+      if (quantity !== null) payload.quantity = quantity;
+      if (date) payload.date = date;
+      if (term) payload.term = term;
+      if (year !== null) payload.year = year;
+
+      fetch(`/bursar/expense/${currentEditRecordId}/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            // Update the corresponding list-row in-place
+            const row = document.querySelector(`.list-row[data-id="${currentEditRecordId}"]`);
+            if (row) {
+              // update dataset attributes
+              row.dataset.amount = data.data.amount;
+              row.dataset.quantity = data.data.quantity || '';
+              row.dataset.date = data.data.date || '';
+              row.dataset.term = data.data.term || '';
+              row.dataset.year = data.data.year || '';
+
+              // update amount display (assumes view contains a span for amount)
+              const amountSpan = row.querySelector('.view > div span');
+              if (amountSpan) {
+                const formatted = Number(data.data.amount).toLocaleString(undefined, { maximumFractionDigits: 0 });
+                amountSpan.textContent = `UGX ${formatted}`;
+              }
+
+              // update small metadata line (date, spent_by, qty, term/year)
+              const small = row.querySelector('.view small');
+              if (small) {
+                // parse existing spent_by if present
+                const parts = small.textContent.split('•').map(s => s.trim());
+                let spentBy = 'N/A';
+                if (parts.length > 1 && parts[1].includes('👤')) {
+                  spentBy = parts[1].replace('👤', '').trim();
+                }
+
+                const d = data.data.date || '';
+                const dateDisplay = d ? `📅 ${formatDateForDisplay(d)}` : (parts[0] || '📅 -');
+                const qtyDisplay = data.data.quantity ? ` • 📦 Qty: ${data.data.quantity}` : '';
+                const termDisplay = ` • 📋 ${data.data.term || '-'} / ${data.data.year || '-'} `;
+                small.textContent = `${dateDisplay} • 👤 ${spentBy}${qtyDisplay}${termDisplay}`;
+              }
+
+              // small visual cue: highlight briefly
+              row.style.transition = 'background 0.35s';
+              const prevBg = row.style.background;
+              row.style.background = '#e8f5e9';
+              setTimeout(() => { row.style.background = ''; }, 700);
+            }
+
+            // recompute footer/scroll layout by triggering resize handler
+            try { window.dispatchEvent(new Event('resize')); } catch (e) { /* ignore */ }
+
+          } else {
+            alert('Error: ' + (data.error || 'Unknown'));
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          alert('Error updating record');
+        });
+
+      closeEditModal();
+    }
+
+    // Close modal on outside click
+    document.addEventListener('DOMContentLoaded', function() {
+      // Close modal on outside click
+      const modal = document.getElementById('editModal');
+      if (modal) {
+        modal.addEventListener('click', function(e) {
+          if (e.target === this) closeEditModal();
+        });
+      }
+
+      // Measure footer height and store in CSS variable --footer-h so CSS can
+      // compute layouts that depend on the real footer size (keeps 20px gap).
+      function updateFooterHeight() {
+        try {
+          const footer = document.querySelector('.fixed-footer');
+          if (!footer) return;
+          // Use the footer's rendered height (including padding/border)
+          const rect = footer.getBoundingClientRect();
+          const h = Math.ceil(rect.height);
+          document.documentElement.style.setProperty('--footer-h', h + 'px');
+        } catch (e) {
+          // ignore measurement errors
+          console.warn('Could not compute footer height', e);
+        }
+      }
+
+      // Run once and also after a short delay to allow included template content to settle
+      updateFooterHeight();
+      setTimeout(updateFooterHeight, 200);
+      // Update on resize / orientation change
+      window.addEventListener('resize', updateFooterHeight);
+      // Also observe mutations under the footer in case its content changes
+      const footerEl = document.querySelector('.fixed-footer');
+      if (footerEl && window.MutationObserver) {
+        const mo = new MutationObserver(() => updateFooterHeight());
+        mo.observe(footerEl, { childList: true, subtree: true, characterData: true });
+      }
+    });
+  </script>
+</body>
+</html>

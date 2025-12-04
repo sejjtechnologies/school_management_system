@@ -63,6 +63,7 @@
     .btn-dashboard-fees { background-color: #388e3c; }
     .btn-dashboard-invoices { background-color: #fbc02d; color: #000; }
     .btn-dashboard-expenses { background-color: #6a1b9a; }
+    .btn-dashboard-view-expenses { background-color: #0288d1; }
     .btn-dashboard-staff { background-color: #00796b; }
 
     /* Mobile adjustments */
@@ -101,8 +102,13 @@
         </a>
       </div>
       <div class="col-12 col-md-6">
-        <a href="#" class="dashboard-btn btn-dashboard-expenses">
-          <i class="bi bi-file-earmark-text"></i> Expenses / Disbursements
+        <a href="{{ url_for('bursar_routes.add_expense') }}" class="dashboard-btn btn-dashboard-expenses">
+          <i class="bi bi-file-earmark-text"></i> Add Expense
+        </a>
+      </div>
+      <div class="col-12 col-md-6">
+        <a href="{{ url_for('bursar_routes.expenses') }}" class="dashboard-btn btn-dashboard-view-expenses">
+          <i class="bi bi-table"></i> View Expenses
         </a>
       </div>
       <div class="col-12 col-md-6">

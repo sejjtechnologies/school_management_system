@@ -78,12 +78,14 @@ def health():
         return f"Database connection failed: {str(e)}"
 
 # ✅ Auto-create tables if missing (generation moved to admin routes)
-with app.app_context():
-    try:
-        db.create_all()  # ensures all models' tables exist
-        logger.info("Database tables created successfully (timetable generation moved to admin routes)")
-    except Exception as e:
-        logger.error(f"Error creating tables: {str(e)}")
+# NOTE: db.create_all() is commented out due to Neon DB connection pool congestion
+# Tables are created by seed scripts or manual migration. Uncomment to enable.
+# with app.app_context():
+#     try:
+#         db.create_all()  # ensures all models' tables exist
+#         logger.info("Database tables created successfully (timetable generation moved to admin routes)")
+#     except Exception as e:
+#         logger.error(f"Error creating tables: {str(e)}")
 
 # ✅ Entry point for local testing
 if __name__ == "__main__":
