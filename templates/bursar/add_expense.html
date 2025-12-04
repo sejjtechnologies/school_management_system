@@ -58,9 +58,9 @@
     <div class="form-wrap">
       <div class="form-card form-scroll">
       <form method="post" action="{{ url_for('bursar_routes.add_expense') }}">
-      <label for="item_id">Item / Equipment (optional)</label>
+      <label for="item_id">Item / Equipment </label>
       <select name="item_id" id="item_id" tabindex="1" autofocus>
-        <option value="">-- Select item or leave blank --</option>
+        <option value="">-- Select item to continue --</option>
         {% for it in items %}
           <option value="{{ it.id }}">{{ it.name }}</option>
         {% endfor %}
