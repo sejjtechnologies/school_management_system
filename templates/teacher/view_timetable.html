@@ -89,7 +89,7 @@
 
   <main class="main-scroll">
     <h4 class="page-title">{{ class_name }} — {{ stream_name }}</h4>
-    <div class="timetable-container" id="timetableContainer" data-class-id="{{ class_id }}" data-stream-id="{{ stream_id }}" data-current-teacher-id="{{ current_user.id if current_user.is_authenticated else '' }}">
+    <div class="timetable-container" id="timetableContainer" data-class-id="{{ class_id }}" data-stream-id="{{ stream_id }}" data-current-teacher-id="{{ teacher.id if (teacher is defined and teacher) else '' }}">
       <div class="no-selection"><i class="bi bi-info-circle"></i> Loading timetable…</div>
     </div>
   </main>
