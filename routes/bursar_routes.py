@@ -337,7 +337,7 @@ def student_receipt(pupil_id):
         pass
     
     return render_template(
-        "bursar/student_receipt.html",
+        "bursar/receipt.html",
         pupil=pupil,
         pupil_fees=fees_for_class,
         paid_lookup=paid_lookup,
