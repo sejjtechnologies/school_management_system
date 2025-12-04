@@ -227,6 +227,12 @@
         display: none !important;
       }
 
+      /* Try to keep the whole receipt on a single printed page by reducing
+         paddings, font-sizes and preventing page-breaks inside the receipt. */
+      @page { size: portrait; margin: 6mm; }
+
+      html, body { height: auto; }
+
       main {
         position: static;
         top: 0;
@@ -237,12 +243,41 @@
       .receipt-container {
         box-shadow: none;
         max-width: 100%;
-        padding: 20px;
+        padding: 8px !important;
+        border-radius: 0;
+        margin: 0;
+        font-size: 10pt;
+        line-height: 1.05;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
       }
 
-      @page {
-        margin: 10mm;
+      .pupil-info {
+        padding: 6px !important;
+        gap: 6px;
       }
+
+      .payments-table th, .payments-table td {
+        padding: 4px !important;
+        font-size: 9pt !important;
+      }
+
+      .payments-table td.amount, .payments-table td.text-end {
+        font-size: 9pt !important;
+      }
+
+      .summary-section { padding: 6px !important; }
+
+      .footer-text { font-size: 8pt !important; padding-top: 8px !important; }
+
+      /* Avoid breaking the receipt into multiple pages */
+      .receipt-container, .payments-table, .payments-table tbody, .payments-table tr, .payments-table td {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      /* If content still overflows, reduce the fee breakdown verbosity slightly */
+      .fee-breakdown { font-size: 9pt; }
     }
 
     @media (max-width: 576px) {
@@ -381,45 +416,15 @@
         </div>
       </div>
 
-      <!-- Fee Breakdown -->
-      <div style="margin-top: 25px; padding: 15px; background-color: #fff9e6; border-radius: 5px;">
-        <h6 style="color: #d32f2f; margin-bottom: 12px; font-weight: bold;">Fee Breakdown by Item</h6>
-        <table class="payments-table" style="margin: 0;">
-          <thead>
-            <tr>
-              <th>Fee Item</th>
-              <th style="text-align: right;">Required (UGX)</th>
-              <th style="text-align: right;">Paid (UGX)</th>
-              <th style="text-align: right;">Balance (UGX)</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for fee in pupil_fees %}
-            <tr>
-              <td>{{ fee.item_name }}</td>
-              <td class="amount text-end">{{ "{:,.0f}".format(fee.amount) }}</td>
-              <td class="amount text-end">{{ "{:,.0f}".format(paid_lookup[fee.id]) }}</td>
-              <td class="amount text-end">{{ "{:,.0f}".format(fee.amount - paid_lookup[fee.id]) }}</td>
-              <td>
-                {% if paid_lookup[fee.id] >= fee.amount %}
-                  <span style="color: #4caf50; font-weight: bold;">✅ Paid</span>
-                {% else %}
-                  <span style="color: #f57c00; font-weight: bold;">⚠️ Pending</span>
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Footer -->
+      <!-- Footer & Cashier -->
       <div class="footer-text">
-        <p>
-          <strong>Receipt Date:</strong> {{ receipt_date }}<br>
-          This is an official payment receipt. Please keep for your records.
+        <p style="margin-bottom:6px;">
+          <strong>Receipt Date:</strong> {{ receipt_date }}
         </p>
+        <p style="margin:0 0 6px 0;">
+          <strong>Cashier:</strong> {{ cashier_name }}
+        </p>
+        <p style="margin:0; font-size:0.9rem; color:#666;">This is an official payment receipt. Please keep for your records.</p>
       </div>
 
     </div>
