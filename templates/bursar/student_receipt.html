@@ -56,92 +56,107 @@
 
     main > .container { padding-bottom: calc(var(--footer-gap) + 20px); }
 
-    /* Receipt Styling */
+    /* Receipt Styling - compact, vertical layout like a real receipt */
     .receipt-container {
-      max-width: 800px;
+      max-width: 80mm;
       margin: 0 auto;
       background: white;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      padding: 4px;
+      border-radius: 0;
+      box-shadow: none;
+      font-size: 7.5pt;
+      line-height: 1.1;
     }
 
     .receipt-header {
       text-align: center;
-      border-bottom: 2px dashed rgba(0,0,0,0.08);
-      padding-bottom: 14px;
-      margin-bottom: 16px;
+      border-bottom: 1px solid #000;
+      padding-bottom: 4px;
+      margin-bottom: 4px;
     }
 
     .school-name {
-      font-size: 1.3rem;
+      font-size: 11pt;
       font-weight: 800;
       color: #d32f2f;
+      margin: 0;
+      padding: 0;
     }
 
     .school-subtitle {
-      font-size: 0.85rem;
+      font-size: 7pt;
       color: #444;
-      margin-top: 6px;
+      margin: 2px 0 0 0;
+      padding: 0;
       font-style: italic;
     }
 
     .school-address {
-      font-size: 0.8rem;
+      font-size: 7pt;
       color: #666;
-      margin-top: 4px;
+      margin: 2px 0 0 0;
+      padding: 0;
     }
 
     .receipt-title {
-      font-size: 1.3rem;
+      font-size: 8pt;
       font-weight: bold;
       color: #333;
-      margin-top: 15px;
+      margin: 2px 0 0 0;
+      padding: 0;
     }
 
     .pupil-info {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-      margin: 20px 0;
-      padding: 15px;
-      background-color: #f9f9f9;
-      border-radius: 5px;
+      display: block;
+      margin: 4px 0;
+      padding: 0;
+      background-color: transparent;
+      border-radius: 0;
+      font-size: 7pt;
     }
 
     .pupil-info-item {
-      font-size: 0.95rem;
+      font-size: 7pt;
+      margin: 2px 0;
+      padding: 0;
+      display: flex;
+      justify-content: space-between;
     }
 
     .pupil-info-label {
       font-weight: bold;
       color: #333;
-      margin-right: 5px;
+      margin-right: 0;
+      min-width: 90px;
     }
 
     .pupil-info-value {
       color: #666;
+      text-align: right;
+      flex: 1;
     }
 
     .payments-table {
       width: 100%;
-      margin: 20px 0;
+      margin: 4px 0;
       border-collapse: collapse;
+      font-size: 7pt;
     }
 
     .payments-table th {
       background-color: #d32f2f;
       color: white;
-      padding: 10px;
+      padding: 2px 3px;
       text-align: left;
-      font-size: 0.9rem;
+      font-size: 7pt;
       border: none;
+      font-weight: 700;
     }
 
     .payments-table td {
-      padding: 10px;
+      padding: 2px 3px;
       border-bottom: 1px solid #e0e0e0;
-      font-size: 0.9rem;
+      font-size: 7pt;
     }
 
     .payments-table td.amount,
@@ -155,54 +170,61 @@
     }
 
     .summary-section {
-      margin-top: 20px;
-      padding: 15px;
-      background-color: #f0f0f0;
-      border-radius: 5px;
-      border-left: 4px solid #d32f2f;
+      margin-top: 4px;
+      padding: 2px 0;
+      background-color: transparent;
+      border-radius: 0;
+      border-left: none;
+      border-top: 1px solid #000;
+      font-size: 7pt;
     }
 
     .summary-row {
       display: flex;
       justify-content: space-between;
-      padding: 8px 0;
-      font-size: 0.95rem;
+      padding: 2px 0;
+      font-size: 7pt;
+      margin: 1px 0;
     }
 
     .summary-label {
       font-weight: bold;
       color: #333;
+      font-size: 7pt;
     }
 
     .summary-value {
       color: #666;
       text-align: right;
+      font-size: 7pt;
     }
 
     .summary-row.total {
-      border-top: 1px solid #ddd;
-      padding-top: 12px;
-      margin-top: 12px;
-      font-size: 1.1rem;
+      border-top: 1px solid #000;
+      padding-top: 2px;
+      margin-top: 2px;
+      font-size: 7.5pt;
     }
 
     .summary-row.total .summary-label,
     .summary-row.total .summary-value {
       color: #d32f2f;
       font-weight: bold;
+      font-size: 7.5pt;
     }
 
     .summary-row.balance {
-      color: #f57c00;
+      color: #333;
+      font-size: 7pt;
     }
 
     .footer-text {
       text-align: center;
-      margin-top: 20px;
-      padding-top: 15px;
-      border-top: 1px solid #e0e0e0;
-      font-size: 0.85rem;
-      color: #999;
+      margin-top: 4px;
+      padding-top: 2px;
+      border-top: 1px solid #000;
+      font-size: 7pt;
+      color: #333;
     }
 
     .print-buttons {
@@ -274,25 +296,25 @@
 
     @media (max-width: 576px) {
       .receipt-container {
-        padding: 12px;
-        max-width: 420px;
+        padding: 4px;
+        max-width: 100%;
       }
 
       .pupil-info {
-        grid-template-columns: 1fr;
+        display: block;
       }
 
       .payments-table th, .payments-table td {
-        padding: 6px;
-        font-size: 0.8rem;
+        padding: 2px 3px;
+        font-size: 7pt;
       }
 
       .school-name {
-        font-size: 1.2rem;
+        font-size: 10pt;
       }
 
       .receipt-title {
-        font-size: 1rem;
+        font-size: 8pt;
       }
     }
   </style>
