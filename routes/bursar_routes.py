@@ -632,16 +632,32 @@ def update_expense(expense_id):
 
         db.session.commit()
 
+        # calculate quick totals so client can refresh authoritative totals
+        try:
+            total_spent = float(db.session.query(func.coalesce(func.sum(ExpenseRecord.amount), 0)).scalar() or 0)
+        except Exception:
+            total_spent = float(sum(r.amount for r in ExpenseRecord.query.all()))
+        try:
+            total_count = db.session.query(func.count(ExpenseRecord.id)).scalar() or 0
+        except Exception:
+            total_count = len(ExpenseRecord.query.all())
+
         return jsonify({
             'success': True,
             'message': 'Expense updated successfully',
             'id': rec.id,
+            'item_name': rec.item.name if rec.item else (rec.description[:200] if rec.description else ''),
+            'spent_by': rec.spent_by,
             'data': {
                 'amount': float(rec.amount),
                 'quantity': rec.quantity,
                 'date': rec.payment_date.strftime('%Y-%m-%d') if rec.payment_date else '',
                 'term': rec.term,
                 'year': rec.year
+            },
+            'totals': {
+                'total_spent': total_spent,
+                'total_count': int(total_count)
             }
         }), 200
 

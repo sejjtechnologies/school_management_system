@@ -125,7 +125,7 @@
   <!-- Edit Modal Overlay -->
   <div id="editModal" class="edit-modal" style="display:none;">
     <div class="modal-content">
-      <h3 id="editModalTitle" style="margin:0 0 16px 0;">Edit Expense</h3>
+      <h3 style="margin:0 0 16px 0;">Edit Expense</h3>
       <form id="editForm" style="display:flex; flex-direction:column; gap:12px;">
         <div class="form-group">
           <label for="editAmount">Amount (UGX)</label>
@@ -200,13 +200,6 @@
         document.getElementById('editTerm').value = row.dataset.term || '';
         document.getElementById('editYear').value = row.dataset.year || '';
         const modal = document.getElementById('editModal');
-        // show item name in the modal title so user knows which record they are editing
-        try {
-          const strong = row.querySelector('.view strong');
-          const itemName = strong ? strong.textContent.trim() : '';
-          const titleEl = document.getElementById('editModalTitle');
-          if (titleEl) titleEl.textContent = itemName ? `Edit Expense — ${itemName}` : 'Edit Expense';
-        } catch (e) { /* ignore */ }
         if (modal) modal.style.display = 'flex';
 
         // On mobile, ensure the clicked row/card is visible above footer by centering it
@@ -264,16 +257,9 @@
         })
           .then(r => r.json())
           .then(data => {
-            console.log('expense update response', data, 'id=', currentEditRecordId);
             if (data.success) {
               // Update the corresponding list-row in-place
-              let row = document.querySelector(`.list-row[data-id="${currentEditRecordId}"]`);
-              if (!row) {
-                // fallback: iterate to find matching dataset id
-                const all = Array.from(document.querySelectorAll('.list-row'));
-                row = all.find(r => String(r.dataset.id) === String(currentEditRecordId));
-              }
-              console.log('found row?', !!row);
+              const row = document.querySelector(`.list-row[data-id="${currentEditRecordId}"]`);
               if (row) {
                 // update dataset attributes
                 row.dataset.amount = data.data.amount;
