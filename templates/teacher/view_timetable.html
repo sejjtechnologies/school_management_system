@@ -47,22 +47,27 @@
 
     /* Print styles: show only the timetable grid and make it fit nicely on paper */
     @media print {
-      @page { size: A4 landscape; margin: 8mm; }
+      @page { size: A4 landscape; margin: 6mm; }
       html, body { background: #fff; color: #000; }
       /* show print-header, hide non-essential UI */
       .print-header { display: block !important; position: fixed; top: 0; left: 0; right: 0; background: #fff; z-index: 9999; }
       nav.navbar, .ms-auto, .page-title, footer, .no-selection { display: none !important; }
       main.main-scroll { margin: 0; padding: 0; }
-      /* shrink slightly to help fit on a single page */
-      html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; zoom: 0.78; }
-      .timetable-container { box-shadow: none; border-radius: 0; padding: 2mm; margin: 0; }
-      .timetable-grid { gap: 1px; background: #bbb; }
-      .grid-header, .grid-time, .grid-cell { page-break-inside: avoid; }
-      /* enlarge grid font slightly for print readability while keeping fit */
-      .grid-header, .grid-time { font-size: 9pt !important; }
-      .grid-cell { font-size: 8pt !important; padding: 3px !important; }
+
+      /* print header styling */
+      .print-school { font-weight: 900; font-size: 20pt; color: #2b3e94; }
+      .print-motto { font-style: italic; font-size: 11pt; color: #6a1b9a; margin-top: 2px; }
+      .print-teacher { font-size: 11pt; color: #1b5e20; margin-top: 4px; }
+
+      /* Force timetable to fit the printable width, avoid horizontal overflow */
+      .timetable-container { box-shadow: none; border-radius: 0; padding: 2mm; margin: 0; width: 100% !important; overflow: visible !important; }
+      .timetable-grid { gap: 1px; background: #bbb; width: 100% !important; min-width: 0 !important; grid-template-columns: 80px repeat(6, 1fr) !important; }
+      .grid-header, .grid-time, .grid-cell { page-break-inside: avoid; break-inside: avoid; }
+      /* slightly smaller font for print to help fit on a single page */
+      .grid-header, .grid-time { font-size: 8.5pt !important; padding: 6px !important; }
+      .grid-cell { font-size: 7.5pt !important; padding: 3px !important; min-height: 36px !important; }
       /* ensure header area doesn't overlap content */
-      .timetable-container { margin-top: 56px; }
+      .timetable-container { margin-top: 100px; }
     }
   </style>
 </head>
@@ -88,9 +93,13 @@
   <!-- Print header (hidden on screen, shown on print). Will repeat on each printed page in most browsers. -->
   <div class="print-header" aria-hidden="true" style="display:none;">
     <div class="container text-center">
-      <div style="font-weight:800; font-size:16px;">Hope Full Future P/s</div>
-      <div style="font-size:11px;">Motto — Naturing Minds, Shaping Future</div>
-      <div style="margin-top:6px; font-size:12px;">
+      <div class="print-school">Hope Full Future P/s</div>
+      <div class="print-motto">Naturing Minds, Shaping Future</div>
+      <div class="print-teacher" style="margin-top:6px;">
+        {% if teacher is defined and teacher %}
+          <span style="font-weight:700; color:#2e7d32;">{{ teacher.first_name }} {{ teacher.last_name }}</span>
+          &nbsp;—&nbsp;
+        {% endif %}
         <span id="printClassStream">{{ class_name }} — {{ stream_name }}</span>
         &nbsp;|&nbsp; Date: <span id="printDate"></span>
       </div>
