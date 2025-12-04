@@ -500,6 +500,12 @@
         padding: 8px 12px;
         font-size: 0.85rem;
       }
+
+      /* Ensure back button stays top-right on small screens and is touch-friendly */
+      nav.navbar .container-fluid { position: relative; }
+      nav.navbar .ms-auto { position: absolute; right: 8px; top: 8px; z-index: 1050; }
+      .logout-btn { padding: 6px 10px; font-size: 0.9rem; min-width: 50px; min-height: 36px; }
+
     }
   </style>
 </head>
