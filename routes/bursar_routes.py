@@ -653,4 +653,20 @@ def update_expense(expense_id):
 
 
 
+# ---------------------------------------------------------
+# DELETE: remove an expense record (AJAX)
+# ---------------------------------------------------------
+@bursar_routes.route('/expense/<int:expense_id>/delete', methods=['POST'])
+def delete_expense(expense_id):
+    try:
+        rec = ExpenseRecord.query.get_or_404(expense_id)
+        db.session.delete(rec)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Expense deleted', 'id': expense_id}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+
 
