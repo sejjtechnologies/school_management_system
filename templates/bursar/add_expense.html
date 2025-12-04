@@ -177,9 +177,12 @@
             const gapTop = 20; // desired gap from top nav to card top
             const gapBottom = 20; // desired gap from card bottom to footer
 
+            // use visualViewport height if available (accounts for on-screen keyboard)
+            const viewportHeight = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
+
             const cardRect = card.getBoundingClientRect();
             const viewportTop = navH + gapTop;
-            const viewportBottom = window.innerHeight - footerH - gapBottom;
+            const viewportBottom = viewportHeight - footerH - gapBottom;
 
             // If the card top is above desired viewport top, scroll up
             if (cardRect.top < viewportTop) {
@@ -201,6 +204,17 @@
                 scrollable.scrollBy({ top: delta, behavior: 'smooth' });
               }
             }
+
+            // As a robust fallback, if Save button exists, try to bring it into view
+            try {
+              const saveBtn = card.querySelector('.actions .btn.save');
+              if (saveBtn) {
+                // small delay to allow previous scrolling to finish
+                setTimeout(() => {
+                  saveBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 220);
+              }
+            } catch (e) { /* ignore */ }
           } catch (err) { console.warn(err); }
         }
 
@@ -211,6 +225,18 @@
         if (footerEl && window.MutationObserver) {
           const mo = new MutationObserver(() => updateFooterHeight());
           mo.observe(footerEl, { childList: true, subtree: true, characterData: true });
+        }
+        // Use visualViewport when available to react to on-screen keyboard changes
+        if (window.visualViewport) {
+          visualViewport.addEventListener('resize', function() {
+            updateFooterHeight();
+            // ensure current focused element's card is visible
+            const active = document.activeElement;
+            if (active) ensureCardVisibleOnFocus({ target: active });
+          });
+          visualViewport.addEventListener('scroll', function() {
+            updateFooterHeight();
+          });
         }
         document.addEventListener('focusin', ensureCardVisibleOnFocus, true);
       });
