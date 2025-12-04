@@ -6,8 +6,8 @@
   <title>Add Expense</title>
   <style>
     body{font-family:'Segoe UI',sans-serif;margin:0;padding:0;background:#f7f7f7}
-    /* slightly smaller top-nav by default to fit mobile screens better */
-    :root{--nav-h:48px;--footer-h:56px}
+    /* fixed top-nav height (60px) while preserving button sizing and scrolling calculations */
+    :root{--nav-h:60px;--footer-h:56px}
     .top-nav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);background:#b71c1c;color:#fff;display:flex;align-items:center;padding:0 10px;z-index:999}
     .nav-title{flex:1;font-weight:700;font-size:14px}
     .nav-actions{display:flex;gap:6px}
@@ -23,11 +23,9 @@
     .field-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
     @media (max-width:420px){.field-grid{grid-template-columns:1fr}}
     @media (max-width:420px){
-      /* slightly reduced further on very small screens */
+      /* keep the back button compact on very small screens but keep nav height fixed at 60px */
       .btn-back{padding:5px 7px; border-radius:6px; font-size:13px}
       .btn-back svg{width:13px;height:13px}
-      .top-nav{height:44px}
-      :root{--nav-h:44px}
     }
     .actions{display:flex;gap:8px;margin-top:12px}
     .btn{padding:10px 14px;border-radius:6px;text-decoration:none;color:#fff}
