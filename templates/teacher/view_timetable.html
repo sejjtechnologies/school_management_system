@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>View Timetable - {{ class_name }} {{ stream_name }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    body { margin: 0; padding-top: 64px; font-family: 'Segoe UI', sans-serif; background: #f7f7f7; }
+    .navbar { background: #283593; height: 56px; }
+    .navbar .navbar-brand, .navbar .nav-link { color: #fff; }
+    .page-title { padding: 18px 16px; color: #283593; font-weight: 700; }
+    .timetable-container { background: #fff; border-radius: 8px; padding: 12px; margin: 12px; }
+    .timetable-grid { display: grid; grid-template-columns: 100px repeat(6, 1fr); gap: 2px; background: #ddd; padding: 2px; min-width: 100%; }
+    .grid-header { background-color: #4a148c; color: #fff; font-weight: bold; padding: 10px; text-align: center; font-size: 0.9rem; }
+    .grid-time { background-color: #7b1fa2; color: #fff; font-weight: bold; padding: 10px; text-align: center; font-size: 0.9rem; }
+    .grid-cell { background: #f5f5f5; padding: 8px; min-height: 80px; display: flex; flex-direction: column; justify-content: center; font-size: 0.85rem; }
+    .grid-cell.occupied { background-color: #c8e6c9; border: 2px solid #388e3c; }
+    .slot-subject { font-weight: bold; color: #1b5e20; }
+    .slot-teacher { font-size: 0.85rem; color: #424242; margin-top: 6px; }
+    @media (max-width: 768px) {
+      .timetable-grid { grid-template-columns: 65px repeat(6, 1fr); min-width: 600px; }
+      .grid-cell { min-height: 90px; }
+      .timetable-container {
+        padding-bottom: 20px;
+        margin-bottom: 20px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+    }
+
+    /* Print styles: show only the timetable grid and make it fit nicely on paper */
+    @media print {
+      @page { size: A4 landscape; margin: 8mm; }
+      html, body { background: #fff; color: #000; }
+      /* show print-header, hide non-essential UI */
+      .print-header { display: block !important; position: fixed; top: 0; left: 0; right: 0; background: #fff; z-index: 9999; }
+      nav.navbar, .ms-auto, .page-title, footer, .no-selection { display: none !important; }
+      main.main-scroll { margin: 0; padding: 0; }
+      /* shrink slightly to help fit on a single page */
+      html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; zoom: 0.78; }
+      .timetable-container { box-shadow: none; border-radius: 0; padding: 2mm; margin: 0; }
+      .timetable-grid { gap: 1px; background: #bbb; }
+      .grid-header, .grid-time, .grid-cell { page-break-inside: avoid; }
+      /* enlarge grid font slightly for print readability while keeping fit */
+      .grid-header, .grid-time { font-size: 9pt !important; }
+      .grid-cell { font-size: 8pt !important; padding: 3px !important; }
+      /* ensure header area doesn't overlap content */
+      .timetable-container { margin-top: 56px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar fixed-top navbar-expand-lg">
+    <div class="container-fluid px-3">
+      <a class="navbar-brand fw-bold" href="{{ url_for('teacher_routes.dashboard') }}">
+        <i class="bi bi-table me-2"></i>Timetable — {{ class_name }} {{ stream_name }}
+      </a>
+      <div class="ms-auto">
+        <button type="button" class="btn btn-outline-light me-2" id="printBtn" title="Print timetable">
+          <i class="bi bi-printer-fill"></i> Print
+        </button>
+        <a href="{{ url_for('teacher_routes.dashboard') }}" class="btn btn-light" style="margin-right:8px;">
+          <i class="bi bi-box-arrow-right me-1" style="color: #d32f2f;"></i> Back
+        </a>
+      </div>
+    </div>
+  </nav>
+
+    <div class="container mt-2 d-print-none" style="position: fixed; right: 16px; top: 70px; z-index: 1050; max-width: 320px;">
+      <div class="alert alert-info py-2 px-3" style="font-size:0.9rem;">
+        Tip: to remove browser-added date/title/URL from the printed output, uncheck "Headers and footers" in your browser's Print dialog. For a guaranteed headerless PDF, request a server-generated PDF (I can add this).
+      </div>
+    </div>
+
+  <!-- Print header (hidden on screen, shown on print). Will repeat on each printed page in most browsers. -->
+  <div class="print-header" aria-hidden="true" style="display:none;">
+    <div class="container text-center">
+      <div style="font-weight:800; font-size:16px;">Hope Full Future P/s</div>
+      <div style="font-size:11px;">Motto — Naturing Minds, Shaping Future</div>
+      <div style="margin-top:6px; font-size:12px;">
+        <span id="printClassStream">{{ class_name }} — {{ stream_name }}</span>
+        &nbsp;|&nbsp; Date: <span id="printDate"></span>
+      </div>
+      <hr style="border:none; border-top:1px solid #444; margin:8px 0 6px 0;" />
+    </div>
+  </div>
+
+  <main class="main-scroll">
+    <h4 class="page-title">{{ class_name }} — {{ stream_name }}</h4>
+    <div class="timetable-container" id="timetableContainer" data-class-id="{{ class_id }}" data-stream-id="{{ stream_id }}">
+      <div class="no-selection"><i class="bi bi-info-circle"></i> Loading timetable…</div>
+    </div>
+  </main>
+
+  {% include 'footer.html' %}
+
+  <script>
+    // Minimal JS copied/adapted from admin manage page but with read-only behavior
+    function convertTo12Hour(time24h) {
+      const [hours, minutes] = time24h.split(':').map(Number);
+      const period = hours >= 12 ? 'PM' : 'AM';
+      const hours12 = hours % 12 || 12;
+      return `${hours12}:${String(minutes).padStart(2, '0')} ${period}`;
+    }
+
+    function generateTimeSlots() {
+      const slots = [];
+      let current = new Date();
+      current.setHours(8, 0, 0, 0);
+      const endTime = new Date();
+      endTime.setHours(17, 0, 0, 0);
+      while (current < endTime) {
+        const hours = String(current.getHours()).padStart(2, '0');
+        const minutes = String(current.getMinutes()).padStart(2, '0');
+        const timeStr = `${hours}:${minutes}`;
+        if (timeStr === '10:00') {
+          slots.push({ time: timeStr, type: 'break', label: '☕ 20 MIN BREAK' });
+          current.setMinutes(current.getMinutes() + 20);
+        } else if (timeStr === '13:00') {
+          slots.push({ time: timeStr, type: 'lunch', label: '🍽️ 40 MIN LUNCH' });
+          current.setMinutes(current.getMinutes() + 40);
+        } else {
+          const remainingMinutes = (endTime - current) / (1000 * 60);
+          const lessonDuration = remainingMinutes <= 40 ? Math.ceil(remainingMinutes) : 40;
+          slots.push({ time: timeStr, type: 'lesson', duration: lessonDuration });
+          current.setMinutes(current.getMinutes() + lessonDuration);
+        }
+      }
+      return slots;
+    }
+
+    async function loadAndRender() {
+      try {
+        const containerEl = document.getElementById('timetableContainer');
+        const classId = parseInt(containerEl && containerEl.dataset && containerEl.dataset.classId, 10);
+        const streamId = parseInt(containerEl && containerEl.dataset && containerEl.dataset.streamId, 10);
+        const resp = await fetch(`/admin/timetable/get/${classId}/${streamId}`);
+        const data = await resp.json();
+        const currentSlots = data.slots || [];
+        renderTimetable(currentSlots);
+      } catch (e) {
+        document.getElementById('timetableContainer').innerHTML = '<div class="no-selection">Error loading timetable</div>';
+        console.error(e);
+      }
+    }
+
+    function renderTimetable(currentSlots) {
+      const container = document.getElementById('timetableContainer');
+      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const times = generateTimeSlots();
+      let html = '<div class="timetable-grid">';
+      html += '<div class="grid-header"></div>';
+      days.forEach(day => html += `<div class="grid-header">${day}</div>`);
+      times.forEach(timeObj => {
+        const time = timeObj.time;
+        const timeType = timeObj.type;
+        if (timeType === 'break') {
+          html += `<div class="grid-time" style="background-color: #fff9c4; color: #f57f17; font-weight: bold;">☕ BREAK</div>`;
+        } else if (timeType === 'lunch') {
+          html += `<div class="grid-time" style="background-color: #ffecb3; color: #e65100; font-weight: bold;">🍽️ LUNCH</div>`;
+        } else {
+          html += `<div class="grid-time">${convertTo12Hour(time)}</div>`;
+        }
+
+        days.forEach(day => {
+          if (timeType === 'break' || timeType === 'lunch') {
+            html += `<div class="grid-cell" style="background-color: ${timeType === 'break' ? '#fff9c4' : '#ffecb3'}; text-align: center; font-weight: bold; color: #666;">${timeObj.label}</div>`;
+          } else {
+            const slots = currentSlots.filter(s => s.day_of_week === day && s.start_time === time);
+            if (slots.length > 0) {
+              html += '<div class="grid-cell occupied">';
+              slots.forEach((slot, idx) => {
+                html += `\n  <div style="margin-bottom: ${idx < slots.length - 1 ? '8px' : '0'}; padding-bottom: ${idx < slots.length - 1 ? '8px' : '0'}; border-bottom: ${idx < slots.length - 1 ? '1px solid #b0bec5' : 'none'};">\n    <div class="slot-subject">${slot.subject_name}</div>\n    <div class="slot-teacher">${slot.teacher_name}</div>\n  </div>`;
+              });
+              html += '</div>';
+            } else {
+              html += '<div class="grid-cell"><small style="color: #999">—</small></div>';
+            }
+          }
+        });
+      });
+      html += '</div>';
+      container.innerHTML = html;
+      computeTimetableHeight();
+    }
+
+    function computeTimetableHeight() {
+      try {
+        const container = document.getElementById('timetableContainer');
+        const navbar = document.querySelector('.navbar');
+        const control = null; // no control panel here
+        const footer = document.querySelector('footer');
+        const navH = navbar ? navbar.getBoundingClientRect().height : 0;
+        const controlH = 0;
+        const footerH = footer ? footer.getBoundingClientRect().height : 0;
+        const extraGap = 20;
+        const viewportH = window.innerHeight;
+        let available = viewportH - navH - controlH - footerH - extraGap;
+        if (available < 200) available = 200;
+        container.style.maxHeight = available + 'px';
+        container.style.overflowY = 'auto';
+        container.style.webkitOverflowScrolling = 'touch';
+      } catch (e) { console.error(e); }
+    }
+
+    window.addEventListener('load', function(){ loadAndRender(); computeTimetableHeight(); });
+    window.addEventListener('resize', function(){ setTimeout(computeTimetableHeight, 120); });
+
+    // Wire print button: call window.print() after a short delay
+    document.addEventListener('DOMContentLoaded', function(){
+      const pb = document.getElementById('printBtn');
+      const pd = document.getElementById('printDate');
+      if (pd) pd.textContent = new Date().toLocaleDateString();
+      if (pb) pb.addEventListener('click', function(){
+        // update date right before printing
+        if (pd) pd.textContent = new Date().toLocaleDateString();
+        setTimeout(() => window.print(), 80);
+      });
+
+      // Also respond to native beforeprint event
+      if (window.matchMedia) {
+        try {
+          window.addEventListener('beforeprint', function(){ if (pd) pd.textContent = new Date().toLocaleDateString(); });
+        } catch(e) { /* ignore */ }
+      }
+
+      // Observe footer size changes and recompute timetable height when footer resizes
+      const footer = document.querySelector('footer');
+      if (footer && window.ResizeObserver) {
+        try {
+          const ro = new ResizeObserver(function(){ computeTimetableHeight(); });
+          ro.observe(footer);
+        } catch(e) { /* ignore */ }
+      }
+    });
+  </script>
+</body>
+</html>

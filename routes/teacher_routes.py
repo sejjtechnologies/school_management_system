@@ -70,6 +70,68 @@ def dashboard():
                            exam_types=exam_types)
 
 
+@teacher_routes.route('/timetable')
+def view_timetable():
+    """Redirect a logged-in teacher to the timetable view for their assigned class & stream.
+    If the teacher has multiple assignments, render a small chooser page.
+    """
+    teacher, redirect_resp = _require_teacher()
+    if redirect_resp:
+        return redirect_resp
+
+    assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
+    if not assignments:
+        flash('You have no class/stream assignment. Contact admin.', 'warning')
+        return redirect(url_for('teacher_routes.dashboard'))
+
+    # If the teacher has a single assignment, redirect straight to the timetable manager page
+    if len(assignments) == 1:
+        a = assignments[0]
+        # Redirect to the teacher read-only timetable view for the assigned class/stream
+        return redirect(url_for('teacher_routes.view_timetable_view', class_id=a.class_id, stream_id=a.stream_id))
+
+    # If multiple assignments, render a simple chooser so teacher picks which stream's timetable to view
+    # Each choice links to the admin timetable manager with query params (view-only for teachers).
+    choices = []
+    for a in assignments:
+        class_obj = Class.query.get(a.class_id)
+        stream_obj = Stream.query.get(a.stream_id)
+        choices.append({
+            'assignment_id': a.id,
+            'class_id': a.class_id,
+            'stream_id': a.stream_id,
+            'class_name': class_obj.name if class_obj else f'Class {a.class_id}',
+            'stream_name': stream_obj.name if stream_obj else f'Stream {a.stream_id}'
+        })
+
+    return render_template('teacher/select_assignment.html', teacher=teacher, choices=choices)
+
+
+
+@teacher_routes.route('/timetable/view/<int:class_id>/<int:stream_id>')
+def view_timetable_view(class_id, stream_id):
+    """Render a read-only timetable page for a teacher assigned to the provided class and stream.
+    Only allowed if the logged-in teacher is assigned to that class+stream.
+    """
+    teacher, redirect_resp = _require_teacher()
+    if redirect_resp:
+        return redirect_resp
+
+    # Verify assignment exists for this teacher
+    assignment = TeacherAssignment.query.filter_by(teacher_id=teacher.id, class_id=class_id, stream_id=stream_id).first()
+    if not assignment:
+        flash('Access denied. You are not assigned to the selected class/stream.', 'danger')
+        return redirect(url_for('teacher_routes.dashboard'))
+
+    class_obj = Class.query.get(class_id)
+    stream_obj = Stream.query.get(stream_id)
+
+    class_name = class_obj.name if class_obj else f'Class {class_id}'
+    stream_name = stream_obj.name if stream_obj else f'Stream {stream_id}'
+
+    return render_template('teacher/view_timetable.html', teacher=teacher, class_id=class_id, stream_id=stream_id, class_name=class_name, stream_name=stream_name)
+
+
 @teacher_routes.route("/pupils_details")
 def pupils_details():
     teacher, redirect_resp = _require_teacher()

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Select Assignment</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+  <div class="container py-5">
+    <h3 class="mb-4">Select an assignment to view its timetable</h3>
+    <div class="list-group">
+      {% for c in choices %}
+      <a href="{{ url_for('teacher_routes.view_timetable_view', class_id=c.class_id, stream_id=c.stream_id) }}" class="list-group-item list-group-item-action">
+        {{ c.class_name }} — {{ c.stream_name }}
+      </a>
+      {% endfor %}
+    </div>
+    <div class="mt-4">
+      <a href="{{ url_for('teacher_routes.dashboard') }}" class="btn btn-secondary">Back to dashboard</a>
+    </div>
+  </div>
+  {% include 'footer.html' %}
+</body>
+</html>
