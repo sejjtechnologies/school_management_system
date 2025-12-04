@@ -483,10 +483,12 @@ def attendance_view():
                         'stream_name': stream_name
                     })
 
-        # Load existing attendance for selected date
-        existing_attendance = Attendance.query.filter_by(date=selected_date).all()
-        for att in existing_attendance:
-            attendance_map[att.pupil_id] = att.status
+        # Load existing attendance for selected date but only for pupils in this teacher's assignments
+        pupil_ids = [p['id'] for p in pupils_list]
+        if pupil_ids:
+            existing_attendance = Attendance.query.filter(Attendance.date == selected_date, Attendance.pupil_id.in_(pupil_ids)).all()
+            for att in existing_attendance:
+                attendance_map[att.pupil_id] = att.status
 
         # Build unique streams list
         all_streams = [
@@ -528,14 +530,24 @@ def attendance_view():
     class_id = payload.get('class_id')
     entries = payload.get('entries', [])
     attendance_date = payload.get('date')
+    stream_id = payload.get('stream_id')
 
     if not class_id or not entries or not attendance_date:
         return (json.dumps({'error': 'Missing required fields: class_id, date, entries'}), 400, {'Content-Type': 'application/json'})
 
-    # Validate teacher has permission for this class
+    # Validate teacher has permission for this class+stream
     assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
-    if not any(a.class_id == int(class_id) for a in assignments):
-        return (json.dumps({'error': 'Not authorized for this class'}), 403, {'Content-Type': 'application/json'})
+    try:
+        stream_id_int = int(stream_id) if stream_id is not None and stream_id != '' else None
+    except (ValueError, TypeError):
+        stream_id_int = None
+
+    if stream_id_int is None:
+        # If stream_id not provided, try to infer from first pupil entry later; but require assignment check will be done after inference
+        pass
+    else:
+        if not any(a.class_id == int(class_id) and a.stream_id == stream_id_int for a in assignments):
+            return (json.dumps({'error': 'Not authorized for this class/stream'}), 403, {'Content-Type': 'application/json'})
 
     try:
         class_id = int(class_id)
@@ -543,18 +555,36 @@ def attendance_view():
     except (ValueError, TypeError) as e:
         return (json.dumps({'error': f'Invalid date format: {str(e)}'}), 400, {'Content-Type': 'application/json'})
 
-    # Check if attendance for this date has already been saved by checking if records exist
-    existing_count = Attendance.query.filter_by(date=attendance_date_obj).filter(
-        Attendance.class_id == class_id
-    ).count()
+    # Check if attendance for this date has already been saved for this class+stream
+    # Determine stream_id if not provided by looking up pupil records in entries
+    if stream_id_int is None:
+        # infer from first valid pupil in entries
+        inferred_stream = None
+        for entry in entries:
+            pid = entry.get('pupil_id')
+            try:
+                p = Pupil.query.get(int(pid))
+                if p:
+                    inferred_stream = p.stream_id
+                    break
+            except Exception:
+                continue
+        stream_id_int = inferred_stream
 
-    # If attendance already exists for this date and class, prevent re-saving
+    existing_count_query = Attendance.query.filter(Attendance.date == attendance_date_obj, Attendance.class_id == class_id)
+    if stream_id_int is not None:
+        existing_count_query = existing_count_query.filter(Attendance.stream_id == stream_id_int)
+
+    existing_count = existing_count_query.count()
+
+    # If attendance already exists for this date and class/stream, prevent re-saving
     if existing_count > 0:
         return (json.dumps({'error': 'Attendance for this date has already been saved. Cannot save twice.', 'already_saved': True}), 409, {'Content-Type': 'application/json'})
 
     # Prepare records for upsert with validation
     to_upsert = []
     logs_to_create = []
+    invalid_pupils = []
 
     for entry in entries:
         try:
@@ -565,9 +595,17 @@ def attendance_view():
             if status not in ('present', 'absent', 'late', 'leave'):
                 status = 'absent'
 
-            # Verify pupil exists and belongs to this class
-            pupil = Pupil.query.filter_by(id=pupil_id, class_id=class_id).first()
+            # Verify pupil exists and belongs to this class (and stream when available)
+            if stream_id_int is not None:
+                pupil = Pupil.query.filter_by(id=pupil_id, class_id=class_id, stream_id=stream_id_int).first()
+            else:
+                pupil = Pupil.query.filter_by(id=pupil_id, class_id=class_id).first()
             if not pupil:
+                # record invalid pupil ids for reporting/debugging and skip
+                try:
+                    invalid_pupils.append(int(pupil_id))
+                except Exception:
+                    pass
                 continue  # Skip invalid pupils
 
             # Since we already checked above, there should be no existing records
@@ -619,10 +657,14 @@ def attendance_view():
         db.session.execute(upsert)
         db.session.commit()
 
+        msg = f'Successfully saved {len(to_upsert)} attendance records'
+        if invalid_pupils:
+            msg += f'. Skipped {len(invalid_pupils)} invalid pupil entries.'
         return (json.dumps({
             'ok': True,
-            'message': f'Successfully saved {len(to_upsert)} attendance records',
-            'count': len(to_upsert)
+            'message': msg,
+            'count': len(to_upsert),
+            'skipped_invalid_pupils': invalid_pupils
         }), 200, {'Content-Type': 'application/json'})
 
     except Exception as e:

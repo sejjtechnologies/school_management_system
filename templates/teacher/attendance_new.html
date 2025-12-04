@@ -34,7 +34,7 @@
     .fixed-back { position: absolute; left: 12px; top: 12px; z-index: 1100; }
     .fixed-back .btn { height: 36px; padding: 6px 10px; }
     .scroll-last-btn { position: fixed; right: 14px; bottom: 90px; z-index: 1100; }
-    
+
     /* Improved search bar right after navbar */
     .search-bar-fixed {
       position: fixed;
@@ -288,7 +288,7 @@
           currentAttendance[pupilId] = e.target.value;
         });
       });
-      
+
       updateSaveButtonState();
     }
 
@@ -319,8 +319,11 @@
 
       if (entries.length === 0) { showAlert('warning','No attendance marked'); return; }
 
+      // Determine stream_id for this save. Prefer selectedStream (dropdown) if set, otherwise infer from pupils list.
+      let streamId = selectedStream || (pupils.length ? pupils[0].stream_id : null);
       const payload = {
         class_id: classId,
+        stream_id: streamId,
         date: selectedDate,
         entries: entries
       };
@@ -372,7 +375,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('attendanceDate').value = selectedDate;
       populateStreams();
-      
+
       // Handle date change - reload with new date parameter
       document.getElementById('attendanceDate').addEventListener('change', (e) => {
         const newDate = e.target.value;
@@ -381,7 +384,7 @@
           window.location.href = `{{ url_for('teacher_routes.attendance_view') }}?date=${newDate}`;
         }
       });
-      
+
       // set selectedStream default
       document.getElementById('streamFilter').addEventListener('change', (e)=>{ selectedStream = e.target.value; renderTable(); });
       document.getElementById('markAllPresentBtn').addEventListener('click', ()=>{ getVisiblePupils().forEach(p=> currentAttendance[p.id]='present'); renderTable(); });
@@ -394,17 +397,17 @@
           showAlert('info','Please save attendance first');
         }
       });
-      document.getElementById('searchBox').addEventListener('input', (e)=>{ 
-        searchTerm = e.target.value.trim(); 
+      document.getElementById('searchBox').addEventListener('input', (e)=>{
+        searchTerm = e.target.value.trim();
         // Show/hide clear button
         const clearBtn = document.getElementById('clearSearchBtn');
         if (clearBtn) {
           clearBtn.style.display = searchTerm ? 'flex' : 'none';
         }
-        renderTable(); 
+        renderTable();
       });
       document.getElementById('scrollLastBtn').addEventListener('click', scrollToLast);
-      
+
       // Clear search button handler
       const clearBtn = document.getElementById('clearSearchBtn');
       if (clearBtn) {
@@ -416,7 +419,7 @@
           renderTable();
         });
       }
-      
+
       // set streams into select (and preselect if stream_name provided)
       populateStreams();
       if ('{{ stream_name }}') {
