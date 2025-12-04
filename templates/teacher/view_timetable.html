@@ -11,23 +11,27 @@
     .navbar { background: #283593; height: 56px; }
     .navbar .navbar-brand, .navbar .nav-link { color: #fff; }
     .page-title { padding: 18px 16px; color: #283593; font-weight: 700; }
-    .timetable-container { background: #fff; border-radius: 8px; padding: 12px; margin: 12px; }
-    .timetable-grid { display: grid; grid-template-columns: 100px repeat(6, 1fr); gap: 2px; background: #ddd; padding: 2px; min-width: 100%; }
-    .grid-header { background-color: #4a148c; color: #fff; font-weight: bold; padding: 10px; text-align: center; font-size: 0.9rem; }
-    .grid-time { background-color: #7b1fa2; color: #fff; font-weight: bold; padding: 10px; text-align: center; font-size: 0.9rem; }
-    .grid-cell { background: #f5f5f5; padding: 8px; min-height: 80px; display: flex; flex-direction: column; justify-content: center; font-size: 0.85rem; }
+    .timetable-container { background: #fff; border-radius: 8px; padding: 12px; margin: 12px; overflow: hidden; }
+    /* Desktop-friendly grid: time column + 6 day columns */
+    .timetable-grid { display: grid; grid-template-columns: 90px repeat(6, 1fr); gap: 2px; background: #ddd; padding: 2px; min-width: 100%; }
+    .grid-header { background-color: #4a148c; color: #fff; font-weight: bold; padding: 8px; text-align: center; font-size: 0.9rem; }
+    .grid-time { background-color: #7b1fa2; color: #fff; font-weight: bold; padding: 8px; text-align: center; font-size: 0.9rem; }
+    .grid-cell { background: #f5f5f5; padding: 6px; min-height: 70px; display: flex; flex-direction: column; justify-content: center; font-size: 0.85rem; }
     .grid-cell.occupied { background-color: #c8e6c9; border: 2px solid #388e3c; }
     .slot-subject { font-weight: bold; color: #1b5e20; }
     .slot-teacher { font-size: 0.85rem; color: #424242; margin-top: 6px; }
+    /* Highlight the logged-in teacher's name in the timetable */
+    .slot-teacher.current-teacher { color: #d32f2f; font-weight: 700; }
+    /* Mobile adjustments: tighter cells, allow horizontal scrolling if needed */
     @media (max-width: 768px) {
-      .timetable-grid { grid-template-columns: 65px repeat(6, 1fr); min-width: 600px; }
-      .grid-cell { min-height: 90px; }
-      .timetable-container {
-        padding-bottom: 20px;
-        margin-bottom: 20px;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-      }
+      .timetable-container { padding: 8px; margin: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      /* Keep columns readable but allow the grid to be wider than the viewport */
+      .timetable-grid { grid-template-columns: 60px repeat(6, minmax(90px, 1fr)); min-width: 520px; }
+      .grid-header { padding: 6px; font-size: 0.8rem; }
+      .grid-time { padding: 6px; font-size: 0.8rem; }
+      .grid-cell { min-height: 60px; padding: 6px; font-size: 0.8rem; }
+      /* Reduce gap and borders to save space */
+      .timetable-grid { gap: 1px; }
     }
 
     /* Print styles: show only the timetable grid and make it fit nicely on paper */
@@ -68,11 +72,7 @@
     </div>
   </nav>
 
-    <div class="container mt-2 d-print-none" style="position: fixed; right: 16px; top: 70px; z-index: 1050; max-width: 320px;">
-      <div class="alert alert-info py-2 px-3" style="font-size:0.9rem;">
-        Tip: to remove browser-added date/title/URL from the printed output, uncheck "Headers and footers" in your browser's Print dialog. For a guaranteed headerless PDF, request a server-generated PDF (I can add this).
-      </div>
-    </div>
+    <!-- Tip removed at user's request: no on-screen print-tip notification -->
 
   <!-- Print header (hidden on screen, shown on print). Will repeat on each printed page in most browsers. -->
   <div class="print-header" aria-hidden="true" style="display:none;">
@@ -89,7 +89,7 @@
 
   <main class="main-scroll">
     <h4 class="page-title">{{ class_name }} — {{ stream_name }}</h4>
-    <div class="timetable-container" id="timetableContainer" data-class-id="{{ class_id }}" data-stream-id="{{ stream_id }}">
+    <div class="timetable-container" id="timetableContainer" data-class-id="{{ class_id }}" data-stream-id="{{ stream_id }}" data-current-teacher-id="{{ current_user.id if current_user.is_authenticated else '' }}">
       <div class="no-selection"><i class="bi bi-info-circle"></i> Loading timetable…</div>
     </div>
   </main>
@@ -136,17 +136,18 @@
         const containerEl = document.getElementById('timetableContainer');
         const classId = parseInt(containerEl && containerEl.dataset && containerEl.dataset.classId, 10);
         const streamId = parseInt(containerEl && containerEl.dataset && containerEl.dataset.streamId, 10);
+        const currentTeacherId = parseInt(containerEl && containerEl.dataset && containerEl.dataset.currentTeacherId, 10) || null;
         const resp = await fetch(`/admin/timetable/get/${classId}/${streamId}`);
         const data = await resp.json();
         const currentSlots = data.slots || [];
-        renderTimetable(currentSlots);
+        renderTimetable(currentSlots, currentTeacherId);
       } catch (e) {
         document.getElementById('timetableContainer').innerHTML = '<div class="no-selection">Error loading timetable</div>';
         console.error(e);
       }
     }
 
-    function renderTimetable(currentSlots) {
+    function renderTimetable(currentSlots, currentTeacherId) {
       const container = document.getElementById('timetableContainer');
       const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const times = generateTimeSlots();
@@ -172,7 +173,11 @@
             if (slots.length > 0) {
               html += '<div class="grid-cell occupied">';
               slots.forEach((slot, idx) => {
-                html += `\n  <div style="margin-bottom: ${idx < slots.length - 1 ? '8px' : '0'}; padding-bottom: ${idx < slots.length - 1 ? '8px' : '0'}; border-bottom: ${idx < slots.length - 1 ? '1px solid #b0bec5' : 'none'};">\n    <div class="slot-subject">${slot.subject_name}</div>\n    <div class="slot-teacher">${slot.teacher_name}</div>\n  </div>`;
+                // determine if this slot's teacher matches the logged-in teacher
+                const tId = slot.teacher_id ? parseInt(slot.teacher_id, 10) : null;
+                const isCurrent = currentTeacherId && tId && currentTeacherId === tId;
+                const teacherClass = isCurrent ? 'slot-teacher current-teacher' : 'slot-teacher';
+                html += `\n  <div style="margin-bottom: ${idx < slots.length - 1 ? '8px' : '0'}; padding-bottom: ${idx < slots.length - 1 ? '8px' : '0'}; border-bottom: ${idx < slots.length - 1 ? '1px solid #b0bec5' : 'none'};">\n    <div class="slot-subject">${slot.subject_name}</div>\n    <div class="${teacherClass}">${slot.teacher_name}</div>\n  </div>`;
               });
               html += '</div>';
             } else {
