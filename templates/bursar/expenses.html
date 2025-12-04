@@ -19,7 +19,7 @@
     .container { padding: 12px; max-width:600px; margin:0 auto; }
      /* Scrollable table/list area. Uses the real footer height (updated via JS) so
        the scrollable card stops 20px above the footer regardless of footer content. */
-     .scrollable-area { max-height:calc(100vh - var(--nav-h) - var(--footer-h) - 20px); overflow-y:auto; padding-right:8px; padding-bottom:20px; box-sizing:border-box; }
+    .scrollable-area { max-height:calc(100vh - var(--nav-h) - var(--footer-h) - 20px); overflow-y:auto; padding-right:8px; padding-bottom:20px; box-sizing:border-box; -webkit-overflow-scrolling:touch }
     .scrollable-area::-webkit-scrollbar { width:8px; }
     .scrollable-area::-webkit-scrollbar-thumb { background:rgba(0,0,0,0.1); border-radius:8px; }
     .card { background:#fbfdff; border-radius:8px; padding:10px; box-shadow:0 1px 3px rgba(0,0,0,0.08); margin-bottom:12px; border:1px solid #e6eef7; margin-bottom:0; }
@@ -284,17 +284,26 @@
       // compute layouts that depend on the real footer size (keeps 20px gap).
       function updateFooterHeight() {
         try {
-          const footer = document.querySelector('.fixed-footer');
-          if (!footer) return;
-          // Use the footer's rendered height (including padding/border)
-          const rect = footer.getBoundingClientRect();
-          const h = Math.ceil(rect.height);
+          // Prefer the included site-footer (from footer.html) if present
+          const siteFooter = document.querySelector('.site-footer');
+          let h = 0;
+          if (siteFooter) {
+            h = Math.ceil(siteFooter.offsetHeight || siteFooter.getBoundingClientRect().height || 0);
+          } else {
+            const footer = document.querySelector('.fixed-footer');
+            if (footer) h = Math.ceil(footer.getBoundingClientRect().height || 0);
+          }
+
+          // if still zero, fallback to a reasonable default (48)
+          if (!h) h = 48;
+
+          // Set both variable names for compatibility with footer.js and our CSS
           document.documentElement.style.setProperty('--footer-h', h + 'px');
+          document.documentElement.style.setProperty('--footer-height', h + 'px');
           return h;
         } catch (e) {
-          // ignore measurement errors
           console.warn('Could not compute footer height', e);
-          return 0;
+          return 48;
         }
       }
 
