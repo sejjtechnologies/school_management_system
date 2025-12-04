@@ -295,6 +295,10 @@
       .control-panel {
         padding: 15px;
         margin-bottom: 20px;
+        /* allow the control panel to scroll if it grows too tall so the timetable can gain vertical space */
+        max-height: 26vh; /* relative to viewport - gives timetable more room */
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
       }
 
       .control-row {
@@ -404,6 +408,10 @@
       .control-panel {
         padding: 12px;
         margin-bottom: 15px;
+        /* tighter cap on very small screens so timetable gets prioritized */
+        max-height: 30vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
       }
 
       .control-panel h5 {
