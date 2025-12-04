@@ -181,13 +181,28 @@
 
     // Open edit modal
     function toggleEditModal(row) {
-      currentEditRecordId = row.dataset.id;
-      document.getElementById('editAmount').value = row.dataset.amount;
-      document.getElementById('editQuantity').value = row.dataset.quantity;
-      document.getElementById('editDate').value = row.dataset.date;
-      document.getElementById('editTerm').value = row.dataset.term;
-      document.getElementById('editYear').value = row.dataset.year;
-      document.getElementById('editModal').style.display = 'flex';
+      try {
+        console.log('toggleEditModal', row && row.dataset && row.dataset.id);
+        currentEditRecordId = row.dataset.id;
+        document.getElementById('editAmount').value = row.dataset.amount || '';
+        document.getElementById('editQuantity').value = row.dataset.quantity || '';
+        document.getElementById('editDate').value = row.dataset.date || '';
+        document.getElementById('editTerm').value = row.dataset.term || '';
+        document.getElementById('editYear').value = row.dataset.year || '';
+        const modal = document.getElementById('editModal');
+        if (modal) modal.style.display = 'flex';
+
+        // On mobile, ensure the clicked row/card is visible above footer by centering it
+        try {
+          setTimeout(() => {
+            try { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { /* ignore */ }
+            const firstInput = document.getElementById('editAmount');
+            if (firstInput) firstInput.focus();
+          }, 80);
+        } catch (e) { /* ignore */ }
+      } catch (err) {
+        console.error('toggleEditModal error', err);
+      }
     }
 
     // Helper to format yyyy-mm-dd => dd/mm/yyyy for display
@@ -368,6 +383,15 @@
           // Set both variable names for compatibility with footer.js and our CSS
           document.documentElement.style.setProperty('--footer-h', h + 'px');
           document.documentElement.style.setProperty('--footer-height', h + 'px');
+
+          // Ensure scrollable lists have enough bottom padding so last row isn't hidden behind footer
+          try {
+            const gap = 20; // px desired gap above footer
+            document.querySelectorAll('.scrollable-area').forEach(el => {
+              el.style.paddingBottom = (h + gap) + 'px';
+            });
+          } catch (e) { /* ignore */ }
+
           return h;
         } catch (e) {
           console.warn('Could not compute footer height', e);
@@ -436,6 +460,19 @@
       if (footerEl && window.MutationObserver) {
         const mo = new MutationObserver(() => updateFooterHeight());
         mo.observe(footerEl, { childList: true, subtree: true, characterData: true });
+      }
+
+      // Use visualViewport when available to react to on-screen keyboard changes (mobile)
+      if (window.visualViewport) {
+        visualViewport.addEventListener('resize', function() {
+          updateFooterHeight();
+          // if a modal is open ensure it is visible
+          const active = document.activeElement;
+          if (active && active.closest && active.closest('.card')) {
+            try { active.closest('.card').scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { }
+          }
+        });
+        visualViewport.addEventListener('scroll', function() { updateFooterHeight(); });
       }
 
       // Attach focus handler (use capturing to catch focus events)
