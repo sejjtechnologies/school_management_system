@@ -277,7 +277,8 @@
       }
 
       /* If content still overflows, reduce the fee breakdown verbosity slightly */
-      .fee-breakdown { font-size: 9pt; }
+      /* hide fee breakdown on print to guarantee single-page receipts */
+      .fee-breakdown { display: none !important; }
     }
 
     @media (max-width: 576px) {
