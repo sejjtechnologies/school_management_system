@@ -124,6 +124,57 @@ def logout():
     flash("You have been logged out.", "info")
     return redirect(url_for("user_routes.login"))
 
+# ✅ API ENDPOINT: Check if admin session is still valid (for real-time logout detection)
+@user_routes.route("/api/check-session", methods=["GET"])
+def check_session():
+    """Check if current admin session is still active. Used for real-time logout detection."""
+    user_id = session.get("user_id")
+    role = session.get("role")
+    client_session_id = session.get("active_session_id")
+
+    # Only for admin users
+    if not (role and role.lower() == "admin" and user_id and client_session_id):
+        return {"valid": False, "message": "Not an admin session"}, 401
+
+    try:
+        user = User.query.get(user_id)
+
+        # Check if user exists
+        if not user:
+            return {"valid": False, "message": "User account deleted"}, 401
+
+        # ✅ KEY CHECK: Compare client session ID with DB's active session ID
+        if user.active_session_id != client_session_id:
+            return {
+                "valid": False,
+                "message": "Session conflict - logged in from another device",
+                "reason": "multi_device_login"
+            }, 401
+
+        # Check if session is still active in DB
+        admin_session = AdminSession.query.filter_by(
+            session_id=client_session_id,
+            user_id=user_id
+        ).first()
+
+        if not admin_session or not admin_session.is_active:
+            return {
+                "valid": False,
+                "message": "Session inactive - logged in from another device",
+                "reason": "session_inactive"
+            }, 401
+
+        # Session is valid
+        return {
+            "valid": True,
+            "user_id": user_id,
+            "message": "Session is active"
+        }, 200
+
+    except Exception as e:
+        print(f"[ERROR] Session check failed: {str(e)}")
+        return {"valid": False, "message": "Session validation error"}, 500
+
 # Dashboard routes for each role
 @user_routes.route("/admin/dashboard")
 def admin_dashboard():
