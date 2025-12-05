@@ -111,6 +111,16 @@ def add_payment(pupil_id):
 
         db.session.add(payment)
         db.session.commit()
+
+        # Debug log the saved payment for easier traceability in server logs
+        try:
+            from flask import current_app
+            current_app.logger.debug(
+                "salary_payment saved: id=%s user_id=%s reference=%s paid_by_user_id=%s payment_date=%s",
+                payment.id, payment.user_id, payment.reference, payment.paid_by_user_id, payment.payment_date.isoformat() if payment.payment_date else None
+            )
+        except Exception:
+            pass
         flash(f"Payment of UGX {amount_paid:,.0f} added successfully for {fee_item.item_name} ({term} {year}).", "success")
 
     except Exception as e:
@@ -311,8 +321,7 @@ def invoices():
 def mark_staff_paid_bursar(user_id):
     """Mark a staff member as paid for a period. Accepts JSON payload.
 
-    If the recorder (current_user) has role name 'Secretary' the server will
-    auto-generate a reference and notes and override any client-provided values.
+    Recorder (logged-in bursar) is identified via session["user_id"] (not Flask-Login).
     """
     try:
         data = request.get_json(force=True, silent=True) or request.form
@@ -357,37 +366,68 @@ def mark_staff_paid_bursar(user_id):
                     'error': f'This staff member has already been marked as paid for {period_month}/{period_year}. Cannot process duplicate payment.'
                 }), 400
 
-        # Determine recorder (paid_by)
+        # Determine recorder (paid_by) — get from session (this app uses session-based auth, not Flask-Login)
         paid_by_user_id = None
+        paid_by_name = None
         try:
-            from flask_login import current_user
-            if getattr(current_user, 'is_authenticated', False):
-                # ensure we have DB-backed user id
-                if getattr(current_user, 'id', None):
-                    paid_by_user_id = current_user.id
-        except Exception:
-            paid_by_user_id = None
+            from flask import session
+            # Check session for user_id (this app's auth method)
+            session_user_id = session.get('user_id')
+            if session_user_id:
+                paid_by_user_id = session_user_id
+                # Fetch the user record to get the name
+                db_user = db.session.query(User).get(paid_by_user_id)
+                if db_user:
+                    paid_by_name = f"{db_user.first_name} {db_user.last_name}".strip()
+                    print(f"[DEBUG] Got recorder from session: id={paid_by_user_id}, name={paid_by_name}")
+                else:
+                    print(f"[DEBUG] Session user_id={session_user_id} but user not found in DB")
+            else:
+                print(f"[DEBUG] No user_id in session")
+        except Exception as e:
+            print(f"[DEBUG] Exception resolving recorder from session: {e}")
+            try:
+                from flask import current_app
+                current_app.logger.warning(f"mark_staff_paid_bursar: failed to resolve session user: {str(e)}")
+            except:
+                pass
 
-        # Auto-fill for Secretary role
+        # Use already-resolved paid_by_name; fallback to session role name if needed
+        recorder_name = paid_by_name or 'System'
+        if not recorder_name or recorder_name == 'System':
+            try:
+                from flask import session
+                # Could add session["role"] here if we want role-based fallback, but we have the name already
+                pass
+            except Exception:
+                pass
+
+        # ALWAYS generate a server-side unique reference and standardized notes
         try:
-            recorder_role = None
-            if paid_by_user_id:
-                recorder = User.query.get(paid_by_user_id)
-                if recorder and getattr(recorder, 'role', None):
-                    recorder_role = getattr(recorder.role, 'role_name', None)
+            gen_ts = datetime.utcnow()
+            generated_ref = f"PAY-{gen_ts.strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6]}"
+            # Build notes with period information when available
+            period_text = ''
+            if period_month and period_year:
+                period_text = f"Period: {int(period_month)}/{int(period_year)}"
+            elif (period_year and data.get('term')):
+                period_text = f"Term: {data.get('term')} {period_year}"
+            notes_prefix = f"Recorded by {recorder_name} on {gen_ts.strftime('%Y-%m-%d %H:%M:%S')} UTC" + (f" ({period_text})" if period_text else '')
+            # Combine server notes with any client-supplied notes for audit
+            combined_notes = notes_prefix + (f" | user_notes: {notes}" if notes else '')
 
-            if recorder_role and recorder_role.lower() == 'secretary':
-                # Create a compact reference and notes
-                ts = datetime.utcnow().strftime('%Y%m%d%H%M%S')
-                reference = f"SEC-{ts}-{uuid.uuid4().hex[:6]}"
-                recorder_name = f"{recorder.first_name} {recorder.last_name}" if recorder else 'Secretary'
-                notes = f"Auto-recorded by {recorder_name} on {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} (system-generated)"
-
+            # Overwrite reference and notes — backend authoritative
+            reference = generated_ref
+            notes = combined_notes
         except Exception:
-            # If something goes wrong determining role, continue using provided values
+            # If generation fails, fall back to whatever was provided (or None)
             pass
 
         # Create SalaryPayment record
+        # Ensure we always have a reference (generate one if not provided)
+        if not reference:
+            reference = f"PAY-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6]}"
+
         payment = SalaryPayment(
             user_id=user_id,
             role_id=(User.query.get(user_id).role_id if User.query.get(user_id) else None),
@@ -409,7 +449,18 @@ def mark_staff_paid_bursar(user_id):
         # Fetch the user to get their updated status
         user = User.query.get(user_id)
 
+        # Use already-resolved paid_by_name from above (or re-fetch if needed)
+        if not paid_by_name and payment.paid_by_user_id:
+            try:
+                pb = User.query.get(payment.paid_by_user_id)
+                if pb:
+                    paid_by_name = f"{pb.first_name} {pb.last_name}".strip()
+            except Exception:
+                pass
+
         # Return detailed payment info for immediate template update
+        # Ensure paid_by_name is populated from the recorder_name if needed
+        final_paid_by_name = paid_by_name or recorder_name
         return jsonify({
             'success': True,
             'message': f'✓ {user.first_name} {user.last_name} marked as paid',
@@ -425,7 +476,9 @@ def mark_staff_paid_bursar(user_id):
                 'status': payment.status,
                 'period_month': payment.period_month,
                 'period_year': payment.period_year,
-                'payment_date': payment.payment_date.isoformat() if payment.payment_date else None
+                'payment_date': payment.payment_date.isoformat() if payment.payment_date else None,
+                'paid_by_user_id': payment.paid_by_user_id,
+                'paid_by_name': final_paid_by_name
             },
             'staff_update': {
                 'user_id': user.id,
@@ -896,6 +949,7 @@ def manage_staff_salaries():
             'salary_amount': float(salary_amount) if salary_amount else 0.0,
             'is_paid': is_paid,
             'last_payment': payment,
+            'last_payment_reference': (payment.reference if payment and getattr(payment, 'reference', None) else (f"PAY-{payment.payment_date.strftime('%Y%m%d%H%M%S')}-{payment.id}" if payment and getattr(payment, 'payment_date', None) and getattr(payment, 'id', None) else None)),
             'payment_method': payment.payment_method if payment else None,
             'bank_name': payment.bank_name if payment else None,
         })
@@ -917,6 +971,18 @@ def manage_staff_salaries():
             paid_count_all += 1
     unpaid_count_all = total_staff_all - paid_count_all
 
+    # Also update the session-based resolver in the manage_staff_salaries endpoint for consistency
+    current_bursar_full_name = ''
+    try:
+        from flask import session
+        session_user_id = session.get('user_id')
+        if session_user_id:
+            db_user = db.session.query(User).get(session_user_id)
+            if db_user:
+                current_bursar_full_name = f"{db_user.first_name} {db_user.last_name}".strip()
+    except Exception:
+        current_bursar_full_name = ''
+
     return render_template('bursar/manage_staff_salaries.html',
                           staff=staff_data,
                           roles=roles,
@@ -926,7 +992,8 @@ def manage_staff_salaries():
                           filter_status=filter_status,
                           total_staff_all=total_staff_all,
                           paid_count_all=paid_count_all,
-                          unpaid_count_all=unpaid_count_all)
+                          unpaid_count_all=unpaid_count_all,
+                          current_bursar_full_name=current_bursar_full_name)
 
 
 # ---------------------------------------------------------
@@ -940,6 +1007,32 @@ def staff_salary_history(user_id):
 
     history = []
     for p in payments:
+        # resolve payer name if possible
+        paid_by_name = None
+        try:
+            if getattr(p, 'paid_by_user_id', None):
+                pb = User.query.get(p.paid_by_user_id)
+                if pb:
+                    paid_by_name = f"{pb.first_name} {pb.last_name}".strip()
+        except Exception:
+            paid_by_name = None
+
+        # Provide display values when DB fields are missing (non-destructive)
+        display_ref = p.reference if p.reference else (f"PAY-{p.payment_date.strftime('%Y%m%d%H%M%S')}-{p.id}" if p.payment_date and p.id else None)
+        display_paid_by = paid_by_name
+        if not display_paid_by:
+            # fallback to logged-in user's name if available
+            try:
+                from flask_login import current_user as _cu
+                if _cu and getattr(_cu, 'is_authenticated', False):
+                    fn = getattr(_cu, 'first_name', None) or getattr(_cu, 'name', None) or ''
+                    ln = getattr(_cu, 'last_name', None) or ''
+                    cand = (fn + ' ' + ln).strip()
+                    if cand:
+                        display_paid_by = cand
+            except Exception:
+                pass
+
         history.append({
             'id': p.id,
             'amount': float(p.amount),
@@ -947,9 +1040,11 @@ def staff_salary_history(user_id):
             'period': p.period_display,
             'status': p.status,
             'reference': p.reference,
+            'reference_display': display_ref,
             'notes': p.notes,
             'payment_method': p.payment_method,
             'bank_name': p.bank_name,
+            'paid_by_name': display_paid_by,
         })
 
     return jsonify({
@@ -1082,6 +1177,53 @@ def salary_report():
         'payment_count': len(payments),
         'by_role': report_data,
     })
+
+
+@bursar_routes.route('/salary-payments/backfill-missing', methods=['POST'])
+def backfill_missing_salary_metadata():
+    """Admin utility: backfill missing references and notes for existing SalaryPayment rows.
+
+    Behavior:
+    - For each SalaryPayment with empty or NULL `reference`, generate a server-side unique reference and append a backfill note.
+    - If the current_user is authenticated, set `paid_by_user_id` for rows where it's missing to the current_user id (marking who performed the backfill).
+
+    This endpoint is intentionally destructive (writes to DB). Only run it once after reviewing the preview response.
+    """
+    try:
+        from flask_login import current_user as _cu
+        actor_id = None
+        actor_name = 'System'
+        if _cu and getattr(_cu, 'is_authenticated', False) and getattr(_cu, 'id', None):
+            actor_id = _cu.id
+            actor_name = getattr(_cu, 'first_name', '') + ' ' + getattr(_cu, 'last_name', '')
+
+        # Find payments missing reference or notes
+        candidates = SalaryPayment.query.filter((SalaryPayment.reference == None) | (SalaryPayment.reference == '')).all()
+        updated = 0
+        for p in candidates:
+            try:
+                gen_ts = datetime.utcnow()
+                new_ref = f"PAY-{gen_ts.strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6]}"
+                p.reference = new_ref
+                # append a note stating this was backfilled
+                backfill_note = f"[Backfilled by {actor_name} on {gen_ts.strftime('%Y-%m-%d %H:%M:%S')} UTC]"
+                if p.notes:
+                    p.notes = p.notes + '\n' + backfill_note
+                else:
+                    p.notes = backfill_note
+                # set paid_by_user_id to actor if missing
+                if not p.paid_by_user_id and actor_id:
+                    p.paid_by_user_id = actor_id
+                updated += 1
+            except Exception:
+                # skip problematic record
+                continue
+
+        db.session.commit()
+        return jsonify({'success': True, 'updated_count': updated, 'message': f'Backfilled {updated} payments.'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 

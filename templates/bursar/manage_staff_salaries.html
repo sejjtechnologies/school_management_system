@@ -185,6 +185,27 @@
 
     .btn-mark-unpaid:hover { background: #c62828; }
 
+    /* History button style */
+    .btn-history {
+      background: #1976d2; /* pleasant blue */
+      color: #fff;
+      border: 1px solid rgba(0,0,0,0.06);
+      padding: 6px 10px; /* match other buttons */
+      font-size: 11px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      line-height: 1;
+      cursor: pointer;
+      vertical-align: middle;
+    }
+
+    .btn-history:hover {
+      background: #155fa0;
+      color: #fff;
+    }
+
     .modal-overlay {
       display: none;
       position: fixed;
@@ -529,8 +550,37 @@
                   <!-- Payment info: reference and date/time when paid -->
                   <div class="payment-info" style="font-size:12px; color:#666; text-align:right;">
                     {% if s.is_paid and s.last_payment %}
-                      <div><strong>Ref:</strong> {{ s.last_payment.reference or '-' }}</div>
-                      <div><strong>Paid:</strong> {{ s.last_payment.payment_date.strftime('%Y-%m-%d %H:%M') if s.last_payment.payment_date else '-' }}</div>
+                      <div><strong>Ref:</strong> {{ s.last_payment_reference or (s.last_payment.reference or '-') }}</div>
+                      <div>
+                        <strong>Paid:</strong>
+                        {# show local time with AM/PM, and include ISO in tooltip on a small clock icon #}
+                        {% if s.last_payment.payment_date %}
+                          <span class="paid-ts">{{ s.last_payment.payment_date.strftime('%Y-%m-%d %I:%M %p') }}</span>
+                          <i class="bi bi-clock" title="{{ s.last_payment.payment_date.isoformat() }}" style="margin-left:6px; font-size:12px; color:#666;"></i>
+                        {% else %}
+                          -
+                        {% endif %}
+                      </div>
+                      <div>
+                        <strong>Payer:</strong>
+                        {% if s.last_payment.paid_by %}
+                          {{ s.last_payment.paid_by.first_name }} {{ s.last_payment.paid_by.last_name }}
+                        {% elif s.last_payment.paid_by_name %}
+                          {{ s.last_payment.paid_by_name }}
+                        {% elif current_bursar_full_name %}
+                          {{ current_bursar_full_name }}
+                        {% else %}
+                          -
+                        {% endif %}
+                      </div>
+                      <div>
+                        <strong>Method:</strong>
+                        {% if s.last_payment.payment_method == 'BANK' %}
+                          Bank ({{ s.last_payment.bank_name or '-' }})
+                        {% else %}
+                          {{ s.last_payment.payment_method or 'CASH' }}
+                        {% endif %}
+                      </div>
                     {% else %}
                       <div class="no-payment" style="color:#999;">Not paid for selected period</div>
                     {% endif %}
@@ -552,6 +602,10 @@
                         data-salary='{{ s.salary_amount|default(0)|tojson }}'
                         data-ispaid='{{ s.is_paid|tojson }}'>
                   {% if s.is_paid %}Unmark{% else %}Mark Paid{% endif %}
+                </button>
+                <button type="button" onclick="openSalaryHistoryModal('{{ s.id }}')" class="btn-action btn-view-history btn-history" data-user-id="{{ s.id }}" title="View payment history">
+                  <i class="bi bi-clock-history" style="font-size:13px; vertical-align:middle; margin-right:6px; color: #fff;"></i>
+                  History
                 </button>
               </div>
             </div>
@@ -651,6 +705,21 @@
     </div>
   </div>
 
+  <!-- Salary History Modal (top-level sibling modal) -->
+  <div id="historyModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Salary Payment History</h4>
+      </div>
+      <div class="modal-body" id="historyModalBody" style="max-height:60vh; overflow:auto;">
+        <!-- filled dynamically -->
+      </div>
+      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+        <button type="button" class="btn btn-secondary" onclick="closeHistoryModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Include footer -->
   {% include 'footer.html' %}
 
@@ -658,6 +727,8 @@
     // Endpoint patterns provided by Flask so JS doesn't hardcode routes
     const _MARK_PAID_URL_PATTERN = "{{ url_for('bursar_routes.mark_staff_paid_bursar', user_id=0) }}";
     const _MARK_UNPAID_URL_PATTERN = "{{ url_for('bursar_routes.mark_staff_unpaid', user_id=0) }}";
+    const _SALARY_HISTORY_URL_PATTERN = "{{ url_for('bursar_routes.staff_salary_history', user_id=0) }}";
+    const _CURRENT_BURSAR_FULL_NAME = "{{ current_bursar_full_name or '' }}";
 
     let currentUserId = null;
     // read month/year from body dataset to avoid embedding Jinja directly inside JS
@@ -750,6 +821,16 @@
         })
         .then(data => {
           console.log('[submitPayment] Response JSON:', data);
+          // Helpful debug grouping to inspect AJAX response structure when Mark Paid is used
+          try {
+            console.groupCollapsed('mark-paid response details');
+            console.log('status:', data.success ? 'success' : 'error');
+            console.log('message:', data.message || data.error);
+            console.log('payment object:', data.payment);
+            console.log('staff_update:', data.staff_update);
+            console.log('full response:', data);
+            console.groupEnd();
+          } catch (dbgErr) { console.log('debug log error', dbgErr); }
 
             if (data.success) {
             console.log('[submitPayment] Success! Closing modal...');
@@ -792,14 +873,27 @@
                   if (data.payment) {
                     const pinfo = staffRow.querySelector('.payment-info');
                     const ref = data.payment.reference || '-';
-                    const pd = data.payment.payment_date ? (new Date(data.payment.payment_date)).toLocaleString() : '-';
+                    const iso = data.payment.payment_date || null;
+                    const pd = iso ? (new Date(iso)).toLocaleString(undefined, { hour12: true, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
+                    // determine payer: prefer server-provided paid_by_name, otherwise use current bursar full name
+                    const payer = (data.payment.paid_by_name && data.payment.paid_by_name.trim()) ? data.payment.paid_by_name : (_CURRENT_BURSAR_FULL_NAME || '-');
+                    const method = data.payment.payment_method || 'CASH';
+                    const bank = data.payment.bank_name || '';
+
+                    const paidHtml = `
+                      <div><strong>Ref:</strong> ${escapeHtml(ref)}</div>
+                      <div><strong>Paid:</strong> ${escapeHtml(pd)} ${iso ? `<i class="bi bi-clock" title="${escapeHtml(iso)}" style="margin-left:6px; font-size:12px; color:#666;"></i>` : ''}</div>
+                      <div><strong>Payer:</strong> ${escapeHtml(payer)}</div>
+                      <div><strong>Method:</strong> ${escapeHtml(method === 'BANK' ? `Bank (${bank || '-'})` : method)}</div>
+                    `;
+
                     if (pinfo) {
-                      pinfo.innerHTML = `<div><strong>Ref:</strong> ${escapeHtml(ref)}</div><div><strong>Paid:</strong> ${escapeHtml(pd)}</div>`;
+                      pinfo.innerHTML = paidHtml;
                     } else {
                       const container = document.createElement('div');
                       container.className = 'payment-info';
                       container.style = 'font-size:12px; color:#666; text-align:right;';
-                      container.innerHTML = `<div><strong>Ref:</strong> ${escapeHtml(ref)}</div><div><strong>Paid:</strong> ${escapeHtml(pd)}</div>`;
+                      container.innerHTML = paidHtml;
                       // insert before the action buttons group
                       const actionsGroup = staffRow.querySelector('div[style*="display: flex; gap: 8px"]');
                       if (actionsGroup && actionsGroup.parentNode) actionsGroup.parentNode.insertBefore(container, actionsGroup);
@@ -988,6 +1082,57 @@
       document.getElementById('messageModal').classList.remove('show');
     }
 
+    // Salary history modal helpers
+    function openSalaryHistoryModal(userId) {
+      const url = _SALARY_HISTORY_URL_PATTERN.replace('/0', '/' + userId);
+      const body = document.getElementById('historyModalBody');
+      body.innerHTML = '<div style="padding:12px; color:#666">Loading…</div>';
+      document.getElementById('historyModal').classList.add('show');
+
+      fetch(url).then(r => r.json()).then(data => {
+        if (!data || !data.success) {
+          body.innerHTML = `<div style="padding:12px; color:#c62828">Unable to load history</div>`;
+          return;
+        }
+
+        const rows = data.history || [];
+        if (!rows.length) {
+          body.innerHTML = `<div style="padding:12px; color:#666">No payment history found.</div>`;
+          return;
+        }
+
+        let html = '<div style="display:flex; flex-direction:column; gap:8px;">';
+        rows.forEach(r => {
+          const iso = r.payment_date || '';
+          const pd = iso ? (new Date(iso)).toLocaleString(undefined, { hour12: true, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
+          const payer = r.paid_by_name || '';
+          const method = r.payment_method || 'CASH';
+          const bank = r.bank_name || '';
+          html += `
+            <div style="padding:10px; border:1px solid #eef4fb; border-radius:6px; background:#fff;">
+              <div style="font-weight:600;">Ref: ${escapeHtml(r.reference_display || r.reference || '-')}</div>
+              <div style="font-size:13px; color:#444; margin-top:6px;">Amount: UGX ${Number(r.amount).toLocaleString()}</div>
+              <div style="font-size:12px; color:#666; margin-top:6px;">Paid: ${escapeHtml(pd)} ${iso ? `<i class=\"bi bi-clock\" title=\"${escapeHtml(iso)}\" style=\"margin-left:6px; font-size:12px; color:#666;\"></i>` : ''}</div>
+              <div style="font-size:12px; color:#666;">Payer: ${escapeHtml(payer || _CURRENT_BURSAR_FULL_NAME || '-')}</div>
+              <div style="font-size:12px; color:#666;">Method: ${escapeHtml(method === 'BANK' ? `Bank (${bank || '-'})` : method)}</div>
+              <div style="font-size:12px; color:#888; margin-top:6px;">Status: ${escapeHtml(r.status || '')}</div>
+              <div style="font-size:12px; color:#666; margin-top:6px;">Notes: ${escapeHtml(r.notes || '')}</div>
+            </div>
+          `;
+        });
+        html += '</div>';
+        body.innerHTML = html;
+      }).catch(err => {
+        console.error('history fetch error', err);
+        body.innerHTML = `<div style="padding:12px; color:#c62828">Error loading history</div>`;
+      });
+    }
+
+    function closeHistoryModal() {
+      const m = document.getElementById('historyModal');
+      if (m) m.classList.remove('show');
+    }
+
     // Utility
     function escapeHtml(text){
       var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
@@ -995,9 +1140,10 @@
     }
 
     // Close modals on outside click
-    document.getElementById('paymentModal').addEventListener('click', function(e) { if (e.target === this) closePaymentModal(); });
-    document.getElementById('confirmModal').addEventListener('click', function(e) { if (e.target === this) closeConfirmModal(); });
-    document.getElementById('messageModal').addEventListener('click', function(e) { if (e.target === this) closeMessageModal(); });
+    try { document.getElementById('paymentModal').addEventListener('click', function(e) { if (e.target === this) closePaymentModal(); }); } catch(e){}
+    try { document.getElementById('confirmModal').addEventListener('click', function(e) { if (e.target === this) closeConfirmModal(); }); } catch(e){}
+    try { document.getElementById('messageModal').addEventListener('click', function(e) { if (e.target === this) closeMessageModal(); }); } catch(e){}
+    try { document.getElementById('historyModal').addEventListener('click', function(e) { if (e.target === this) closeHistoryModal(); }); } catch(e){}
 
     // Show/hide bank name dropdown based on payment method
     document.getElementById('paymentMethod').addEventListener('change', function(e) {
@@ -1010,18 +1156,29 @@
       }
     });
 
-    // Delegate click handler for buttons that open payment modal
+    // Delegate click handler for buttons (payment modal and history)
     document.addEventListener('click', function(e){
-      const btn = e.target.closest && e.target.closest('.btn-open-payment');
-      if (!btn) return;
-      try {
-        const userId = JSON.parse(btn.getAttribute('data-user'));
-        const name = JSON.parse(btn.getAttribute('data-name'));
-        const salary = JSON.parse(btn.getAttribute('data-salary'));
-        const isPaid = JSON.parse(btn.getAttribute('data-ispaid'));
-        showPaymentModal(userId, name, salary, isPaid);
-      } catch(err) {
-        console.error('Failed to open payment modal', err);
+      // Open payment modal
+      const payBtn = e.target.closest && e.target.closest('.btn-open-payment');
+      if (payBtn) {
+        try {
+          const userId = JSON.parse(payBtn.getAttribute('data-user'));
+          const name = JSON.parse(payBtn.getAttribute('data-name'));
+          const salary = JSON.parse(payBtn.getAttribute('data-salary'));
+          const isPaid = JSON.parse(payBtn.getAttribute('data-ispaid'));
+          showPaymentModal(userId, name, salary, isPaid);
+        } catch(err) {
+          console.error('Failed to open payment modal', err);
+        }
+        return;
+      }
+
+      // Open salary history modal
+      const viewBtn = e.target.closest && e.target.closest('.btn-view-history');
+      if (viewBtn) {
+        const uid = viewBtn.getAttribute('data-user-id');
+        if (uid) openSalaryHistoryModal(uid);
+        return;
       }
     });
       // Update statistics display based on current DOM state
