@@ -59,56 +59,61 @@ app.register_blueprint(bursar_routes, url_prefix="/bursar")  # ✅ Register burs
 @app.before_request
 def validate_admin_session():
     """Validate that admin sessions are still active. Logout if session was invalidated elsewhere."""
-    # ✅ Skip validation for API endpoints and login/logout pages
-    if request.path.startswith('/api/') or request.path in ['/login', '/logout', '/']:
-        return
+    try:
+        # ✅ Skip validation for API endpoints and login/logout pages
+        if request.path.startswith('/api/') or request.path in ['/login', '/logout', '/']:
+            return
 
-    user_id = session.get("user_id")
-    role = session.get("role")
-    client_session_id = session.get("active_session_id")  # ✅ Client's session ID from cookie
+        user_id = session.get("user_id")
+        role = session.get("role")
+        client_session_id = session.get("active_session_id")  # ✅ Client's session ID from cookie
 
-    # Only check for admin sessions
-    if role and role.lower() == "admin" and user_id:
-        from models.user_models import User
+        # Only check for admin sessions
+        if role and role.lower() == "admin" and user_id:
+            from models.user_models import User
 
-        # If client doesn't have a session ID, they must log in again
-        if not client_session_id:
-            print("[DEBUG] Admin has no active_session_id in Flask session, forcing re-login")
-            session.clear()
-            flash("Your admin session expired. Please log in again.", "danger")
-            return redirect(url_for("user_routes.login"))
+            # If client doesn't have a session ID, they must log in again
+            if not client_session_id:
+                print("[DEBUG] Admin has no active_session_id in Flask session, forcing re-login")
+                session.clear()
+                flash("Your admin session expired. Please log in again.", "danger")
+                return redirect(url_for("user_routes.login"))
 
-        # Get user from DB
-        user = User.query.get(user_id)
-        if not user:
-            session.clear()
-            flash("Your account was deleted or is no longer available.", "danger")
-            return redirect(url_for("user_routes.login"))
+            # Get user from DB
+            user = User.query.get(user_id)
+            if not user:
+                session.clear()
+                flash("Your account was deleted or is no longer available.", "danger")
+                return redirect(url_for("user_routes.login"))
 
-        # ✅ KEY CHECK: Compare client's session ID with DB's active session ID
-        # If they don't match, this device is no longer the active session
-        if user.active_session_id != client_session_id:
-            print(f"[SESSION CONFLICT] User {user_id}: Client has {client_session_id[:15]}..., DB has {user.active_session_id[:15] if user.active_session_id else 'None'}...")
-            session.clear()
-            flash("Your admin session was invalidated. You logged in from another device.", "danger")
-            return redirect(url_for("user_routes.login"))
+            # ✅ KEY CHECK: Compare client's session ID with DB's active session ID
+            # If they don't match, this device is no longer the active session
+            if user.active_session_id != client_session_id:
+                print(f"[SESSION CONFLICT] User {user_id}: Client has {client_session_id[:15]}..., DB has {user.active_session_id[:15] if user.active_session_id else 'None'}...")
+                session.clear()
+                flash("Your admin session was invalidated. You logged in from another device.", "danger")
+                return redirect(url_for("user_routes.login"))
 
-        # ✅ Session IDs match, check if the session is still marked active in DB
-        admin_session = AdminSession.query.filter_by(
-            session_id=client_session_id,
-            user_id=user_id
-        ).first()
+            # ✅ Session IDs match, check if the session is still marked active in DB
+            admin_session = AdminSession.query.filter_by(
+                session_id=client_session_id,
+                user_id=user_id
+            ).first()
 
-        if not admin_session or not admin_session.is_active:
-            print(f"[SESSION INACTIVE] User {user_id} session is inactive in DB")
-            session.clear()
-            flash("Your admin session was invalidated. Please log in again.", "danger")
-            return redirect(url_for("user_routes.login"))
+            if not admin_session or not admin_session.is_active:
+                print(f"[SESSION INACTIVE] User {user_id} session is inactive in DB")
+                session.clear()
+                flash("Your admin session was invalidated. Please log in again.", "danger")
+                return redirect(url_for("user_routes.login"))
 
-        # Update last activity timestamp
-        admin_session.last_activity = datetime.utcnow()
-        db.session.commit()
-        print(f"[SESSION VALID] User {user_id} session is active, updated last_activity")
+            # Update last activity timestamp
+            admin_session.last_activity = datetime.utcnow()
+            db.session.commit()
+            print(f"[SESSION VALID] User {user_id} session is active, updated last_activity")
+    except Exception as e:
+        # Log the error but don't break the request - fail gracefully for Vercel
+        logger.error(f"[SESSION VALIDATION ERROR] {str(e)}")
+        print(f"[SESSION VALIDATION ERROR] {str(e)}")
 
 @app.route("/")
 def index():
