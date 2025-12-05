@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, flash
-from models.user_models import db, User
+from models.user_models import db, User, Role
+from models.term_model import Term
 from models.register_pupils import Pupil
 from models.timetable_model import TimeTableSlot
 from models.attendance_model import Attendance
@@ -60,11 +61,9 @@ def search_child():
         # Return first 5 results
         results = []
         for pupil in pupils[:5]:
-            # Build a display name from available name parts
             parts = [pupil.first_name or "", pupil.middle_name or "", pupil.last_name or ""]
             full_name = " ".join([p.strip() for p in parts if p and p.strip()])
 
-            # Resolve class and stream names if relationships exist
             class_name = None
             stream_name = None
             try:
@@ -91,21 +90,133 @@ def search_child():
                 "status": getattr(pupil, 'enrollment_status', None) or getattr(pupil, 'status', None) or 'Active'
             })
 
-        # If the searching user is a parent, remember the first result in session so
-        # subsequent detail requests (timetable, attendance) can be authorized.
         try:
             user = User.query.get(user_id)
             if user and user.role and user.role.role_name.lower() == 'parent' and len(results) > 0:
-                # store the first result as the selected pupil for this session
                 session['parent_selected_pupil_id'] = results[0]['id']
         except Exception:
-            # non-fatal; don't block returning results
             pass
 
         return jsonify({"pupils": results}), 200
-
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+    # API: Attendance summary (JSON) - includes teacher-recorded breakdown
+@parent_routes.route("/api/parent/pupil/<int:pupil_id>/attendance-summary", methods=["GET"])
+def attendance_summary(pupil_id):
+    """Return JSON summary of attendance for pupil for period=day|week|month|term and reference date=date=YYYY-MM-DD.
+    Also returns counts of records recorded by users with role 'Teacher'."""
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    # Basic authorization: allow parents to query their pupil (reuse logic from view_attendance)
+    pupil = Pupil.query.get_or_404(pupil_id)
+    user = User.query.get(user_id)
+    if user and user.role and user.role.role_name.lower() == 'parent':
+        allowed = False
+        try:
+            if getattr(pupil, 'email', None) and user.email and pupil.email.lower() == user.email.lower():
+                allowed = True
+            guardian_name = getattr(pupil, 'guardian_name', '') or ''
+            if not allowed and guardian_name:
+                if user.first_name.lower() in guardian_name.lower() or user.last_name.lower() in guardian_name.lower():
+                    allowed = True
+            selected = session.get('parent_selected_pupil_id')
+            if not allowed and selected and int(selected) == int(pupil.id):
+                allowed = True
+        except Exception:
+            allowed = False
+
+        if not allowed:
+            return jsonify({"error": "Access denied"}), 403
+
+    # Determine period and ref date
+    period = request.args.get('period', 'week')
+    date_str = request.args.get('date', None)
+    from datetime import datetime, date, timedelta
+
+    try:
+        if date_str:
+            ref_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        else:
+            ref_date = date.today()
+    except Exception:
+        ref_date = date.today()
+
+    # compute start_date and end_date
+    if period == 'day':
+        start_date = end_date = ref_date
+    elif period == 'week':
+        start_date = ref_date - timedelta(days=ref_date.weekday())
+        end_date = start_date + timedelta(days=6)
+    elif period == 'month':
+        start_date = ref_date.replace(day=1)
+        if ref_date.month == 12:
+            next_month = ref_date.replace(year=ref_date.year + 1, month=1, day=1)
+        else:
+            next_month = ref_date.replace(month=ref_date.month + 1, day=1)
+        end_date = next_month - timedelta(days=1)
+    else:
+        # Try to use Term table if available
+        term = Term.query.filter(Term.start_date <= ref_date, Term.end_date >= ref_date).first()
+        if term:
+            start_date = term.start_date
+            end_date = term.end_date
+        else:
+            # fallback to 3.5 months (105 days) ending on ref_date
+            end_date = ref_date
+            start_date = ref_date - timedelta(days=104)
+
+    # Query attendance in window
+    records = Attendance.query.filter(
+        Attendance.pupil_id == pupil_id,
+        Attendance.date >= start_date,
+        Attendance.date <= end_date
+    ).all()
+
+    # Totals
+    total = len(records)
+    counts = {"present": 0, "absent": 0, "late": 0, "leave": 0}
+    for r in records:
+        st = (r.status or '').lower()
+        if st in counts:
+            counts[st] += 1
+
+    # Teacher-recorded breakdown
+    # Join Attendance -> User -> Role to find records recorded by users with role 'Teacher'
+    teacher_records = Attendance.query.join(User, Attendance.recorded_by == User.id).join(Role).filter(
+        Role.role_name.ilike('teacher'),
+        Attendance.pupil_id == pupil_id,
+        Attendance.date >= start_date,
+        Attendance.date <= end_date
+    ).all()
+
+    teacher_total = len(teacher_records)
+    teacher_counts = {"present": 0, "absent": 0, "late": 0, "leave": 0}
+    for r in teacher_records:
+        st = (r.status or '').lower()
+        if st in teacher_counts:
+            teacher_counts[st] += 1
+
+    # Build optional record list (limited)
+    rec_list = [
+        {"date": r.date.isoformat(), "status": r.status, "reason": r.reason, "recorded_by": r.recorded_by}
+        for r in records[:200]
+    ]
+
+    return jsonify({
+        "pupil_id": pupil_id,
+        "period": period,
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+        "total_records": total,
+        "counts": counts,
+        "teacher_records_total": teacher_total,
+        "teacher_counts": teacher_counts,
+        "records_sample": rec_list
+    })
 
 # ✅ View Timetable
 @parent_routes.route("/parent/pupil/<int:pupil_id>/timetable")
@@ -156,11 +267,11 @@ def view_timetable(pupil_id):
         # Only include slots that have a teacher and subject assigned (no TBA)
         if not slot.teacher or not slot.subject:
             continue
-        
+
         day = slot.day_of_week
         if day not in schedule:
             schedule[day] = []
-        
+
         schedule[day].append({
             "start_time": slot.start_time,
             "end_time": slot.end_time,
@@ -215,15 +326,51 @@ def view_attendance(pupil_id):
         return redirect(url_for("user_routes.login"))
 
     pupil = Pupil.query.get_or_404(pupil_id)
+    # Determine period filter (day|week|month|term) and reference date
+    period = request.args.get('period', 'week')
+    date_str = request.args.get('date', None)
+    from datetime import datetime, date, timedelta
 
-    # Get attendance records
-    attendance_records = Attendance.query.filter_by(pupil_id=pupil_id).all()
+    try:
+        if date_str:
+            ref_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        else:
+            ref_date = date.today()
+    except Exception:
+        ref_date = date.today()
+
+    # compute start_date and end_date for the selected period
+    if period == 'day':
+        start_date = end_date = ref_date
+    elif period == 'week':
+        # Week starting Monday
+        start_date = ref_date - timedelta(days=ref_date.weekday())
+        end_date = start_date + timedelta(days=6)
+    elif period == 'month':
+        # first day of month
+        start_date = ref_date.replace(day=1)
+        # compute last day of month
+        if ref_date.month == 12:
+            next_month = ref_date.replace(year=ref_date.year + 1, month=1, day=1)
+        else:
+            next_month = ref_date.replace(month=ref_date.month + 1, day=1)
+        end_date = next_month - timedelta(days=1)
+    else:
+        # term = approx 3.5 months = 105 days ending on ref_date
+        end_date = ref_date
+        start_date = ref_date - timedelta(days=104)
+
+    # Query attendance records for the pupil within the window
+    attendance_records = Attendance.query.filter(
+        Attendance.pupil_id == pupil_id,
+        Attendance.date >= start_date,
+        Attendance.date <= end_date
+    ).order_by(Attendance.date.asc()).all()
 
     # Calculate stats
     total_days = len(attendance_records)
-    present_days = len([a for a in attendance_records if a.status.lower() == "present"])
-    absent_days = len([a for a in attendance_records if a.status.lower() == "absent"])
-
+    present_days = len([a for a in attendance_records if a.status and a.status.lower() == "present"])
+    absent_days = len([a for a in attendance_records if a.status and a.status.lower() == "absent"])
     attendance_percentage = (present_days / total_days * 100) if total_days > 0 else 0
 
     return render_template(
@@ -235,7 +382,11 @@ def view_attendance(pupil_id):
             "present": present_days,
             "absent": absent_days,
             "percentage": round(attendance_percentage, 1)
-        }
+        },
+        period=period,
+        date=ref_date.isoformat(),
+        start_date=start_date,
+        end_date=end_date
     )
 
 # ✅ View Academic Reports

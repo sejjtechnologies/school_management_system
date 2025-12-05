@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Attendance - Parent</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    body { padding-top: 70px; font-family: 'Segoe UI', sans-serif; background: #f5f7fa; }
+    .navbar-fixed { position: fixed; top: 0; left:0; right:0; height:70px; background: linear-gradient(135deg,#ad1457,#7b1141); display:flex; align-items:center; padding:0 16px; z-index:1050; }
+    .navbar-fixed h5 { color:#fff; margin:0; flex:1 }
+    .container-att { max-width:1100px; margin: 0 auto; padding: 16px; }
+    .controls { background:#ffffffcc; padding:12px; border-radius:8px; margin-bottom:12px; box-shadow:0 2px 6px rgba(0,0,0,0.06);}
+    .stats { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+    /* Soft pastel backgrounds for stat cards to add visual distinction */
+    .stat-card { padding:12px; border-radius:8px; box-shadow:0 1px 4px rgba(0,0,0,0.04); flex:1; min-width:140px }
+    .stat-card:nth-child(1) { background: #f7fbff; }
+    .stat-card:nth-child(2) { background: #f7fff4; }
+    .stat-card:nth-child(3) { background: #fff7f7; }
+    .stat-card:nth-child(4) { background: #fffaf7; }
+    .records { background:#eafaf0; padding:14px; border-radius:10px; box-shadow:0 6px 18px rgba(20,40,0,0.04); border:1px solid rgba(30,120,60,0.06); }
+    .period-select .btn { margin-right:6px }
+  </style>
+</head>
+<body>
+  <nav class="navbar-fixed">
+    <h5><i class="bi bi-journal-check me-2"></i>Attendance</h5>
+    <a href="{{ url_for('parent_routes.dashboard') }}" class="btn btn-light btn-sm">Back</a>
+  </nav>
+
+  <div class="container-att">
+    <div class="student-header mb-3">
+      <p><strong>Student:</strong> {{ pupil.first_name }} {{ pupil.last_name }}</p>
+      <p><strong>Class:</strong> {{ pupil.class_.name if pupil.class_ else pupil.class_id }} &nbsp; <strong>Stream:</strong> {{ pupil.stream.name if pupil.stream else pupil.stream_id }}</p>
+    </div>
+
+    <form method="get" class="controls">
+      <div class="d-flex align-items-center gap-3">
+        <div class="period-select">
+          <label class="form-label me-2 mb-0">Period:</label>
+          <a href="?period=day" class="btn btn-outline-secondary btn-sm {% if period=='day' %}active{% endif %}">Day</a>
+          <a href="?period=week" class="btn btn-outline-secondary btn-sm {% if period=='week' %}active{% endif %}">Week</a>
+          <a href="?period=month" class="btn btn-outline-secondary btn-sm {% if period=='month' %}active{% endif %}">Month</a>
+          <a href="?period=term" class="btn btn-outline-secondary btn-sm {% if period=='term' %}active{% endif %}">Term</a>
+        </div>
+
+        <div>
+          <label class="form-label mb-0">Reference date</label>
+          <input type="date" name="date" value="{{ date|default('') }}" class="form-control form-control-sm" />
+        </div>
+
+        <div class="ms-auto">
+          <button class="btn btn-primary btn-sm" type="submit">Apply</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div>Total days</div>
+        <div class="h4">{{ stats.total }}</div>
+      </div>
+      <div class="stat-card">
+        <div>Present</div>
+        <div class="h4 text-success">{{ stats.present }}</div>
+      </div>
+      <div class="stat-card">
+        <div>Absent</div>
+        <div class="h4 text-danger">{{ stats.absent }}</div>
+      </div>
+      <div class="stat-card">
+        <div>Attendance %</div>
+        <div class="h4">{{ stats.percentage }}%</div>
+      </div>
+    </div>
+
+    <div class="records">
+      <h6 class="mb-3">Records <small class="text-muted">({{ attendance_records|length }})</small></h6>
+
+      <!-- Desktop/table view -->
+      <div class="records-table d-none d-md-block">
+        <table class="table table-sm">
+          <thead>
+            <tr><th>Date</th><th>Status</th><th>Reason</th></tr>
+          </thead>
+          <tbody>
+            {% for a in attendance_records %}
+              <tr>
+                <td>{{ a.date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ a.status }}</td>
+                <td>{{ a.reason or '' }}</td>
+              </tr>
+            {% else %}
+              <tr><td colspan="3">No records in selected period.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile/card view -->
+      <div class="record-list d-block d-md-none">
+        {% if attendance_records|length == 0 %}
+          <div class="text-center text-muted py-3">No records in selected period.</div>
+        {% else %}
+          {% for a in attendance_records %}
+            <div class="record-item p-3 mb-2 bg-white rounded-3 shadow-sm">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="fw-semibold">{{ a.date.strftime('%Y-%m-%d') }}</div>
+                <div class="badge {% if a.status and a.status.lower()=='present' %}bg-success{% elif a.status and a.status.lower()=='absent' %}bg-danger{% else %}bg-secondary{% endif %} text-white small">{{ a.status }}</div>
+              </div>
+              {% if a.reason %}<div class="text-muted small">Reason: {{ a.reason }}</div>{% endif %}
+            </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+
+  <style>
+    /* Mobile-specific layout: force a safe scrolling container so the last card sits above footer with 20px gap */
+    @media (max-width: 768px) {
+      .container-att {
+        max-width: 100%;
+        /* Full viewport height minus navbar (70px) so footer directly follows content */
+        height: calc(100vh - 70px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 12px; /* small breathing room */
+        box-sizing: border-box;
+        margin-bottom: 0; /* footer will sit directly below content */
+      }
+
+      /* make controls and records visually separated on small screens */
+      .controls, .records { background: rgba(255,255,255,0.98); }
+
+      /* Hide table on small screens and show stacked card layout */
+      .records-table { display: none !important; }
+      .record-list { display: block !important; }
+
+      /* mobile record item styling */
+      .record-item { background: linear-gradient(180deg, #ffffff, #f8fff9); border-left: 4px solid rgba(34,139,34,0.12); }
+
+      /* increase touch targets */
+      .period-select .btn { padding: 8px 10px; font-size: 0.95rem; }
+      .controls .form-control { font-size: 0.95rem; }
+    }
+  </style>
+
+  {% include 'footer.html' %}
+</body>
+</html>
