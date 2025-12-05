@@ -2,9 +2,9 @@ from flask import Blueprint, render_template, request, jsonify, session, redirec
 from models.user_models import db, User
 from models.register_pupils import Pupil
 from models.timetable_model import TimeTableSlot
-from models.attendance_model import AttendanceLog
+from models.attendance_model import Attendance
 from models.marks_model import Mark, Subject
-from models.expenses_model import Payment, PaymentReceipt
+from models.register_pupils import Payment
 from models.class_model import Class
 from models.stream_model import Stream
 from sqlalchemy import or_
@@ -19,12 +19,12 @@ def dashboard():
     if not user_id:
         flash("You must be logged in to access the parent dashboard.", "danger")
         return redirect(url_for("user_routes.login"))
-    
+
     user = User.query.get(user_id)
     if not user or user.role.role_name.lower() != "parent":
         flash("Access denied. Only parents can view this dashboard.", "danger")
         return redirect(url_for("user_routes.login"))
-    
+
     return render_template("parent/dashboard.html", parent=user)
 
 # ✅ API: Search for Child
@@ -34,41 +34,47 @@ def search_child():
     user_id = session.get("user_id")
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
-    
+
     search_query = request.args.get("q", "").strip()
     if not search_query or len(search_query) < 2:
         return jsonify({"error": "Search query too short"}), 400
-    
+
     try:
-        # Search for pupils by various fields
+        # Search for pupils by various fields (first/middle/last name, admission number, pupil id, roll number)
+        like_q = f"%{search_query}%"
         pupils = Pupil.query.filter(
             or_(
-                Pupil.name.ilike(f"%{search_query}%"),
-                Pupil.admission_number.ilike(f"%{search_query}%"),
-                Pupil.pupil_id.ilike(f"%{search_query}%"),
-                Pupil.roll_number.ilike(f"%{search_query}%")
+                Pupil.first_name.ilike(like_q),
+                Pupil.middle_name.ilike(like_q),
+                Pupil.last_name.ilike(like_q),
+                Pupil.admission_number.ilike(like_q),
+                Pupil.pupil_id.ilike(like_q),
+                Pupil.roll_number.ilike(like_q)
             )
         ).all()
-        
+
         if not pupils:
             return jsonify({"error": "No pupils found"}), 404
-        
+
         # Return first 5 results
         results = []
         for pupil in pupils[:5]:
+            # Build a display name from available name parts
+            parts = [pupil.first_name or "", pupil.middle_name or "", pupil.last_name or ""]
+            full_name = " ".join([p.strip() for p in parts if p and p.strip()])
             results.append({
                 "id": pupil.id,
-                "name": pupil.name,
+                "name": full_name,
                 "admission_number": pupil.admission_number,
                 "pupil_id": pupil.pupil_id,
                 "roll_number": pupil.roll_number,
                 "class_id": pupil.class_id,
                 "stream_id": pupil.stream_id,
-                "status": pupil.status
+                "status": getattr(pupil, 'enrollment_status', None) or getattr(pupil, 'status', None) or 'Active'
             })
-        
+
         return jsonify({"pupils": results}), 200
-    
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -79,15 +85,15 @@ def view_timetable(pupil_id):
     user_id = session.get("user_id")
     if not user_id:
         return redirect(url_for("user_routes.login"))
-    
+
     pupil = Pupil.query.get_or_404(pupil_id)
-    
+
     # Get timetable slots for the pupil's class and stream
     timetable = TimeTableSlot.query.filter_by(
         class_id=pupil.class_id,
         stream_id=pupil.stream_id
     ).all()
-    
+
     # Group by day and time
     schedule = {}
     for slot in timetable:
@@ -101,7 +107,7 @@ def view_timetable(pupil_id):
             "teacher": slot.teacher.user.email if slot.teacher else "TBA",
             "classroom": slot.classroom or "TBA"
         })
-    
+
     return render_template(
         "parent/timetable.html",
         pupil=pupil,
@@ -115,19 +121,19 @@ def view_attendance(pupil_id):
     user_id = session.get("user_id")
     if not user_id:
         return redirect(url_for("user_routes.login"))
-    
+
     pupil = Pupil.query.get_or_404(pupil_id)
-    
+
     # Get attendance records
-    attendance_records = AttendanceLog.query.filter_by(pupil_id=pupil_id).all()
-    
+    attendance_records = Attendance.query.filter_by(pupil_id=pupil_id).all()
+
     # Calculate stats
     total_days = len(attendance_records)
     present_days = len([a for a in attendance_records if a.status.lower() == "present"])
     absent_days = len([a for a in attendance_records if a.status.lower() == "absent"])
-    
+
     attendance_percentage = (present_days / total_days * 100) if total_days > 0 else 0
-    
+
     return render_template(
         "parent/attendance.html",
         pupil=pupil,
@@ -147,12 +153,12 @@ def view_reports(pupil_id):
     user_id = session.get("user_id")
     if not user_id:
         return redirect(url_for("user_routes.login"))
-    
+
     pupil = Pupil.query.get_or_404(pupil_id)
-    
+
     # Get marks by subject
     marks = Mark.query.filter_by(pupil_id=pupil_id).all()
-    
+
     # Group by subject
     subjects_marks = {}
     for mark in marks:
@@ -165,7 +171,7 @@ def view_reports(pupil_id):
             "percentage": (mark.score / mark.max_score * 100) if mark.max_score > 0 else 0,
             "term": mark.term if hasattr(mark, 'term') else "Current"
         })
-    
+
     return render_template(
         "parent/reports.html",
         pupil=pupil,
@@ -179,16 +185,16 @@ def view_payment_status(pupil_id):
     user_id = session.get("user_id")
     if not user_id:
         return redirect(url_for("user_routes.login"))
-    
+
     pupil = Pupil.query.get_or_404(pupil_id)
-    
+
     # Get payment records
     payments = Payment.query.filter_by(pupil_id=pupil_id).all()
-    
+
     # Calculate summary
     total_fees = sum(p.amount for p in payments if p.status == "pending")
     total_paid = sum(p.amount for p in payments if p.status == "completed")
-    
+
     return render_template(
         "parent/payment_status.html",
         pupil=pupil,
@@ -207,18 +213,18 @@ def view_balance(pupil_id):
     user_id = session.get("user_id")
     if not user_id:
         return redirect(url_for("user_routes.login"))
-    
+
     pupil = Pupil.query.get_or_404(pupil_id)
-    
+
     # Calculate balance from payments
     payments = Payment.query.filter_by(pupil_id=pupil_id).all()
-    
+
     total_owed = sum(p.amount for p in payments if p.status == "pending")
     total_paid = sum(p.amount for p in payments if p.status == "completed")
-    
+
     balance_status = "Credit" if total_paid > total_owed else "Debit"
     balance_amount = abs(total_paid - total_owed)
-    
+
     return render_template(
         "parent/balance.html",
         pupil=pupil,
@@ -237,12 +243,12 @@ def view_receipts(pupil_id):
     user_id = session.get("user_id")
     if not user_id:
         return redirect(url_for("user_routes.login"))
-    
+
     pupil = Pupil.query.get_or_404(pupil_id)
-    
-    # Get receipts
-    receipts = PaymentReceipt.query.filter_by(pupil_id=pupil_id).all()
-    
+
+    # Get receipts (using payments table as source for receipts)
+    receipts = Payment.query.filter_by(pupil_id=pupil_id).all()
+
     return render_template(
         "parent/receipts.html",
         pupil=pupil,
@@ -256,9 +262,10 @@ def download_receipt(receipt_id):
     user_id = session.get("user_id")
     if not user_id:
         return redirect(url_for("user_routes.login"))
-    
-    receipt = PaymentReceipt.query.get_or_404(receipt_id)
-    
+
+    # Placeholder: receipts are stored in payments table; adjust when receipts model exists
+    receipt = Payment.query.get_or_404(receipt_id)
+
     # TODO: Implement PDF generation and download
     flash("Receipt download functionality coming soon.", "info")
     return redirect(request.referrer or url_for("parent_routes.dashboard"))
