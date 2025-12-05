@@ -307,7 +307,7 @@
                       <i class="bi bi-person"></i>{{ s.teacher or 'TBA' }}
                     </div>
                     <div class="slot-classroom">
-                      <i class="bi bi-door-closed"></i>{{ s.classroom or 'TBA' }}
+                      <i class="bi bi-door-closed"></i>{{ s.classroom if s.classroom else 'N/A' }}
                     </div>
                   </li>
                 {% endfor %}

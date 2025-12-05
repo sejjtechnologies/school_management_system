@@ -153,18 +153,23 @@ def view_timetable(pupil_id):
     # Group by day and time
     schedule = {}
     for slot in timetable:
+        # Only include slots that have a teacher and subject assigned (no TBA)
+        if not slot.teacher or not slot.subject:
+            continue
+        
         day = slot.day_of_week
         if day not in schedule:
             schedule[day] = []
+        
         schedule[day].append({
             "start_time": slot.start_time,
             "end_time": slot.end_time,
-            "subject": slot.subject.name if slot.subject else "TBA",
+            "subject": slot.subject.name,
             # `slot.teacher` is a User instance. Get full name (first_name + last_name).
-            "teacher": (f"{slot.teacher.first_name} {slot.teacher.last_name}".strip() if slot.teacher else "TBA"),
+            "teacher": f"{slot.teacher.first_name} {slot.teacher.last_name}".strip(),
             # Some deployments may not have a `classroom` column on TimeTableSlot.
-            # Use getattr to avoid AttributeError and fall back to "TBA".
-            "classroom": getattr(slot, 'classroom', None) or "TBA"
+            # Use getattr to avoid AttributeError and fall back to empty string (no "TBA").
+            "classroom": getattr(slot, 'classroom', None) or ""
         })
 
     # Gather class teacher, academic year, and term information
