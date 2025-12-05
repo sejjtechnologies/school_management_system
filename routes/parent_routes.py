@@ -166,10 +166,39 @@ def view_timetable(pupil_id):
             "classroom": getattr(slot, 'classroom', None) or "TBA"
         })
 
+    # Gather class teacher, academic year, and term information
+    class_teacher = None
+    academic_year = None
+    term = None
+
+    try:
+        # Try to get class teacher from the Class model (if it has a teacher relationship/field)
+        if hasattr(pupil.class_, 'teacher') and pupil.class_.teacher:
+            teacher = pupil.class_.teacher
+            class_teacher = f"{teacher.first_name} {teacher.last_name}".strip() if teacher else "TBA"
+        elif hasattr(pupil.class_, 'class_teacher_id') and pupil.class_.class_teacher_id:
+            teacher = User.query.get(pupil.class_.class_teacher_id)
+            class_teacher = f"{teacher.first_name} {teacher.last_name}".strip() if teacher else "TBA"
+    except Exception:
+        class_teacher = "TBA"
+
+    try:
+        # Try to retrieve current academic year and term
+        # These may be stored in a settings table, environment variable, or config
+        # For now, use placeholders; customize as needed
+        academic_year = getattr(pupil, 'academic_year', None) or "2025"
+        term = getattr(pupil, 'term', None) or "Term 1"
+    except Exception:
+        academic_year = "2025"
+        term = "Term 1"
+
     return render_template(
         "parent/timetable.html",
         pupil=pupil,
-        schedule=schedule
+        schedule=schedule,
+        class_teacher=class_teacher or "TBA",
+        academic_year=academic_year,
+        term=term
     )
 
 # ✅ View Attendance

@@ -236,8 +236,8 @@
   <!-- Fixed Top Navbar -->
   <nav class="navbar-timetable">
     <h5><i class="bi bi-calendar-event me-2"></i>Timetable</h5>
-    <a href="{{ url_for('parent_routes.dashboard') }}" class="back-btn" title="Sign Out">
-      <i class="bi bi-box-arrow-left"></i>
+    <a href="{{ url_for('parent_routes.dashboard') }}" class="back-btn" title="Back">
+      <i class="bi bi-box-arrow-left"></i><span>Back</span>
     </a>
   </nav>
 
@@ -248,6 +248,9 @@
       <p><span class="label">Student:</span> <span class="value">{{ pupil.first_name }} {{ pupil.last_name }}</span></p>
       <p><span class="label">Class:</span> <span class="value">{{ pupil.class_.name if pupil.class_ else 'Class ' + pupil.class_id|string }}</span></p>
       <p><span class="label">Stream:</span> <span class="value">{{ pupil.stream.name if pupil.stream else 'Stream ' + pupil.stream_id|string }}</span></p>
+      <p><span class="label">Class Teacher:</span> <span class="value">{{ class_teacher or 'TBA' }}</span></p>
+      <p><span class="label">Academic Year:</span> <span class="value">{{ academic_year or 'TBA' }}</span></p>
+      <p><span class="label">Term:</span> <span class="value">{{ term or 'TBA' }}</span></p>
     </div>
 
     <!-- Timetable Grid (Row-Column Layout) -->
