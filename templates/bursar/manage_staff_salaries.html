@@ -1015,6 +1015,38 @@
           statCards[2].textContent = unpaidCount;
         }
       }
+
+      // Ensure there's room above footer when scrolling on mobile
+      function updateFooterSpacing() {
+        try {
+          const footer = document.querySelector('.site-footer');
+          const footerHeight = footer ? footer.offsetHeight : 56; // fallback
+          // update CSS variable used elsewhere
+          document.documentElement.style.setProperty('--footer-h', footerHeight + 'px');
+          // set scroll-padding-bottom so anchored/scroll-to elements are visible above footer
+          document.documentElement.style.setProperty('scroll-padding-bottom', `calc(var(--footer-h) + 20px)`);
+          // set per-card margin for last-child visible area
+          document.querySelectorAll('.card').forEach(c => {
+            c.style.scrollMarginBottom = (footerHeight + 20) + 'px';
+          });
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      // run on load/resize/viewport change
+      window.addEventListener('load', updateFooterSpacing);
+      window.addEventListener('resize', updateFooterSpacing);
+      if (window.visualViewport) {
+        visualViewport.addEventListener('resize', updateFooterSpacing);
+        visualViewport.addEventListener('scroll', updateFooterSpacing);
+      }
+      // in case footer size changes
+      const footerEl = document.querySelector('.site-footer');
+      if (footerEl && window.ResizeObserver) {
+        try { new ResizeObserver(updateFooterSpacing).observe(footerEl); } catch(e) {}
+      }
+      setTimeout(updateFooterSpacing, 50);
   </script>
 </body>
 </html>
