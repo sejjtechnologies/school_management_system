@@ -90,6 +90,17 @@ def search_child():
                 "status": getattr(pupil, 'enrollment_status', None) or getattr(pupil, 'status', None) or 'Active'
             })
 
+        # If the searching user is a parent, remember the first result in session so
+        # subsequent detail requests (timetable, attendance) can be authorized.
+        try:
+            user = User.query.get(user_id)
+            if user and user.role and user.role.role_name.lower() == 'parent' and len(results) > 0:
+                # store the first result as the selected pupil for this session
+                session['parent_selected_pupil_id'] = results[0]['id']
+        except Exception:
+            # non-fatal; don't block returning results
+            pass
+
         return jsonify({"pupils": results}), 200
 
     except Exception as e:
@@ -104,6 +115,33 @@ def view_timetable(pupil_id):
         return redirect(url_for("user_routes.login"))
 
     pupil = Pupil.query.get_or_404(pupil_id)
+
+    # Authorization: if the logged-in user is a parent, ensure they are a guardian of this pupil.
+    # There is no strict FK linking parents to pupils in the current schema, so we attempt
+    # a best-effort match: allow access if the parent's email matches the pupil email or
+    # the parent's name appears in the guardian_name. If the check fails, deny access.
+    user = User.query.get(user_id)
+    if user and user.role and user.role.role_name.lower() == 'parent':
+        allowed = False
+        try:
+            # match by pupil.email
+            if getattr(pupil, 'email', None) and user.email and pupil.email.lower() == user.email.lower():
+                allowed = True
+            # match by guardian_name containing parent's name
+            guardian_name = getattr(pupil, 'guardian_name', '') or ''
+            if not allowed and guardian_name:
+                if user.first_name.lower() in guardian_name.lower() or user.last_name.lower() in guardian_name.lower():
+                    allowed = True
+            # allow if the parent selected this pupil during search in this session
+            selected = session.get('parent_selected_pupil_id')
+            if not allowed and selected and int(selected) == int(pupil.id):
+                allowed = True
+        except Exception:
+            allowed = False
+
+        if not allowed:
+            flash('Access denied. You can only view timetables for your own child. If this is an error, contact the school administrator.', 'danger')
+            return redirect(url_for('parent_routes.dashboard'))
 
     # Get timetable slots for the pupil's class and stream
     timetable = TimeTableSlot.query.filter_by(
@@ -121,8 +159,11 @@ def view_timetable(pupil_id):
             "start_time": slot.start_time,
             "end_time": slot.end_time,
             "subject": slot.subject.name if slot.subject else "TBA",
-            "teacher": slot.teacher.user.email if slot.teacher else "TBA",
-            "classroom": slot.classroom or "TBA"
+            # `slot.teacher` is a User instance. Get full name (first_name + last_name).
+            "teacher": (f"{slot.teacher.first_name} {slot.teacher.last_name}".strip() if slot.teacher else "TBA"),
+            # Some deployments may not have a `classroom` column on TimeTableSlot.
+            # Use getattr to avoid AttributeError and fall back to "TBA".
+            "classroom": getattr(slot, 'classroom', None) or "TBA"
         })
 
     return render_template(

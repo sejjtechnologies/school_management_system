@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Timetable - Parent</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #f0f4f8 0%, #e8ecf1 100%);
+      padding-top: 70px;
+      padding-bottom: calc(var(--footer-height, 48px) + 20px);
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    html { scroll-padding-bottom: calc(var(--footer-height, 48px) + 20px); }
+
+    /* Fixed top navbar */
+    .navbar-timetable {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      background: linear-gradient(135deg, #ad1457 0%, #7b1141 100%);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      z-index: 1050;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+    }
+
+    .navbar-timetable h5 {
+      color: white;
+      margin: 0;
+      font-weight: 700;
+      flex: 1;
+      font-size: 1rem;
+    }
+
+    .navbar-timetable .back-btn {
+      background: white;
+      border: none;
+      color: #e74c3c;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .navbar-timetable .back-btn:hover {
+      background: #f5f5f5;
+      transform: translateX(-2px);
+    }
+
+    .navbar-timetable .back-btn i { font-size: 0.95rem; }
+
+    /* Main content container */
+    .timetable-container {
+      max-width: 100%;
+      padding: 16px;
+      margin: 0 auto;
+    }
+
+    .student-header {
+      background: white;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+      border-left: 5px solid #ad1457;
+    }
+
+    .student-header p { margin: 4px 0; font-size: 0.95rem; color: #34495e; }
+    .student-header .label { font-weight: 600; color: #2c3e50; }
+    .student-header .value { color: #7f8c8d; }
+
+    /* Row-based timetable grid (responsive columns) */
+    .timetable-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    /* Day card */
+    .day-col {
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s ease;
+      border-top: 4px solid #999;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .day-col:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); }
+
+    /* Day-specific colors */
+    .day-col.monday { border-top-color: #e74c3c; }
+    .day-col.tuesday { border-top-color: #f39c12; }
+    .day-col.wednesday { border-top-color: #27ae60; }
+    .day-col.thursday { border-top-color: #3498db; }
+    .day-col.friday { border-top-color: #9b59b6; }
+    .day-col.saturday { border-top-color: #1abc9c; }
+
+    .day-title {
+      padding: 12px 14px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: white;
+      background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
+    }
+
+    .day-col.monday .day-title { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); }
+    .day-col.tuesday .day-title { background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); }
+    .day-col.wednesday .day-title { background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%); }
+    .day-col.thursday .day-title { background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); }
+    .day-col.friday .day-title { background: linear-gradient(135deg, #9b59b6 0%, #76448a 100%); }
+    .day-col.saturday .day-title { background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%); }
+
+    .day-title i { margin-right: 6px; font-size: 1.05rem; }
+
+    .slots-list {
+      padding: 0;
+      margin: 0;
+      list-style: none;
+      flex: 1;
+      overflow-y: auto;
+      max-height: 600px;
+    }
+
+    .time-slot {
+      padding: 12px 14px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: background 0.25s ease;
+    }
+
+    .time-slot:hover { background: #fafafa; }
+    .time-slot:last-child { border-bottom: none; }
+
+    .slot-time {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #2c3e50;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .slot-time i { color: #ad1457; font-size: 0.95rem; }
+
+    .slot-subject {
+      font-weight: 500;
+      font-size: 0.9rem;
+      color: #34495e;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .slot-subject i { color: #27ae60; font-size: 0.95rem; }
+
+    .slot-teacher {
+      font-size: 0.85rem;
+      color: #7f8c8d;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .slot-teacher i { color: #3498db; font-size: 0.9rem; }
+
+    .slot-classroom {
+      font-size: 0.85rem;
+      color: #95a5a6;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .slot-classroom i { color: #9b59b6; font-size: 0.9rem; }
+
+    .no-slots { padding: 20px 14px; text-align: center; color: #bbb; font-size: 0.85rem; }
+
+    .empty-state {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 8px;
+      padding: 24px 16px;
+      text-align: center;
+      color: #856404;
+      margin: 20px 0;
+    }
+
+    .empty-state i { font-size: 3rem; color: #ffc107; margin-bottom: 12px; }
+
+    /* Mobile optimization */
+    @media (max-width: 768px) {
+      .timetable-grid { grid-template-columns: 1fr; gap: 10px; }
+      .navbar-timetable h5 { font-size: 0.95rem; }
+      .navbar-timetable { padding: 0 12px; }
+      .timetable-container { padding: 12px; }
+      .student-header { padding: 12px 14px; margin-bottom: 12px; }
+      .student-header p { font-size: 0.9rem; }
+    }
+
+    @media (max-width: 480px) {
+      .timetable-grid { grid-template-columns: 1fr; }
+      .navbar-timetable h5 { font-size: 0.9rem; }
+      .navbar-timetable .back-btn { padding: 6px 10px; font-size: 0.85rem; }
+      .day-title { font-size: 0.9rem; padding: 10px 12px; }
+      .time-slot { padding: 10px 12px; gap: 5px; }
+      .slot-time { font-size: 0.85rem; }
+      .slot-subject { font-size: 0.85rem; }
+      .slot-teacher, .slot-classroom { font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Fixed Top Navbar -->
+  <nav class="navbar-timetable">
+    <h5><i class="bi bi-calendar-event me-2"></i>Timetable</h5>
+    <a href="{{ url_for('parent_routes.dashboard') }}" class="back-btn">
+      <i class="bi bi-arrow-left"></i><span>Back</span>
+    </a>
+  </nav>
+
+  <!-- Main Timetable Container -->
+  <div class="timetable-container main-scroll">
+    <!-- Student Info Header -->
+    <div class="student-header">
+      <p><span class="label">Student:</span> <span class="value">{{ pupil.first_name }} {{ pupil.last_name }}</span></p>
+      <p><span class="label">Class:</span> <span class="value">{{ pupil.class_.name if pupil.class_ else 'Class ' + pupil.class_id|string }}</span></p>
+      <p><span class="label">Stream:</span> <span class="value">{{ pupil.stream.name if pupil.stream else 'Stream ' + pupil.stream_id|string }}</span></p>
+    </div>
+
+    <!-- Timetable Grid (Row-Column Layout) -->
+    {% if schedule %}
+      <div class="timetable-grid">
+        {% set day_colors = {
+          'Monday': 'monday',
+          'Tuesday': 'tuesday',
+          'Wednesday': 'wednesday',
+          'Thursday': 'thursday',
+          'Friday': 'friday',
+          'Saturday': 'saturday'
+        } %}
+
+        {% set day_icons = {
+          'Monday': 'bi-1-circle-fill',
+          'Tuesday': 'bi-2-circle-fill',
+          'Wednesday': 'bi-3-circle-fill',
+          'Thursday': 'bi-4-circle-fill',
+          'Friday': 'bi-5-circle-fill',
+          'Saturday': 'bi-6-circle-fill'
+        } %}
+
+        <!-- Helper function to convert 24-hour to 12-hour format -->
+        {% macro format_12hr(time_str) %}
+          {% set parts = time_str.split(':') %}
+          {% set hour = parts[0]|int %}
+          {% set minute = parts[1] %}
+          {% set am_pm = 'AM' if hour < 12 else 'PM' %}
+          {% set hour_12 = hour if hour <= 12 else hour - 12 %}
+          {% set hour_12 = 12 if hour == 0 else hour_12 %}
+          {{ "%d:%s %s" % (hour_12, minute, am_pm) }}
+        {% endmacro %}
+
+        <!-- Day columns -->
+        {% for day, slots in schedule.items() %}
+          <div class="day-col {{ day_colors.get(day, '').lower() }}">
+            <div class="day-title">
+              <i class="bi {{ day_icons.get(day, 'bi-calendar') }}"></i>{{ day }}
+            </div>
+            <ul class="slots-list">
+              {% if slots and slots|length > 0 %}
+                {% for s in slots %}
+                  <li class="time-slot">
+                    <div class="slot-time">
+                      <i class="bi bi-clock"></i>{{ format_12hr(s.start_time) }} – {{ format_12hr(s.end_time) }}
+                    </div>
+                    <div class="slot-subject">
+                      <i class="bi bi-book"></i>{{ s.subject or 'TBA' }}
+                    </div>
+                    <div class="slot-teacher">
+                      <i class="bi bi-person"></i>{{ s.teacher or 'TBA' }}
+                    </div>
+                    <div class="slot-classroom">
+                      <i class="bi bi-door-closed"></i>{{ s.classroom or 'TBA' }}
+                    </div>
+                  </li>
+                {% endfor %}
+              {% else %}
+                <div class="no-slots">No classes</div>
+              {% endif %}
+            </ul>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <p><strong>No Timetable Available</strong></p>
+        <p style="font-size: 0.9rem; margin-top: 8px;">The timetable for this class/stream has not been created yet. Please contact the school administration.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Footer -->
+  {% include 'footer.html' %}
+
+  <script>
+    // Ensure footer padding is set for mobile scrolling (20px gap above footer)
+    if (!window.__sejj_footer_padding_initialized) {
+      window.__sejj_footer_padding_initialized = true;
+      (function setMainPaddingForFooter(){
+        function updatePadding(){
+          try {
+            const mains = document.querySelectorAll('main.main-scroll, .timetable-container.main-scroll');
+            const footer = document.querySelector('.site-footer');
+            const gap = 20;
+            const footerHeight = footer ? footer.offsetHeight : 48;
+            mains.forEach(m => {
+              m.style.paddingBottom = (footerHeight + gap) + 'px';
+            });
+            document.documentElement.style.setProperty('--footer-height', footerHeight + 'px');
+          } catch(e) { /* ignore */ }
+        }
+        window.addEventListener('load', updatePadding);
+        window.addEventListener('resize', updatePadding);
+        if (window.visualViewport) {
+          visualViewport.addEventListener('resize', updatePadding);
+          visualViewport.addEventListener('scroll', updatePadding);
+        }
+        const f = document.querySelector('.site-footer');
+        if (f && window.ResizeObserver) {
+          try {
+            const ro = new ResizeObserver(updatePadding);
+            ro.observe(f);
+          } catch(e) { /* ignore */ }
+        }
+        setTimeout(updatePadding, 50);
+      })();
+    }
+  </script>
+</body>
+</html>
