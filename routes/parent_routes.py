@@ -62,6 +62,21 @@ def search_child():
             # Build a display name from available name parts
             parts = [pupil.first_name or "", pupil.middle_name or "", pupil.last_name or ""]
             full_name = " ".join([p.strip() for p in parts if p and p.strip()])
+
+            # Resolve class and stream names if relationships exist
+            class_name = None
+            stream_name = None
+            try:
+                if hasattr(pupil, 'class_') and pupil.class_:
+                    class_name = getattr(pupil.class_, 'name', None)
+            except Exception:
+                class_name = None
+            try:
+                if hasattr(pupil, 'stream') and pupil.stream:
+                    stream_name = getattr(pupil.stream, 'name', None)
+            except Exception:
+                stream_name = None
+
             results.append({
                 "id": pupil.id,
                 "name": full_name,
@@ -69,7 +84,9 @@ def search_child():
                 "pupil_id": pupil.pupil_id,
                 "roll_number": pupil.roll_number,
                 "class_id": pupil.class_id,
+                "class_name": class_name,
                 "stream_id": pupil.stream_id,
+                "stream_name": stream_name,
                 "status": getattr(pupil, 'enrollment_status', None) or getattr(pupil, 'status', None) or 'Active'
             })
 
