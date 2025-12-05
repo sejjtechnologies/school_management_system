@@ -248,9 +248,11 @@
       <p><span class="label">Student:</span> <span class="value">{{ pupil.first_name }} {{ pupil.last_name }}</span></p>
       <p><span class="label">Class:</span> <span class="value">{{ pupil.class_.name if pupil.class_ else 'Class ' + pupil.class_id|string }}</span></p>
       <p><span class="label">Stream:</span> <span class="value">{{ pupil.stream.name if pupil.stream else 'Stream ' + pupil.stream_id|string }}</span></p>
-      <p><span class="label">Class Teacher:</span> <span class="value">{{ class_teacher or 'TBA' }}</span></p>
-      <p><span class="label">Academic Year:</span> <span class="value">{{ academic_year or 'TBA' }}</span></p>
-      <p><span class="label">Term:</span> <span class="value">{{ term or 'TBA' }}</span></p>
+      {% if class_teacher %}
+        <p><span class="label">Class Teacher:</span> <span class="value">{{ class_teacher }}</span></p>
+      {% endif %}
+      <p><span class="label">Academic Year:</span> <span class="value">{{ academic_year }}</span></p>
+      <p><span class="label">Term:</span> <span class="value">{{ term }}</span></p>
     </div>
 
     <!-- Timetable Grid (Row-Column Layout) -->

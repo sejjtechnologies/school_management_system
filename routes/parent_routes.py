@@ -7,6 +7,7 @@ from models.marks_model import Mark, Subject
 from models.register_pupils import Payment
 from models.class_model import Class
 from models.stream_model import Stream
+from models.teacher_assignment_models import TeacherAssignment
 from sqlalchemy import or_
 
 parent_routes = Blueprint("parent_routes", __name__)
@@ -172,15 +173,15 @@ def view_timetable(pupil_id):
     term = None
 
     try:
-        # Try to get class teacher from the Class model (if it has a teacher relationship/field)
-        if hasattr(pupil.class_, 'teacher') and pupil.class_.teacher:
-            teacher = pupil.class_.teacher
-            class_teacher = f"{teacher.first_name} {teacher.last_name}".strip() if teacher else "TBA"
-        elif hasattr(pupil.class_, 'class_teacher_id') and pupil.class_.class_teacher_id:
-            teacher = User.query.get(pupil.class_.class_teacher_id)
-            class_teacher = f"{teacher.first_name} {teacher.last_name}".strip() if teacher else "TBA"
+        # Query TeacherAssignment table to find the class teacher assigned to this stream
+        assignment = TeacherAssignment.query.filter_by(
+            class_id=pupil.class_id,
+            stream_id=pupil.stream_id
+        ).first()
+        if assignment and assignment.teacher:
+            class_teacher = f"{assignment.teacher.first_name} {assignment.teacher.last_name}".strip()
     except Exception:
-        class_teacher = "TBA"
+        class_teacher = None
 
     try:
         # Try to retrieve current academic year and term
@@ -196,7 +197,7 @@ def view_timetable(pupil_id):
         "parent/timetable.html",
         pupil=pupil,
         schedule=schedule,
-        class_teacher=class_teacher or "TBA",
+        class_teacher=class_teacher,
         academic_year=academic_year,
         term=term
     )
