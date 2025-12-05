@@ -1,7 +1,264 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, flash
+from models.user_models import db, User
+from models.register_pupils import Pupil
+from models.timetable_model import TimeTableSlot
+from models.attendance_model import AttendanceLog
+from models.marks_model import Mark, Subject
+from models.expenses_model import Payment, PaymentReceipt
+from models.class_model import Class
+from models.stream_model import Stream
+from sqlalchemy import or_
 
 parent_routes = Blueprint("parent_routes", __name__)
 
+# ✅ Dashboard Route
 @parent_routes.route("/parent/dashboard")
 def dashboard():
-    return render_template("parent/dashboard.html")
+    """Parent dashboard - requires login"""
+    user_id = session.get("user_id")
+    if not user_id:
+        flash("You must be logged in to access the parent dashboard.", "danger")
+        return redirect(url_for("user_routes.login"))
+    
+    user = User.query.get(user_id)
+    if not user or user.role.role_name.lower() != "parent":
+        flash("Access denied. Only parents can view this dashboard.", "danger")
+        return redirect(url_for("user_routes.login"))
+    
+    return render_template("parent/dashboard.html", parent=user)
+
+# ✅ API: Search for Child
+@parent_routes.route("/api/parent/search-child", methods=["GET"])
+def search_child():
+    """Search for child by name, admission number, pupil ID, or roll number"""
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    search_query = request.args.get("q", "").strip()
+    if not search_query or len(search_query) < 2:
+        return jsonify({"error": "Search query too short"}), 400
+    
+    try:
+        # Search for pupils by various fields
+        pupils = Pupil.query.filter(
+            or_(
+                Pupil.name.ilike(f"%{search_query}%"),
+                Pupil.admission_number.ilike(f"%{search_query}%"),
+                Pupil.pupil_id.ilike(f"%{search_query}%"),
+                Pupil.roll_number.ilike(f"%{search_query}%")
+            )
+        ).all()
+        
+        if not pupils:
+            return jsonify({"error": "No pupils found"}), 404
+        
+        # Return first 5 results
+        results = []
+        for pupil in pupils[:5]:
+            results.append({
+                "id": pupil.id,
+                "name": pupil.name,
+                "admission_number": pupil.admission_number,
+                "pupil_id": pupil.pupil_id,
+                "roll_number": pupil.roll_number,
+                "class_id": pupil.class_id,
+                "stream_id": pupil.stream_id,
+                "status": pupil.status
+            })
+        
+        return jsonify({"pupils": results}), 200
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ✅ View Timetable
+@parent_routes.route("/parent/pupil/<int:pupil_id>/timetable")
+def view_timetable(pupil_id):
+    """View pupil's class timetable"""
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("user_routes.login"))
+    
+    pupil = Pupil.query.get_or_404(pupil_id)
+    
+    # Get timetable slots for the pupil's class and stream
+    timetable = TimeTableSlot.query.filter_by(
+        class_id=pupil.class_id,
+        stream_id=pupil.stream_id
+    ).all()
+    
+    # Group by day and time
+    schedule = {}
+    for slot in timetable:
+        day = slot.day_of_week
+        if day not in schedule:
+            schedule[day] = []
+        schedule[day].append({
+            "start_time": slot.start_time,
+            "end_time": slot.end_time,
+            "subject": slot.subject.name if slot.subject else "TBA",
+            "teacher": slot.teacher.user.email if slot.teacher else "TBA",
+            "classroom": slot.classroom or "TBA"
+        })
+    
+    return render_template(
+        "parent/timetable.html",
+        pupil=pupil,
+        schedule=schedule
+    )
+
+# ✅ View Attendance
+@parent_routes.route("/parent/pupil/<int:pupil_id>/attendance")
+def view_attendance(pupil_id):
+    """View pupil's attendance records"""
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("user_routes.login"))
+    
+    pupil = Pupil.query.get_or_404(pupil_id)
+    
+    # Get attendance records
+    attendance_records = AttendanceLog.query.filter_by(pupil_id=pupil_id).all()
+    
+    # Calculate stats
+    total_days = len(attendance_records)
+    present_days = len([a for a in attendance_records if a.status.lower() == "present"])
+    absent_days = len([a for a in attendance_records if a.status.lower() == "absent"])
+    
+    attendance_percentage = (present_days / total_days * 100) if total_days > 0 else 0
+    
+    return render_template(
+        "parent/attendance.html",
+        pupil=pupil,
+        attendance_records=attendance_records,
+        stats={
+            "total": total_days,
+            "present": present_days,
+            "absent": absent_days,
+            "percentage": round(attendance_percentage, 1)
+        }
+    )
+
+# ✅ View Academic Reports
+@parent_routes.route("/parent/pupil/<int:pupil_id>/reports")
+def view_reports(pupil_id):
+    """View pupil's academic reports and marks"""
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("user_routes.login"))
+    
+    pupil = Pupil.query.get_or_404(pupil_id)
+    
+    # Get marks by subject
+    marks = Mark.query.filter_by(pupil_id=pupil_id).all()
+    
+    # Group by subject
+    subjects_marks = {}
+    for mark in marks:
+        subject_name = mark.subject.name if mark.subject else "Unknown"
+        if subject_name not in subjects_marks:
+            subjects_marks[subject_name] = []
+        subjects_marks[subject_name].append({
+            "score": mark.score,
+            "max_score": mark.max_score,
+            "percentage": (mark.score / mark.max_score * 100) if mark.max_score > 0 else 0,
+            "term": mark.term if hasattr(mark, 'term') else "Current"
+        })
+    
+    return render_template(
+        "parent/reports.html",
+        pupil=pupil,
+        subjects_marks=subjects_marks
+    )
+
+# ✅ View Payment Status
+@parent_routes.route("/parent/pupil/<int:pupil_id>/payment-status")
+def view_payment_status(pupil_id):
+    """View pupil's payment status and outstanding fees"""
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("user_routes.login"))
+    
+    pupil = Pupil.query.get_or_404(pupil_id)
+    
+    # Get payment records
+    payments = Payment.query.filter_by(pupil_id=pupil_id).all()
+    
+    # Calculate summary
+    total_fees = sum(p.amount for p in payments if p.status == "pending")
+    total_paid = sum(p.amount for p in payments if p.status == "completed")
+    
+    return render_template(
+        "parent/payment_status.html",
+        pupil=pupil,
+        payments=payments,
+        summary={
+            "outstanding": total_fees,
+            "paid": total_paid,
+            "total": total_fees + total_paid
+        }
+    )
+
+# ✅ View Account Balance
+@parent_routes.route("/parent/pupil/<int:pupil_id>/balance")
+def view_balance(pupil_id):
+    """View pupil's account balance"""
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("user_routes.login"))
+    
+    pupil = Pupil.query.get_or_404(pupil_id)
+    
+    # Calculate balance from payments
+    payments = Payment.query.filter_by(pupil_id=pupil_id).all()
+    
+    total_owed = sum(p.amount for p in payments if p.status == "pending")
+    total_paid = sum(p.amount for p in payments if p.status == "completed")
+    
+    balance_status = "Credit" if total_paid > total_owed else "Debit"
+    balance_amount = abs(total_paid - total_owed)
+    
+    return render_template(
+        "parent/balance.html",
+        pupil=pupil,
+        balance={
+            "status": balance_status,
+            "amount": balance_amount,
+            "outstanding": total_owed,
+            "paid": total_paid
+        }
+    )
+
+# ✅ View Payment Receipts
+@parent_routes.route("/parent/pupil/<int:pupil_id>/receipts")
+def view_receipts(pupil_id):
+    """View pupil's payment receipts"""
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("user_routes.login"))
+    
+    pupil = Pupil.query.get_or_404(pupil_id)
+    
+    # Get receipts
+    receipts = PaymentReceipt.query.filter_by(pupil_id=pupil_id).all()
+    
+    return render_template(
+        "parent/receipts.html",
+        pupil=pupil,
+        receipts=receipts
+    )
+
+# ✅ Download Receipt (if applicable)
+@parent_routes.route("/parent/receipt/<int:receipt_id>/download")
+def download_receipt(receipt_id):
+    """Download payment receipt as PDF"""
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("user_routes.login"))
+    
+    receipt = PaymentReceipt.query.get_or_404(receipt_id)
+    
+    # TODO: Implement PDF generation and download
+    flash("Receipt download functionality coming soon.", "info")
+    return redirect(request.referrer or url_for("parent_routes.dashboard"))

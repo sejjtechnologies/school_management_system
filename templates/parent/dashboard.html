@@ -7,14 +7,304 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
   <style>
-    body { padding-top: 70px; background-color: #f1f8e9; font-family: 'Segoe UI', sans-serif; }
-    .navbar { background-color: #ad1457; }
-    .navbar-brand, .nav-link { color: #fff !important; }
-    .logout-btn { background-color: #d32f2f; color: #fff; border: none; }
-    .logout-btn:hover { background-color: #b71c1c; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      background-color: #f1f8e9;
+      font-family: 'Segoe UI', sans-serif;
+      padding-top: 70px;
+      padding-bottom: 120px;
+      overflow-x: hidden;
+    }
+
+    /* ✅ Fixed Top Navbar */
+    .navbar {
+      background: linear-gradient(135deg, #ad1457 0%, #7b1141 100%);
+      height: 70px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .navbar-brand {
+      color: #fff !important;
+      font-weight: bold;
+      font-size: 1.3rem;
+    }
+
+    .logout-btn {
+      background-color: #d32f2f;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      font-size: 0.9rem;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+    }
+
+    .logout-btn:hover {
+      background-color: #b71c1c;
+      transform: translateY(-2px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    /* ✅ Search Section */
+    .search-section {
+      background: linear-gradient(135deg, #ad1457 0%, #7b1141 100%);
+      color: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .search-section h3 {
+      font-size: 1.3rem;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+
+    .search-input-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .search-input-group input {
+      flex: 1;
+      min-width: 180px;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.95rem;
+    }
+
+    .search-input-group select {
+      padding: 10px 12px;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.95rem;
+      background: white;
+    }
+
+    .search-btn {
+      background-color: #ffc107;
+      color: #333;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .search-btn:hover {
+      background-color: #ffb300;
+      transform: translateY(-2px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    /* ✅ Student Info Card */
+    .student-info-card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-left: 5px solid #ad1457;
+    }
+
+    .student-info-card h4 {
+      color: #ad1457;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+
+    .student-detail {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 0.95rem;
+    }
+
+    .student-detail:last-child {
+      border-bottom: none;
+    }
+
+    .student-detail strong {
+      color: #333;
+      min-width: 120px;
+    }
+
+    .student-detail span {
+      color: #666;
+      text-align: right;
+    }
+
+    /* ✅ Feature Buttons Grid */
+    .features-section {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .feature-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: white;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      text-decoration: none;
+      color: #333;
+      transition: all 0.3s ease;
+      min-height: 140px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .feature-btn:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      border-color: #ad1457;
+    }
+
+    .feature-btn i {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      color: #ad1457;
+    }
+
+    .feature-btn span {
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .feature-btn.timetable { border-left: 5px solid #00897b; }
+    .feature-btn.timetable i { color: #00897b; }
+
+    .feature-btn.attendance { border-left: 5px solid #1565c0; }
+    .feature-btn.attendance i { color: #1565c0; }
+
+    .feature-btn.reports { border-left: 5px solid #f57c00; }
+    .feature-btn.reports i { color: #f57c00; }
+
+    .feature-btn.payment { border-left: 5px solid #6a1b9a; }
+    .feature-btn.payment i { color: #6a1b9a; }
+
+    .feature-btn.balance { border-left: 5px solid #c62828; }
+    .feature-btn.balance i { color: #c62828; }
+
+    .feature-btn.receipt { border-left: 5px solid #00838f; }
+    .feature-btn.receipt i { color: #00838f; }
+
+    /* ✅ Info Box */
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #1565c0;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 20px;
+    }
+
+    .info-box p {
+      margin: 0;
+      color: #0d47a1;
+      font-size: 0.95rem;
+    }
+
+    /* ✅ Mobile Responsive */
+    @media (max-width: 768px) {
+      body {
+        padding-top: 70px;
+        padding-bottom: 140px;
+      }
+
+      .search-input-group {
+        flex-direction: column;
+      }
+
+      .search-input-group input,
+      .search-input-group select,
+      .search-btn {
+        width: 100%;
+      }
+
+      .features-section {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+
+      .feature-btn {
+        min-height: 120px;
+        padding: 15px;
+      }
+
+      .feature-btn i {
+        font-size: 2rem;
+        margin-bottom: 8px;
+      }
+
+      .feature-btn span {
+        font-size: 0.85rem;
+      }
+
+      .student-info-card {
+        padding: 15px;
+      }
+    }
+
+    @media (max-width: 500px) {
+      .features-section {
+        grid-template-columns: 1fr;
+      }
+
+      .search-section h3 {
+        font-size: 1.1rem;
+      }
+
+      .student-detail {
+        flex-direction: column;
+      }
+
+      .student-detail strong {
+        min-width: auto;
+        margin-bottom: 5px;
+      }
+
+      .student-detail span {
+        text-align: left;
+      }
+    }
+
+    /* ✅ No Student Selected State */
+    .no-student-message {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      color: #856404;
+      margin-bottom: 20px;
+    }
+
+    .no-student-message i {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      color: #ffc107;
+    }
+
+    .no-student-message p {
+      margin: 0;
+      font-size: 0.95rem;
+    }
   </style>
 </head>
-<body>
+<body data-user-role="parent">
+  <!-- ✅ Fixed Top Navbar -->
   <nav class="navbar fixed-top navbar-expand-lg">
     <div class="container-fluid px-3">
       <a class="navbar-brand fw-bold" href="#"><i class="bi bi-people-fill me-2"></i>Parent Dashboard</a>
@@ -27,7 +317,243 @@
       </div>
     </div>
   </nav>
-  <main class="container my-5"></main>
+
+  <!-- ✅ Main Content -->
+  <main class="container-fluid px-3 px-md-4">
+    <!-- ✅ Search Section -->
+    <div class="search-section">
+      <h3><i class="bi bi-search me-2"></i>Find Your Child</h3>
+      <form id="searchForm" class="search-input-group">
+        <input 
+          type="text" 
+          id="searchInput" 
+          placeholder="Search by: Name, Admission No., Pupil ID, or Roll Number"
+          autocomplete="off"
+        />
+        <button type="submit" class="search-btn">
+          <i class="bi bi-search me-1"></i>Search
+        </button>
+        <button type="reset" class="search-btn" style="background-color: #6c757d;">
+          <i class="bi bi-arrow-clockwise me-1"></i>Clear
+        </button>
+      </form>
+    </div>
+
+    <!-- ✅ Student Info Display Area -->
+    <div id="studentContainer">
+      <div class="no-student-message">
+        <i class="bi bi-search"></i>
+        <p>Search for your child to view their information and records</p>
+      </div>
+    </div>
+
+    <!-- ✅ Features Grid (shown when student is selected) -->
+    <div id="featuresContainer" style="display: none;">
+      <div class="features-section">
+        <!-- Timetable Button -->
+        <a href="#" class="feature-btn timetable" data-feature="timetable" title="View Class Timetable">
+          <i class="bi bi-calendar-event"></i>
+          <span>Timetable</span>
+        </a>
+
+        <!-- Attendance Button -->
+        <a href="#" class="feature-btn attendance" data-feature="attendance" title="View Attendance Records">
+          <i class="bi bi-clipboard-check"></i>
+          <span>Attendance</span>
+        </a>
+
+        <!-- Reports Button -->
+        <a href="#" class="feature-btn reports" data-feature="reports" title="View Academic Reports">
+          <i class="bi bi-file-text"></i>
+          <span>Reports</span>
+        </a>
+
+        <!-- Payment Status Button -->
+        <a href="#" class="feature-btn payment" data-feature="payment" title="View Payment Status">
+          <i class="bi bi-credit-card"></i>
+          <span>Payment Status</span>
+        </a>
+
+        <!-- Balance Button -->
+        <a href="#" class="feature-btn balance" data-feature="balance" title="View Account Balance">
+          <i class="bi bi-cash-coin"></i>
+          <span>Balance</span>
+        </a>
+
+        <!-- Receipts Button -->
+        <a href="#" class="feature-btn receipt" data-feature="receipt" title="View Payment Receipts">
+          <i class="bi bi-receipt"></i>
+          <span>Receipts</span>
+        </a>
+      </div>
+
+      <div class="info-box">
+        <p>
+          <i class="bi bi-info-circle me-2"></i>
+          Click on any button above to view detailed information. For support, contact the school administration.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <!-- ✅ Footer -->
   {% include 'footer.html' %}
+
+  <script>
+    let currentPupilId = null;
+
+    // ✅ Search functionality
+    document.getElementById('searchForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const searchQuery = document.getElementById('searchInput').value.trim();
+      
+      if (!searchQuery) {
+        alert('Please enter a search term');
+        return;
+      }
+
+      // Show loading state
+      const searchBtn = this.querySelector('.search-btn');
+      const originalText = searchBtn.innerHTML;
+      searchBtn.disabled = true;
+      searchBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Searching...';
+
+      // Send search request to backend
+      fetch(`/api/parent/search-child?q=${encodeURIComponent(searchQuery)}`)
+        .then(response => {
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          return response.json();
+        })
+        .then(data => {
+          searchBtn.disabled = false;
+          searchBtn.innerHTML = originalText;
+
+          if (data.pupils && data.pupils.length > 0) {
+            showStudentInfo(data.pupils[0]);
+          } else {
+            showNoResultsMessage(searchQuery);
+          }
+        })
+        .catch(error => {
+          searchBtn.disabled = false;
+          searchBtn.innerHTML = originalText;
+          console.error('Search error:', error);
+          showErrorMessage('Search failed. Please try again.');
+        });
+    });
+
+    // ✅ Clear search
+    document.getElementById('searchForm').addEventListener('reset', function() {
+      document.getElementById('studentContainer').innerHTML = `
+        <div class="no-student-message">
+          <i class="bi bi-search"></i>
+          <p>Search for your child to view their information and records</p>
+        </div>
+      `;
+      document.getElementById('featuresContainer').style.display = 'none';
+      currentPupilId = null;
+    });
+
+    // ✅ Feature button handlers
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('.feature-btn')) {
+        e.preventDefault();
+        const feature = e.target.closest('.feature-btn').dataset.feature;
+        
+        if (!currentPupilId) {
+          alert('Please search for a student first');
+          return;
+        }
+
+        // Route to appropriate endpoint based on feature
+        const routes = {
+          'timetable': `/parent/pupil/${currentPupilId}/timetable`,
+          'attendance': `/parent/pupil/${currentPupilId}/attendance`,
+          'reports': `/parent/pupil/${currentPupilId}/reports`,
+          'payment': `/parent/pupil/${currentPupilId}/payment-status`,
+          'balance': `/parent/pupil/${currentPupilId}/balance`,
+          'receipt': `/parent/pupil/${currentPupilId}/receipts`
+        };
+
+        if (routes[feature]) {
+          window.location.href = routes[feature];
+        }
+      }
+    });
+
+    // ✅ Display student info
+    function showStudentInfo(pupil) {
+      currentPupilId = pupil.id;
+
+      const html = `
+        <div class="student-info-card">
+          <h4><i class="bi bi-person-circle me-2"></i>Student Information</h4>
+          <div class="student-detail">
+            <strong>Name:</strong>
+            <span>${pupil.name}</span>
+          </div>
+          <div class="student-detail">
+            <strong>Admission No:</strong>
+            <span>${pupil.admission_number}</span>
+          </div>
+          <div class="student-detail">
+            <strong>Pupil ID:</strong>
+            <span>${pupil.pupil_id}</span>
+          </div>
+          <div class="student-detail">
+            <strong>Roll Number:</strong>
+            <span>${pupil.roll_number || 'N/A'}</span>
+          </div>
+          <div class="student-detail">
+            <strong>Class:</strong>
+            <span>Form ${pupil.class_id || 'TBA'}</span>
+          </div>
+          <div class="student-detail">
+            <strong>Stream:</strong>
+            <span>Stream ${pupil.stream_id || 'TBA'}</span>
+          </div>
+          <div class="student-detail">
+            <strong>Status:</strong>
+            <span><span class="badge bg-success">${pupil.status || 'Active'}</span></span>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('studentContainer').innerHTML = html;
+      document.getElementById('studentContainer').dataset.studentId = pupil.id;
+      document.getElementById('featuresContainer').style.display = 'block';
+    }
+
+    // ✅ Show no results message
+    function showNoResultsMessage(query) {
+      const html = `
+        <div class="no-student-message" style="background: #f8d7da; border-color: #f5c6cb; color: #721c24;">
+          <i class="bi bi-search" style="color: #721c24;"></i>
+          <p>No students found matching "<strong>${query}</strong>"</p>
+          <p style="font-size: 0.85rem; margin-top: 8px;">Try searching by:<br>
+            • Student Name<br>
+            • Admission Number<br>
+            • Pupil ID<br>
+            • Roll Number</p>
+        </div>
+      `;
+      document.getElementById('studentContainer').innerHTML = html;
+      document.getElementById('featuresContainer').style.display = 'none';
+      currentPupilId = null;
+    }
+
+    // ✅ Show error message
+    function showErrorMessage(message) {
+      const html = `
+        <div class="no-student-message" style="background: #f8d7da; border-color: #f5c6cb; color: #721c24;">
+          <i class="bi bi-exclamation-circle" style="color: #721c24;"></i>
+          <p>${message}</p>
+        </div>
+      `;
+      document.getElementById('studentContainer').innerHTML = html;
+      document.getElementById('featuresContainer').style.display = 'none';
+      currentPupilId = null;
+    }
+  </script>
 </body>
 </html>

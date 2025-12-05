@@ -11,6 +11,7 @@ from routes.teacher_routes import teacher_routes   # ✅ Import teacher_routes
 from routes.teacher_manage_reports import teacher_manage_reports   # ✅ Import teacher_manage_reports
 from routes.reset_password import reset_password_routes  # ✅ Import reset password routes
 from routes.bursar_routes import bursar_routes   # ✅ Import bursar_routes
+from routes.parent_routes import parent_routes   # ✅ Import parent_routes
 from dotenv import load_dotenv   # ✅ Import dotenv
 from sqlalchemy import text
 
@@ -54,6 +55,7 @@ app.register_blueprint(teacher_routes)            # ✅ Register teacher_routes
 app.register_blueprint(teacher_manage_reports)    # ✅ Register teacher_manage_reports
 app.register_blueprint(reset_password_routes)     # ✅ Register reset password routes
 app.register_blueprint(bursar_routes, url_prefix="/bursar")  # ✅ Register bursar_routes
+app.register_blueprint(parent_routes)             # ✅ Register parent_routes
 
 # ✅ ADMIN SESSION VALIDATION MIDDLEWARE
 @app.before_request
