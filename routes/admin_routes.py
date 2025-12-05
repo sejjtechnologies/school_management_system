@@ -250,6 +250,8 @@ def get_timetable(class_id, stream_id):
             'teacher_name': f"{slot.teacher.first_name} {slot.teacher.last_name}" if slot.teacher else "Unassigned",
             'subject_id': slot.subject_id,
             'subject_name': slot.subject.name if slot.subject else "Unassigned",
+            # include classroom if present (some deployments may have this column)
+            'classroom': getattr(slot, 'classroom', '') or '',
             'day_of_week': slot.day_of_week,
             'start_time': slot.start_time,
             'end_time': slot.end_time,

@@ -167,9 +167,8 @@ def view_timetable(pupil_id):
             "subject": slot.subject.name,
             # `slot.teacher` is a User instance. Get full name (first_name + last_name).
             "teacher": f"{slot.teacher.first_name} {slot.teacher.last_name}".strip(),
-            # Some deployments may not have a `classroom` column on TimeTableSlot.
-            # Use getattr to avoid AttributeError and fall back to empty string (no "TBA").
-            "classroom": getattr(slot, 'classroom', None) or ""
+            # Include classroom only if present. Use getattr to avoid AttributeError.
+            "classroom": getattr(slot, 'classroom', None)
         })
 
     # Gather class teacher, academic year, and term information

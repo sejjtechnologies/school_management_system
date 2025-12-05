@@ -26,6 +26,9 @@ class TimeTableSlot(db.Model):
     start_time = db.Column(db.String(5), nullable=False)    # HH:MM format (e.g., "08:00")
     end_time = db.Column(db.String(5), nullable=False)      # HH:MM format (e.g., "09:00")
 
+    # Classroom/Room assignment
+    classroom = db.Column(db.String(50), nullable=True)     # e.g., "Room 101", "Lab A", "Hall 2"
+
     # Metadata
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)

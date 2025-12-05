@@ -306,9 +306,11 @@
                     <div class="slot-teacher">
                       <i class="bi bi-person"></i>{{ s.teacher or 'TBA' }}
                     </div>
+                    {% if s.classroom %}
                     <div class="slot-classroom">
-                      <i class="bi bi-door-closed"></i>{{ s.classroom if s.classroom else 'N/A' }}
+                      <i class="bi bi-door-closed"></i>{{ s.classroom }}
                     </div>
+                    {% endif %}
                   </li>
                 {% endfor %}
               {% else %}

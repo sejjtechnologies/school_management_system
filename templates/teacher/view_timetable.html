@@ -34,6 +34,7 @@
     .slot-teacher { font-size: 0.85rem; color: #424242; margin-top: 6px; }
     /* Highlight the logged-in teacher's name in the timetable */
     .slot-teacher.current-teacher { color: #d32f2f; font-weight: 700; }
+    .slot-classroom { font-size: 0.78rem; color: #616161; margin-top: 6px; display: block; }
     /* Mobile adjustments: tighter cells, allow horizontal scrolling if needed */
     @media (max-width: 768px) {
       .timetable-container { padding: 8px; margin: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -209,7 +210,7 @@
                 const tId = slot.teacher_id ? parseInt(slot.teacher_id, 10) : null;
                 const isCurrent = currentTeacherId && tId && currentTeacherId === tId;
                 const teacherClass = isCurrent ? 'slot-teacher current-teacher' : 'slot-teacher';
-                html += `\n  <div style="margin-bottom: ${idx < slots.length - 1 ? '8px' : '0'}; padding-bottom: ${idx < slots.length - 1 ? '8px' : '0'}; border-bottom: ${idx < slots.length - 1 ? '1px solid #b0bec5' : 'none'};">\n    <div class="slot-subject">${slot.subject_name}</div>\n    <div class="${teacherClass}">${slot.teacher_name}</div>\n  </div>`;
+                html += `\n  <div style="margin-bottom: ${idx < slots.length - 1 ? '8px' : '0'}; padding-bottom: ${idx < slots.length - 1 ? '8px' : '0'}; border-bottom: ${idx < slots.length - 1 ? '1px solid #b0bec5' : 'none'};">\n    <div class="slot-subject">${slot.subject_name}</div>\n    <div class="${teacherClass}">${slot.teacher_name}</div>\n    ${slot.classroom && slot.classroom.length ? `<div class="slot-classroom"><i class=\"bi bi-door-closed\"></i> ${slot.classroom}</div>` : ''}\n  </div>`;
               });
               html += '</div>';
             } else {
