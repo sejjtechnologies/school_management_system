@@ -82,7 +82,7 @@ class AdminSessionMonitor {
         console.error('[SESSION MONITOR] Session invalid - logging out user');
         this.stop();
 
-        // Get appropriate message
+        // Get appropriate message for logging
         let message = data.message || 'Your session has been invalidated';
         
         if (data.reason === 'multi_device_login') {
@@ -91,58 +91,10 @@ class AdminSessionMonitor {
             message = 'You logged in from another device. This session is now closed.';
         }
 
-        // Show alert
-        const alertDiv = document.createElement('div');
-        alertDiv.id = 'session-invalid-alert';
-        alertDiv.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        `;
+        console.log('[SESSION MONITOR] Redirecting to login:', message);
 
-        const card = document.createElement('div');
-        card.style.cssText = `
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            max-width: 400px;
-            text-align: center;
-        `;
-
-        card.innerHTML = `
-            <h2 style="color: #dc3545; margin: 0 0 15px 0;">Session Invalidated</h2>
-            <p style="color: #666; margin: 0 0 20px 0; font-size: 14px;">
-                ${message}
-            </p>
-            <p style="color: #999; margin: 0 0 20px 0; font-size: 12px;">
-                Redirecting to login in 1 second...
-            </p>
-            <button onclick="location.href='/login'" style="
-                background: #dc3545;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 14px;
-            ">Go to Login</button>
-        `;
-
-        alertDiv.appendChild(card);
-        document.body.appendChild(alertDiv);
-
-        // Redirect to login after 1 second
-        setTimeout(() => {
-            window.location.href = '/login';
-        }, 1000);
+        // Redirect to login immediately without showing alert
+        window.location.href = '/login';
     }
 }
 
