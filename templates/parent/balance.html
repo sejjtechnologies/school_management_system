@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Account Balance - Parent</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background-color: #f5f7fa;
+      font-family: 'Segoe UI', sans-serif;
+      padding-top: 70px;
+      padding-bottom: 120px;
+      overflow-x: hidden;
+    }
+
+    html { scroll-padding-bottom: calc(var(--footer-height, 48px) + 20px); }
+    body { -webkit-overflow-scrolling: touch; }
+
+    /* Fixed Top Navbar */
+    .navbar-fixed {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      background: linear-gradient(135deg, #ad1457 0%, #7b1141 100%);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      z-index: 1050;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .navbar-fixed h5 {
+      color: #fff;
+      margin: 0;
+      flex: 1;
+      font-weight: 600;
+    }
+
+    /* Back Button */
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: #fff;
+      color: #333;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .btn-back:hover {
+      background-color: #f0f0f0;
+      transform: translateX(-2px);
+    }
+
+    .btn-back i {
+      font-size: 1rem;
+      color: #d32f2f;
+    }
+
+    /* Main Container */
+    .container-balance {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px 16px;
+    }
+
+    /* Student Header */
+    .student-header {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+      border-left: 5px solid #ad1457;
+    }
+
+    .student-header p {
+      margin: 6px 0;
+      font-size: 0.95rem;
+    }
+
+    .student-header strong {
+      color: #333;
+      margin-right: 8px;
+    }
+
+    /* Balance Card */
+    .balance-card {
+      background: white;
+      border-radius: 12px;
+      padding: 40px 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      margin-bottom: 24px;
+      border-top: 6px solid;
+    }
+
+    .balance-card.credit {
+      border-top-color: #2e7d32;
+      background: linear-gradient(135deg, rgba(46, 125, 50, 0.05) 0%, rgba(76, 175, 80, 0.05) 100%);
+    }
+
+    .balance-card.debit {
+      border-top-color: #d32f2f;
+      background: linear-gradient(135deg, rgba(211, 47, 47, 0.05) 0%, rgba(244, 67, 54, 0.05) 100%);
+    }
+
+    .balance-label {
+      font-size: 1.1rem;
+      color: #666;
+      margin-bottom: 16px;
+      font-weight: 500;
+    }
+
+    .balance-amount {
+      font-size: 3.5rem;
+      font-weight: bold;
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .balance-card.credit .balance-amount {
+      color: #2e7d32;
+    }
+
+    .balance-card.debit .balance-amount {
+      color: #d32f2f;
+    }
+
+    .balance-note {
+      font-size: 0.9rem;
+      color: #999;
+      font-style: italic;
+    }
+
+    /* Details Grid */
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .detail-card {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    }
+
+    .detail-label {
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 8px;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+
+    .detail-value {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #1565c0;
+    }
+
+    .detail-card.paid .detail-value {
+      color: #2e7d32;
+    }
+
+    .detail-card.owed .detail-value {
+      color: #d32f2f;
+    }
+
+    /* Info Box */
+    .info-box {
+      background: #f0f4ff;
+      border-left: 4px solid #1565c0;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 20px;
+    }
+
+    .info-box p {
+      margin: 0;
+      color: #0d47a1;
+      font-size: 0.9rem;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      body {
+        padding-top: 70px;
+        padding-bottom: 140px;
+      }
+
+      .container-balance {
+        padding: 12px;
+      }
+
+      .balance-card {
+        padding: 30px 16px;
+      }
+
+      .balance-amount {
+        font-size: 2.5rem;
+      }
+
+      .details-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .detail-card {
+        padding: 12px;
+      }
+
+      .detail-value {
+        font-size: 1.5rem;
+      }
+
+      .student-header {
+        padding: 12px;
+      }
+
+      .student-header p {
+        font-size: 0.85rem;
+        margin: 4px 0;
+      }
+
+      .btn-back {
+        padding: 5px 10px;
+        font-size: 0.85rem;
+      }
+
+      .balance-label {
+        font-size: 1rem;
+      }
+    }
+
+    @media (max-width: 500px) {
+      .navbar-fixed {
+        padding: 0 12px;
+      }
+
+      .navbar-fixed h5 {
+        font-size: 1rem;
+      }
+
+      .balance-amount {
+        font-size: 2rem;
+      }
+
+      .detail-value {
+        font-size: 1.3rem;
+      }
+
+      .balance-card {
+        padding: 20px 12px;
+      }
+
+      .student-header p {
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Fixed Top Navbar -->
+  <nav class="navbar-fixed">
+    <h5><i class="bi bi-wallet2 me-2"></i>Account Balance</h5>
+    <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-back" title="Back">
+      <i class="bi bi-box-arrow-left"></i>
+      <span>Back</span>
+    </a>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="container-balance">
+    <!-- Student Header -->
+    <div class="student-header">
+      <p><strong>Student:</strong> {{ pupil.first_name }} {% if pupil.middle_name %}{{ pupil.middle_name }} {% endif %}{{ pupil.last_name }}</p>
+      <p><strong>Class:</strong> {% if pupil.class_ %}{{ pupil.class_.name }}{% else %}Form {{ pupil.class_id }}{% endif %} &nbsp; <strong>Stream:</strong> {% if pupil.stream %}{{ pupil.stream.name }}{% else %}{{ pupil.stream_id or 'TBA' }}{% endif %}</p>
+      <p><strong>Pupil ID:</strong> {{ pupil.pupil_id }}</p>
+    </div>
+
+    <!-- Balance Card -->
+    <div class="balance-card {% if balance.status == 'Credit' %}credit{% else %}debit{% endif %}">
+      <div class="balance-label">Current Account Balance</div>
+      <div class="balance-amount">
+        <span>Ksh</span>
+        <span>{{ "%.2f"|format(balance.amount) }}</span>
+        <span style="font-size: 1.5rem; margin-left: 10px;">
+          {% if balance.status == 'Credit' %}
+            <i class="bi bi-check-circle-fill" style="color: #2e7d32;"></i>
+          {% else %}
+            <i class="bi bi-exclamation-circle-fill" style="color: #d32f2f;"></i>
+          {% endif %}
+        </span>
+      </div>
+      <div class="balance-note">{{ balance.status }}</div>
+    </div>
+
+    <!-- Details Grid -->
+    <div class="details-grid">
+      <div class="detail-card paid">
+        <div class="detail-label">Amount Paid</div>
+        <div class="detail-value">Ksh {{ "%.2f"|format(balance.paid) }}</div>
+      </div>
+      <div class="detail-card owed">
+        <div class="detail-label">Outstanding Fees</div>
+        <div class="detail-value">Ksh {{ "%.2f"|format(balance.outstanding) }}</div>
+      </div>
+    </div>
+
+    <!-- Info Box -->
+    <div class="info-box">
+      <p>
+        <i class="bi bi-info-circle me-2"></i>
+        {% if balance.status == 'Credit' %}
+          Your account has a credit balance. Contact the school bursar for refund details.
+        {% else %}
+          Your account has an outstanding balance. Please arrange payment as soon as possible.
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  {% include 'footer.html' %}
+</body>
+</html>

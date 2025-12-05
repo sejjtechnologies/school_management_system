@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment Status - Parent</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background-color: #f5f7fa;
+      font-family: 'Segoe UI', sans-serif;
+      padding-top: 70px;
+      padding-bottom: 120px;
+      overflow-x: hidden;
+    }
+
+    html { scroll-padding-bottom: calc(var(--footer-height, 48px) + 20px); }
+    body { -webkit-overflow-scrolling: touch; }
+
+    /* Fixed Top Navbar */
+    .navbar-fixed {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      background: linear-gradient(135deg, #ad1457 0%, #7b1141 100%);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      z-index: 1050;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .navbar-fixed h5 {
+      color: #fff;
+      margin: 0;
+      flex: 1;
+      font-weight: 600;
+    }
+
+    /* Back Button */
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: #fff;
+      color: #333;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .btn-back:hover {
+      background-color: #f0f0f0;
+      transform: translateX(-2px);
+    }
+
+    .btn-back i {
+      font-size: 1rem;
+      color: #d32f2f;
+    }
+
+    /* Main Container */
+    .container-payment {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px 16px;
+    }
+
+    /* Student Header */
+    .student-header {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+      border-left: 5px solid #ad1457;
+    }
+
+    .student-header p {
+      margin: 6px 0;
+      font-size: 0.95rem;
+    }
+
+    .student-header strong {
+      color: #333;
+      margin-right: 8px;
+    }
+
+    /* Summary Cards */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .summary-card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+      border-top: 4px solid;
+    }
+
+    .summary-card.outstanding {
+      border-top-color: #d32f2f;
+    }
+
+    .summary-card.paid {
+      border-top-color: #2e7d32;
+    }
+
+    .summary-card.total {
+      border-top-color: #1565c0;
+    }
+
+    .summary-card-label {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .summary-card-value {
+      font-size: 2rem;
+      font-weight: bold;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .summary-card.outstanding .summary-card-value { color: #d32f2f; }
+    .summary-card.paid .summary-card-value { color: #2e7d32; }
+    .summary-card.total .summary-card-value { color: #1565c0; }
+
+    /* Payments Table */
+    .payments-card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    }
+
+    .payments-card h5 {
+      color: #333;
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+
+    .payments-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .payments-table thead {
+      background-color: #f5f5f5;
+      border-bottom: 2px solid #ddd;
+    }
+
+    .payments-table th {
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #333;
+      font-size: 0.9rem;
+    }
+
+    .payments-table td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      font-size: 0.9rem;
+    }
+
+    .payments-table tbody tr:hover {
+      background-color: #f9f9f9;
+    }
+
+    /* Status Badge */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .status-completed {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .status-pending {
+      background-color: #fff3e0;
+      color: #e65100;
+    }
+
+    .amount-value {
+      font-weight: 600;
+      color: #1565c0;
+    }
+
+    /* No Payments Message */
+    .no-payments-message {
+      background: #e3f2fd;
+      border: 1px solid #90caf9;
+      border-radius: 8px;
+      padding: 30px;
+      text-align: center;
+      color: #1565c0;
+    }
+
+    .no-payments-message i {
+      font-size: 3rem;
+      margin-bottom: 15px;
+      opacity: 0.6;
+    }
+
+    .no-payments-message p {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    /* Info Box */
+    .info-box {
+      background: #f0f4ff;
+      border-left: 4px solid #1565c0;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 20px;
+    }
+
+    .info-box p {
+      margin: 0;
+      color: #0d47a1;
+      font-size: 0.9rem;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      body {
+        padding-top: 70px;
+        padding-bottom: 140px;
+      }
+
+      .container-payment {
+        padding: 12px;
+      }
+
+      .summary-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .summary-card {
+        padding: 16px;
+      }
+
+      .summary-card-value {
+        font-size: 1.8rem;
+      }
+
+      .payments-table {
+        font-size: 0.85rem;
+      }
+
+      .payments-table th,
+      .payments-table td {
+        padding: 8px;
+      }
+
+      .student-header {
+        padding: 12px;
+      }
+
+      .student-header p {
+        font-size: 0.85rem;
+        margin: 4px 0;
+      }
+
+      .btn-back {
+        padding: 5px 10px;
+        font-size: 0.85rem;
+      }
+
+      .payments-card {
+        padding: 16px;
+      }
+
+      .payments-card h5 {
+        font-size: 1.1rem;
+        margin-bottom: 12px;
+      }
+    }
+
+    @media (max-width: 500px) {
+      .navbar-fixed {
+        padding: 0 12px;
+      }
+
+      .navbar-fixed h5 {
+        font-size: 1rem;
+      }
+
+      .payments-table {
+        font-size: 0.8rem;
+      }
+
+      .payments-table th,
+      .payments-table td {
+        padding: 6px;
+      }
+
+      .summary-card-value {
+        font-size: 1.5rem;
+      }
+
+      .summary-card-label {
+        font-size: 0.8rem;
+      }
+
+      .payments-card {
+        padding: 12px;
+      }
+
+      .student-header p {
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Fixed Top Navbar -->
+  <nav class="navbar-fixed">
+    <h5><i class="bi bi-credit-card me-2"></i>Payment Status</h5>
+    <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-back" title="Back">
+      <i class="bi bi-box-arrow-left"></i>
+      <span>Back</span>
+    </a>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="container-payment">
+    <!-- Student Header -->
+    <div class="student-header">
+      <p><strong>Student:</strong> {{ pupil.first_name }} {% if pupil.middle_name %}{{ pupil.middle_name }} {% endif %}{{ pupil.last_name }}</p>
+      <p><strong>Class:</strong> {% if pupil.class_ %}{{ pupil.class_.name }}{% else %}Form {{ pupil.class_id }}{% endif %} &nbsp; <strong>Stream:</strong> {% if pupil.stream %}{{ pupil.stream.name }}{% else %}{{ pupil.stream_id or 'TBA' }}{% endif %}</p>
+      <p><strong>Pupil ID:</strong> {{ pupil.pupil_id }}</p>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+      <div class="summary-card outstanding">
+        <div class="summary-card-label">Outstanding Fees</div>
+        <div class="summary-card-value">Ksh {{ "%.2f"|format(summary.outstanding) }}</div>
+      </div>
+      <div class="summary-card paid">
+        <div class="summary-card-label">Amount Paid</div>
+        <div class="summary-card-value">Ksh {{ "%.2f"|format(summary.paid) }}</div>
+      </div>
+      <div class="summary-card total">
+        <div class="summary-card-label">Total Fees</div>
+        <div class="summary-card-value">Ksh {{ "%.2f"|format(summary.total) }}</div>
+      </div>
+    </div>
+
+    <!-- Payments Table -->
+    {% if payments %}
+      <div class="payments-card">
+        <h5><i class="bi bi-list-check me-2"></i>Payment Records</h5>
+        <table class="payments-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Reference</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for payment in payments %}
+              <tr>
+                <td>{{ payment.date_created.strftime('%d %b %Y') if payment.date_created else 'N/A' }}</td>
+                <td>{{ payment.description or 'Payment' }}</td>
+                <td class="amount-value">Ksh {{ "%.2f"|format(payment.amount) }}</td>
+                <td>
+                  {% if payment.status == 'completed' %}
+                    <span class="status-badge status-completed">Completed</span>
+                  {% else %}
+                    <span class="status-badge status-pending">Pending</span>
+                  {% endif %}
+                </td>
+                <td>{{ payment.transaction_id or payment.id }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="info-box">
+        <p>
+          <i class="bi bi-info-circle me-2"></i>
+          For any inquiries about payment status, please contact the school bursar office.
+        </p>
+      </div>
+    {% else %}
+      <div class="no-payments-message">
+        <i class="bi bi-inbox"></i>
+        <p>No payment records available yet</p>
+        <p style="font-size: 0.85rem; margin-top: 8px; opacity: 0.8;">Payment records will appear here once fees are recorded</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Footer -->
+  {% include 'footer.html' %}
+</body>
+</html>

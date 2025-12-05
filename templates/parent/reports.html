@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background-color: #f5f7fa;
+      font-family: 'Segoe UI', sans-serif;
+      padding-top: 70px;
+      padding-bottom: 120px;
+      overflow-x: hidden;
+    }
+
+    html { scroll-padding-bottom: calc(var(--footer-height, 48px) + 20px); }
+    body { -webkit-overflow-scrolling: touch; }
+
+    /* Fixed Top Navbar */
+    .navbar-fixed {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      background: linear-gradient(135deg, #ad1457 0%, #7b1141 100%);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      z-index: 1050;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .navbar-fixed h5 {
+      color: #fff;
+      margin: 0;
+      flex: 1;
+      font-weight: 600;
+    }
+
+    /* Back Button */
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: #fff;
+      color: #333;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .btn-back:hover {
+      background-color: #f0f0f0;
+      transform: translateX(-2px);
+    }
+
+    .btn-back i {
+      font-size: 1rem;
+      color: #d32f2f;
+    }
+
+    /* Main Container */
+    .container-reports {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px 16px;
+    }
+
+    /* Student Header */
+    .student-header {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+      border-left: 5px solid #ad1457;
+    }
+
+    .student-header p {
+      margin: 6px 0;
+      font-size: 0.95rem;
+    }
+
+    .student-header strong {
+      color: #333;
+      margin-right: 8px;
+    }
+
+    /* Reports Grid */
+    .reports-grid {
+      display: grid;
+      gap: 20px;
+    }
+
+    /* Subject Report Card */
+    .subject-card {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      border-top: 4px solid #1565c0;
+    }
+
+    .subject-card h5 {
+      color: #1565c0;
+      margin-bottom: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .subject-card i {
+      font-size: 1.3rem;
+    }
+
+    /* Marks Table */
+    .marks-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+    }
+
+    .marks-table thead {
+      background-color: #f5f5f5;
+      border-bottom: 2px solid #ddd;
+    }
+
+    .marks-table th {
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #333;
+      font-size: 0.9rem;
+    }
+
+    .marks-table td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      font-size: 0.9rem;
+    }
+
+    .marks-table tbody tr:hover {
+      background-color: #f9f9f9;
+    }
+
+    /* Score Styling */
+    .score-value {
+      font-weight: 600;
+      color: #1565c0;
+    }
+
+    .percentage-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-align: center;
+      min-width: 60px;
+    }
+
+    .percentage-high { background-color: #e8f5e9; color: #2e7d32; }
+    .percentage-medium { background-color: #fff3e0; color: #e65100; }
+    .percentage-low { background-color: #ffebee; color: #c62828; }
+
+    /* No Reports Message */
+    .no-reports-message {
+      background: #e3f2fd;
+      border: 1px solid #90caf9;
+      border-radius: 8px;
+      padding: 30px;
+      text-align: center;
+      color: #1565c0;
+    }
+
+    .no-reports-message i {
+      font-size: 3rem;
+      margin-bottom: 15px;
+      opacity: 0.6;
+    }
+
+    .no-reports-message p {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    /* Info Box */
+    .info-box {
+      background: #f0f4ff;
+      border-left: 4px solid #1565c0;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 20px;
+    }
+
+    .info-box p {
+      margin: 0;
+      color: #0d47a1;
+      font-size: 0.9rem;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      body {
+        padding-top: 70px;
+        padding-bottom: 140px;
+      }
+
+      .container-reports {
+        padding: 12px;
+      }
+
+      .subject-card {
+        padding: 16px;
+      }
+
+      .marks-table {
+        font-size: 0.85rem;
+      }
+
+      .marks-table th,
+      .marks-table td {
+        padding: 8px;
+      }
+
+      .percentage-badge {
+        padding: 3px 8px;
+        font-size: 0.75rem;
+        min-width: 50px;
+      }
+
+      .student-header {
+        padding: 12px;
+      }
+
+      .student-header p {
+        font-size: 0.85rem;
+        margin: 4px 0;
+      }
+
+      .btn-back {
+        padding: 5px 10px;
+        font-size: 0.85rem;
+      }
+
+      .subject-card h5 {
+        font-size: 1rem;
+        margin-bottom: 12px;
+      }
+
+      .subject-card i {
+        font-size: 1.1rem;
+      }
+    }
+
+    @media (max-width: 500px) {
+      .navbar-fixed {
+        padding: 0 12px;
+      }
+
+      .navbar-fixed h5 {
+        font-size: 1rem;
+      }
+
+      .marks-table {
+        font-size: 0.8rem;
+      }
+
+      .marks-table th,
+      .marks-table td {
+        padding: 6px;
+      }
+
+      .subject-card {
+        padding: 12px;
+      }
+
+      .subject-card h5 {
+        font-size: 0.95rem;
+      }
+
+      .student-header p {
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Fixed Top Navbar -->
+  <nav class="navbar-fixed">
+    <h5><i class="bi bi-file-text me-2"></i>Academic Reports</h5>
+    <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-back" title="Back">
+      <i class="bi bi-box-arrow-left"></i>
+      <span>Back</span>
+    </a>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="container-reports">
+    <!-- Student Header (moved to top) -->
+    <div class="student-header mb-3">
+      <p><strong>Student:</strong> {{ pupil.first_name }} {% if pupil.middle_name %}{{ pupil.middle_name }} {% endif %}{{ pupil.last_name }}</p>
+      <p><strong>Class:</strong> {% if pupil.class_ %}{{ pupil.class_.name }}{% else %}Form {{ pupil.class_id }}{% endif %} &nbsp; <strong>Stream:</strong> {% if pupil.stream %}{{ pupil.stream.name }}{% else %}{{ pupil.stream_id or 'TBA' }}{% endif %}</p>
+      <p><strong>Pupil ID:</strong> {{ pupil.pupil_id }}</p>
+    </div>
+    <!-- Filter Form (placed directly after pupil header) -->
+    <form method="get" class="row g-3 mb-4 align-items-end">
+      <div class="col-md-3">
+        <label for="term" class="form-label">Term</label>
+        <select name="term" id="term" class="form-select">
+          <option value="">All Terms</option>
+          {% for t in available_terms %}
+            <option value="{{ t }}" {% if selected_term == t %}selected{% endif %}>Term {{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label for="exam_set" class="form-label">Exam Set</label>
+        <select name="exam_set" id="exam_set" class="form-select">
+          <option value="">All Sets</option>
+          {% for e in available_exam_sets %}
+            <option value="{{ e }}" {% if selected_exam_set == e %}selected{% endif %}>{{ e }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label for="year" class="form-label">Year</label>
+        <select name="year" id="year" class="form-select">
+          <option value="">All Years</option>
+          {% for y in available_years %}
+            <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Filter</button>
+      </div>
+    </form>
+            <!-- Academic Summary Card -->
+            <div class="card mb-4">
+              <div class="card-header bg-primary text-white">
+                <strong>Academic Summary</strong>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <h6>Marks per Subject (out of 100):</h6>
+                    <table class="table table-sm">
+                      <thead>
+                        <tr><th>Subject</th><th>Score</th></tr>
+                      </thead>
+                      <tbody>
+                        {% for subject, score in subject_marks.items() %}
+                          <tr><td>{{ subject }}</td><td>{{ score }}</td></tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="col-md-6">
+                    <h6>Average Score (out of 400):</h6>
+                    <p class="fs-5 fw-bold">{{ average_score_400 }}</p>
+                    <h6>Position:</h6>
+                    <p>
+                      {% if filtered_data and filtered_data[0].stream_position and stream_count %}
+                        Stream: {{ filtered_data[0].stream_position }} out of {{ stream_count }}
+                      {% else %}
+                        Stream: N/A
+                      {% endif %}<br>
+                      {% if filtered_data and filtered_data[0].class_position and class_count %}
+                        Class: {{ filtered_data[0].class_position }} out of {{ class_count }}
+                      {% else %}
+                        Class: N/A
+                      {% endif %}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+    <!-- Filtered Reports -->
+    {% if filtered_data %}
+      <div class="reports-grid">
+        {% for report in filtered_data %}
+          <!-- Report Header: Term | Exam Set | Year -->
+          <div class="subject-card">
+            <h5 style="color: #ad1457; border-bottom: 2px solid #ad1457; padding-bottom: 10px;">
+              <strong>Term {{ report.term }} | {{ report.exam_set }} | {{ report.year }}</strong>
+            </h5>
+
+            <!-- Subject Marks Table -->
+            {% if report.marks %}
+              <h6 class="mt-4 mb-3"><i class="bi bi-book"></i> Subject Marks (Out of 100 each)</h6>
+              <table class="marks-table">
+                <thead>
+                  <tr style="background-color: #f0f0f0;">
+                    <th style="width: 35%;">Subject</th>
+                    <th style="width: 20%; text-align: center;">Score</th>
+                    <th style="width: 20%; text-align: center;">Out of 100</th>
+                    <th style="width: 25%; text-align: center;">Grade</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for m in report.marks %}
+                    <tr>
+                      <td><strong>{{ m.subject or 'N/A' }}</strong></td>
+                      <td style="text-align: center; font-weight: 600; color: #1565c0;">{{ m.score if m.score is not none else 'N/A' }}</td>
+                      <td style="text-align: center; color: #666;">100</td>
+                      <td style="text-align: center;">
+                        <span class="percentage-badge
+                          {% if m.grade %}
+                            {% if m.grade in ['A', 'A+'] %}percentage-high
+                            {% elif m.grade in ['B', 'B+'] %}percentage-medium
+                            {% else %}percentage-low{% endif %}
+                          {% endif %}">
+                          {{ m.grade if m.grade else '-' }}
+                        </span>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              <!-- Total for this exam set -->
+              <div style="background-color: #f9f9f9; padding: 12px; border-radius: 4px; margin-top: 10px; border-left: 4px solid #1565c0;">
+                <p style="margin: 0;"><strong>Total Score (4 Subjects):</strong> <span style="font-size: 1.2rem; color: #1565c0; font-weight: bold;">{{ report.total_score or 'N/A' }}</span> out of 400</p>
+                <p style="margin: 5px 0 0 0;"><strong>Average:</strong> {{ report.average_score or 'N/A' }}</p>
+              </div>
+            {% endif %}
+
+            <!-- Stream Position & Details -->
+            <div style="margin-top: 20px; padding: 12px; background-color: #f0f7ff; border-radius: 4px; border-left: 4px solid #0d47a1;">
+              <h6 style="color: #0d47a1; margin-bottom: 10px;"><i class="bi bi-people"></i> Stream Position & Details</h6>
+              <p style="margin: 5px 0;"><strong>Position in Stream:</strong> {{ report.stream_position or 'N/A' }} out of {{ stream_count or 'N/A' }}</p>
+              <p style="margin: 5px 0;"><strong>Grade:</strong> {{ report.grade or 'N/A' }}</p>
+              {% if report.remarks %}
+                <p style="margin: 5px 0;"><strong>Remarks/Comments:</strong> {{ report.remarks }}</p>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="no-reports-message">
+        <i class="bi bi-inbox"></i>
+        <p>No academic reports available yet</p>
+        <p style="font-size: 0.85rem; margin-top: 8px; opacity: 0.8;">Reports will appear here once marks are recorded</p>
+      </div>
+    {% endif %}
+
+    <!-- Final Summary: Whole Class Ranking -->
+    {% if combined_summary %}
+      <div class="card mt-5" style="border-top: 5px solid #ad1457;">
+        <div class="card-header" style="background: linear-gradient(135deg, #ad1457 0%, #7b1141 100%); color: white;">
+          <strong><i class="bi bi-award"></i> Final Term Report - Whole Class Ranking</strong>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div style="padding: 15px; background-color: #f0f7ff; border-radius: 8px; margin-bottom: 15px;">
+                <h6 style="color: #0d47a1; margin-bottom: 10px;">Class Performance</h6>
+                <p style="margin: 8px 0;"><strong>Position in Whole Class:</strong> <span style="font-size: 1.3rem; color: #d32f2f; font-weight: bold;">
+                  {% if combined_summary.class_position and combined_summary.class_count %}
+                    {{ combined_summary.class_position }} out of {{ combined_summary.class_count }}
+                  {% else %}
+                    N/A
+                  {% endif %}
+                </span></p>
+                <p style="margin: 8px 0;"><strong>Combined Average:</strong> {{ combined_summary.combined_average or 'N/A' }}</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div style="padding: 15px; background-color: #fff8e1; border-radius: 8px; margin-bottom: 15px;">
+                <h6 style="color: #f57f17; margin-bottom: 10px;">Additional Information</h6>
+                <p style="margin: 8px 0;"><strong>Exams Completed:</strong> {{ combined_summary.combined_sets or 0 }}</p>
+                <p style="margin: 8px 0;"><strong>Combined Total Score:</strong> {{ combined_summary.combined_total or 'N/A' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- General Remark -->
+          {% if combined_summary.combined_remarks %}
+            <div style="margin-top: 20px; padding: 15px; background-color: #f5f5f5; border-radius: 4px;">
+              <h6><i class="bi bi-chat-left-text"></i> General Remark</h6>
+              <p style="margin: 0; line-height: 1.6;">
+                {% for r in combined_summary.combined_remarks %}
+                  {{ r }}{% if not loop.last %}<br>{% endif %}
+                {% endfor %}
+              </p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Footer -->
+  {% include 'footer.html' %}
+</body>
+</html>
