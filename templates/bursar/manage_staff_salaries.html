@@ -525,6 +525,18 @@
                   {{ s.role }} • {{ s.email }}
                 </div>
               </div>
+                <div style="display: flex; flex-direction: column; gap:6px; margin-left:12px;">
+                  <!-- Payment info: reference and date/time when paid -->
+                  <div class="payment-info" style="font-size:12px; color:#666; text-align:right;">
+                    {% if s.is_paid and s.last_payment %}
+                      <div><strong>Ref:</strong> {{ s.last_payment.reference or '-' }}</div>
+                      <div><strong>Paid:</strong> {{ s.last_payment.payment_date.strftime('%Y-%m-%d %H:%M') if s.last_payment.payment_date else '-' }}</div>
+                    {% else %}
+                      <div class="no-payment" style="color:#999;">Not paid for selected period</div>
+                    {% endif %}
+                  </div>
+
+                </div>
 
               <div class="staff-salary">
                 <div class="salary-amount">UGX {{ '{:,.0f}'.format(s.salary_amount) }}</div>
@@ -775,6 +787,25 @@
                   btn.classList.add('btn-mark-unpaid');
                   btn.setAttribute('data-ispaid', 'true');  // IMPORTANT: Update this!
                 }
+                // Update payment info display (reference and date)
+                try {
+                  if (data.payment) {
+                    const pinfo = staffRow.querySelector('.payment-info');
+                    const ref = data.payment.reference || '-';
+                    const pd = data.payment.payment_date ? (new Date(data.payment.payment_date)).toLocaleString() : '-';
+                    if (pinfo) {
+                      pinfo.innerHTML = `<div><strong>Ref:</strong> ${escapeHtml(ref)}</div><div><strong>Paid:</strong> ${escapeHtml(pd)}</div>`;
+                    } else {
+                      const container = document.createElement('div');
+                      container.className = 'payment-info';
+                      container.style = 'font-size:12px; color:#666; text-align:right;';
+                      container.innerHTML = `<div><strong>Ref:</strong> ${escapeHtml(ref)}</div><div><strong>Paid:</strong> ${escapeHtml(pd)}</div>`;
+                      // insert before the action buttons group
+                      const actionsGroup = staffRow.querySelector('div[style*="display: flex; gap: 8px"]');
+                      if (actionsGroup && actionsGroup.parentNode) actionsGroup.parentNode.insertBefore(container, actionsGroup);
+                    }
+                  }
+                } catch (e) { console.error('[submitPayment] error updating payment-info', e); }
                 // If the user is currently viewing 'unpaid' filter, switch to 'all' so the newly-paid staff is visible
                 try {
                   const params = new URLSearchParams(window.location.search);
@@ -843,6 +874,11 @@
                   btn.classList.add('btn-mark-paid');
                   btn.setAttribute('data-ispaid', 'false');  // IMPORTANT: Update this!
                 }
+                // remove payment-info if present
+                try {
+                  const pinfo = staffRow.querySelector('.payment-info');
+                  if (pinfo) pinfo.innerHTML = '<div class="no-payment" style="color:#999;">Not paid for selected period</div>';
+                } catch(e) { console.error('doUnmark update payment-info', e); }
               }
             }
 
