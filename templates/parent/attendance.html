@@ -22,6 +22,39 @@
     .records { background:#eafaf0; padding:14px; border-radius:10px; box-shadow:0 6px 18px rgba(20,40,0,0.04); border:1px solid rgba(30,120,60,0.06); }
     .period-select .btn { margin-right:6px }
   </style>
+  <script>
+    // Force scroll to bottom and ensure 20px gap above footer on mobile
+    document.addEventListener('DOMContentLoaded', function() {
+      function forceScrollBottom() {
+        var container = document.querySelector('.container-att');
+        if (!container) return;
+        var isMobile = window.innerWidth <= 768;
+        if (isMobile) {
+          // Scroll to bottom
+          container.scrollTop = container.scrollHeight;
+          // Ensure 20px gap above footer
+          var footer = document.querySelector('footer');
+          if (footer) {
+            var gap = 20;
+            var containerRect = container.getBoundingClientRect();
+            var footerRect = footer.getBoundingClientRect();
+            var overlap = (containerRect.bottom + gap) - footerRect.top;
+            if (overlap > 0) {
+              container.style.paddingBottom = (gap + overlap) + 'px';
+            } else {
+              container.style.paddingBottom = gap + 'px';
+            }
+          } else {
+            container.style.paddingBottom = '20px';
+          }
+        } else {
+          container.style.paddingBottom = '';
+        }
+      }
+      forceScrollBottom();
+      window.addEventListener('resize', forceScrollBottom);
+    });
+  </script>
 </head>
 <body>
   <nav class="navbar-fixed">
@@ -129,22 +162,25 @@
       html, body {
         height: 100%;
         min-height: 100%;
-        overflow: hidden;
+        overflow: auto !important;
       }
       body {
         display: flex;
         flex-direction: column;
         min-height: 100vh;
+        height: 100vh;
+        overflow: auto !important;
       }
       .container-att {
         flex: 1 1 auto;
         max-width: 100%;
-        overflow-y: auto;
+        overflow-y: auto !important;
         -webkit-overflow-scrolling: touch;
         padding-bottom: 12px;
         box-sizing: border-box;
         margin-bottom: 0;
         position: relative;
+        min-height: 0;
       }
       /* Add a spacer at the end to force 20px gap to footer */
       .container-att::after {
@@ -152,6 +188,7 @@
         display: block;
         height: 20px;
         width: 100%;
+        flex-shrink: 0;
       }
       .controls, .records { background: rgba(255,255,255,0.98); }
       .records-table { display: none !important; }
