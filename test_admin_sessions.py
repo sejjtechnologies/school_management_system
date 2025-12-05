@@ -122,25 +122,37 @@ def test_admin_single_device_login():
             
             # Test the validation logic (what middleware does)
             print("\n" + "=" * 80)
-            print("TESTING VALIDATION LOGIC (what happens on page refresh)")
+            print("TESTING VALIDATION LOGIC (middleware checks client vs DB)")
             print("=" * 80)
             
-            print("\n[Device 1 tries to access a page]")
-            print("   - Checks User.active_session_id: {}...".format(user_check.active_session_id[:20]))
-            print("   - Device 1 session ID: {}...".format(device1_session_id[:20]))
+            print("\n[SCENARIO 1: Device 1 tries to access a page]")
+            print("   - Client has session ID: {}...".format(device1_session_id[:20]))
+            print("   - DB has active_session_id: {}...".format(user_check.active_session_id[:20]))
             print("   - Match? {}".format(user_check.active_session_id == device1_session_id))
             
             if user_check.active_session_id != device1_session_id:
-                print("   [EXPECTED] Session IDs don't match!")
-                # What the middleware actually does: check if the active_session in DB is still active
-                active_admin_session = AdminSession.query.filter_by(
-                    session_id=user_check.active_session_id,
+                print("   [PASS] IDs don't match - Device 1 would be LOGGED OUT")
+                print("   Message: 'Your admin session was invalidated. You logged in from another device.'")
+            else:
+                print("   [FAIL] IDs match when they shouldn't")
+            
+            print("\n[SCENARIO 2: Device 2 tries to access a page]")
+            print("   - Client has session ID: {}...".format(device2_session_id[:20]))
+            print("   - DB has active_session_id: {}...".format(user_check.active_session_id[:20]))
+            print("   - Match? {}".format(user_check.active_session_id == device2_session_id))
+            
+            if user_check.active_session_id == device2_session_id:
+                # Check if session is still active
+                device2_active_check = AdminSession.query.filter_by(
+                    session_id=device2_session_id,
                     user_id=admin.id
                 ).first()
-                if active_admin_session and active_admin_session.is_active:
-                    print("   [PASS] Active session for Device 2 is still active - Device 1 would be logged out")
+                if device2_active_check and device2_active_check.is_active:
+                    print("   [PASS] IDs match AND session is active - Device 2 can continue")
                 else:
-                    print("   [FAIL] Session validation logic failed")
+                    print("   [FAIL] IDs match but session is inactive")
+            else:
+                print("   [FAIL] IDs don't match - Device 2 shouldn't be logged out")
             
             print("\n" + "=" * 80)
             print("[SUCCESS] Admin single-device login is working!")
