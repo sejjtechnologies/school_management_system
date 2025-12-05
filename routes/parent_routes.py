@@ -29,6 +29,27 @@ def dashboard():
 
     return render_template("parent/dashboard.html", parent=user)
 
+# ✅ Pupil Dashboard Route (shows student info and feature buttons)
+@parent_routes.route("/parent/pupil/<int:pupil_id>/dashboard")
+def pupil_dashboard(pupil_id):
+    """Show student info and feature buttons for a specific pupil"""
+    user_id = session.get("user_id")
+    if not user_id:
+        flash("You must be logged in to access the parent dashboard.", "danger")
+        return redirect(url_for("user_routes.login"))
+
+    user = User.query.get(user_id)
+    if not user or user.role.role_name.lower() != "parent":
+        flash("Access denied. Only parents can view this dashboard.", "danger")
+        return redirect(url_for("user_routes.login"))
+
+    pupil = Pupil.query.get_or_404(pupil_id)
+    
+    # Store the selected pupil ID in session
+    session['parent_selected_pupil_id'] = pupil_id
+    
+    return render_template("parent/pupil_dashboard.html", parent=user, pupil=pupil)
+
 # ✅ API: Search for Child
 @parent_routes.route("/api/parent/search-child", methods=["GET"])
 def search_child():

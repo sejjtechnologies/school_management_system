@@ -236,7 +236,7 @@
   <!-- Fixed Top Navbar -->
   <nav class="navbar-timetable">
     <h5><i class="bi bi-calendar-event me-2"></i>Timetable</h5>
-    <a href="{{ url_for('parent_routes.dashboard') }}" class="back-btn" title="Back">
+    <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="back-btn" title="Back">
       <i class="bi bi-box-arrow-left"></i><span>Back</span>
     </a>
   </nav>

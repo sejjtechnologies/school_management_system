@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ pupil.first_name }} {{ pupil.last_name }} - Parent Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background-color: #f1f8e9;
+      font-family: 'Segoe UI', sans-serif;
+      padding-top: 70px;
+      padding-bottom: 120px;
+      overflow-x: hidden;
+    }
+
+    /* Smooth scrolling and mobile-friendly touch behavior */
+    html { scroll-padding-bottom: calc(var(--footer-height, 48px) + 20px); }
+    body { -webkit-overflow-scrolling: touch; }
+
+    /* ✅ Fixed Top Navbar */
+    .navbar {
+      background: linear-gradient(135deg, #ad1457 0%, #7b1141 100%);
+      height: 70px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .navbar-brand {
+      color: #fff !important;
+      font-weight: bold;
+      font-size: 1.3rem;
+    }
+
+    .logout-btn {
+      background-color: #d32f2f;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      font-size: 0.9rem;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+    }
+
+    .logout-btn:hover {
+      background-color: #b71c1c;
+      transform: translateY(-2px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    /* ✅ Back Button */
+    .back-btn-section {
+      margin-bottom: 20px;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background-color: #f0f0f0;
+      color: #333;
+      border: 1px solid #ddd;
+      padding: 8px 16px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .back-btn:hover {
+      background-color: #e0e0e0;
+      border-color: #ad1457;
+      transform: translateX(-2px);
+    }
+
+    .back-btn i {
+      font-size: 1.1rem;
+      color: #d32f2f;
+    }
+
+    /* ✅ Student Info Card */
+    .student-info-card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-left: 5px solid #ad1457;
+    }
+
+    .student-info-card h4 {
+      color: #ad1457;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+
+    .student-detail {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 0.95rem;
+    }
+
+    .student-detail:last-child {
+      border-bottom: none;
+    }
+
+    .student-detail strong {
+      color: #333;
+      min-width: 120px;
+    }
+
+    .student-detail span {
+      color: #666;
+      text-align: right;
+    }
+
+    /* ✅ Status Badge Styling */
+    .student-detail .badge {
+      color: #ffffff !important;
+      font-weight: bold;
+      font-size: 0.9rem;
+      padding: 6px 10px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .student-detail .bg-success {
+      background-color: #2e7d32 !important;
+    }
+
+    /* ✅ Feature Buttons Grid */
+    .features-section {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .feature-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: white;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      text-decoration: none;
+      color: #333;
+      transition: all 0.3s ease;
+      min-height: 140px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .feature-btn:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      border-color: #ad1457;
+    }
+
+    .feature-btn i {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      color: #ad1457;
+    }
+
+    .feature-btn span {
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .feature-btn.timetable { border-left: 5px solid #00897b; }
+    .feature-btn.timetable i { color: #00897b; }
+
+    .feature-btn.attendance { border-left: 5px solid #1565c0; }
+    .feature-btn.attendance i { color: #1565c0; }
+
+    .feature-btn.reports { border-left: 5px solid #f57c00; }
+    .feature-btn.reports i { color: #f57c00; }
+
+    .feature-btn.payment { border-left: 5px solid #6a1b9a; }
+    .feature-btn.payment i { color: #6a1b9a; }
+
+    .feature-btn.balance { border-left: 5px solid #c62828; }
+    .feature-btn.balance i { color: #c62828; }
+
+    .feature-btn.receipt { border-left: 5px solid #00838f; }
+    .feature-btn.receipt i { color: #00838f; }
+
+    /* ✅ Info Box */
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #1565c0;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 20px;
+    }
+
+    .info-box p {
+      margin: 0;
+      color: #0d47a1;
+      font-size: 0.95rem;
+    }
+
+    /* ✅ Mobile Responsive */
+    @media (max-width: 768px) {
+      body {
+        padding-top: 70px;
+        padding-bottom: 140px;
+        scroll-padding-bottom: calc(var(--footer-height, 48px) + 20px);
+      }
+
+      .features-section {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+
+      .feature-btn {
+        min-height: 120px;
+        padding: 15px;
+      }
+
+      .feature-btn i {
+        font-size: 2rem;
+        margin-bottom: 8px;
+      }
+
+      .feature-btn span {
+        font-size: 0.85rem;
+      }
+
+      .student-info-card {
+        padding: 15px;
+      }
+
+      .back-btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 500px) {
+      .features-section {
+        grid-template-columns: 1fr;
+      }
+
+      .student-detail {
+        flex-direction: column;
+      }
+
+      .student-detail strong {
+        min-width: auto;
+        margin-bottom: 5px;
+      }
+
+      .student-detail span {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body data-user-role="parent">
+  <!-- ✅ Fixed Top Navbar -->
+  <nav class="navbar fixed-top navbar-expand-lg">
+    <div class="container-fluid px-3">
+      <a class="navbar-brand fw-bold" href="{{ url_for('parent_routes.dashboard') }}">
+        <i class="bi bi-people-fill me-2"></i>Parent Dashboard
+      </a>
+      <div class="ms-auto">
+        <form action="{{ url_for('user_routes.logout') }}" method="get" class="d-inline">
+          <button type="submit" class="btn logout-btn">
+            <i class="bi bi-box-arrow-right me-1"></i>Logout
+          </button>
+        </form>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ✅ Main Content -->
+  <main class="container-fluid px-3 px-md-4 main-scroll">
+    <!-- ✅ Back Button -->
+    <div class="back-btn-section">
+      <a href="{{ url_for('parent_routes.dashboard') }}" class="back-btn">
+        <i class="bi bi-arrow-left"></i>
+        <span>Back to Dashboard</span>
+      </a>
+    </div>
+
+    <!-- ✅ Student Info Card -->
+    <div class="student-info-card">
+      <h4><i class="bi bi-person-circle me-2"></i>Student Information</h4>
+      <div class="student-detail">
+        <strong>Name:</strong>
+        <span>{{ pupil.first_name }} {% if pupil.middle_name %}{{ pupil.middle_name }} {% endif %}{{ pupil.last_name }}</span>
+      </div>
+      <div class="student-detail">
+        <strong>Admission No:</strong>
+        <span>{{ pupil.admission_number }}</span>
+      </div>
+      <div class="student-detail">
+        <strong>Pupil ID:</strong>
+        <span>{{ pupil.pupil_id }}</span>
+      </div>
+      <div class="student-detail">
+        <strong>Roll Number:</strong>
+        <span>{{ pupil.roll_number or 'N/A' }}</span>
+      </div>
+      <div class="student-detail">
+        <strong>Class:</strong>
+        <span>{% if pupil.class_ %}{{ pupil.class_.name }}{% else %}Form {{ pupil.class_id }}{% endif %}</span>
+      </div>
+      <div class="student-detail">
+        <strong>Stream:</strong>
+        <span>{% if pupil.stream %}{{ pupil.stream.name }}{% else %}{{ pupil.stream_id or 'TBA' }}{% endif %}</span>
+      </div>
+      <div class="student-detail">
+        <strong>Status:</strong>
+        <span><span class="badge bg-success">{{ pupil.enrollment_status or pupil.status or 'Active' }}</span></span>
+      </div>
+    </div>
+
+    <!-- ✅ Features Grid -->
+    <div class="features-section">
+      <!-- Timetable Button -->
+      <a href="{{ url_for('parent_routes.view_timetable', pupil_id=pupil.id) }}" class="feature-btn timetable" title="View Class Timetable">
+        <i class="bi bi-calendar-event"></i>
+        <span>Timetable</span>
+      </a>
+
+      <!-- Attendance Button -->
+      <a href="{{ url_for('parent_routes.view_attendance', pupil_id=pupil.id) }}" class="feature-btn attendance" title="View Attendance Records">
+        <i class="bi bi-clipboard-check"></i>
+        <span>Attendance</span>
+      </a>
+
+      <!-- Reports Button -->
+      <a href="{{ url_for('parent_routes.view_reports', pupil_id=pupil.id) }}" class="feature-btn reports" title="View Academic Reports">
+        <i class="bi bi-file-text"></i>
+        <span>Reports</span>
+      </a>
+
+      <!-- Payment Status Button -->
+      <a href="{{ url_for('parent_routes.view_payment_status', pupil_id=pupil.id) }}" class="feature-btn payment" title="View Payment Status">
+        <i class="bi bi-credit-card"></i>
+        <span>Payment Status</span>
+      </a>
+
+      <!-- Balance Button -->
+      <a href="{{ url_for('parent_routes.view_balance', pupil_id=pupil.id) }}" class="feature-btn balance" title="View Account Balance">
+        <i class="bi bi-cash-coin"></i>
+        <span>Balance</span>
+      </a>
+
+      <!-- Receipts Button -->
+      <a href="{{ url_for('parent_routes.view_receipts', pupil_id=pupil.id) }}" class="feature-btn receipt" title="View Payment Receipts">
+        <i class="bi bi-receipt"></i>
+        <span>Receipts</span>
+      </a>
+    </div>
+
+    <div class="info-box">
+      <p>
+        <i class="bi bi-info-circle me-2"></i>
+        Click on any button above to view detailed information. For support, contact the school administration.
+      </p>
+    </div>
+  </main>
+
+  <!-- ✅ Footer -->
+  {% include 'footer.html' %}
+</body>
+</html>
