@@ -247,6 +247,10 @@
       margin-bottom: 20px;
     }
 
+    /* Ensure there's a 20px gap from the top nav when scrolling on mobile */
+    html { scroll-padding-top: calc(var(--nav-h) + 20px); }
+    .card { scroll-margin-top: calc(var(--nav-h) + 20px); }
+
     .stat-card {
       background: #fff;
       padding: 15px;
@@ -437,7 +441,10 @@
   <div class="top-nav">
     <div class="nav-title">📊 Manage Staff Salaries</div>
     <div style="display: flex; gap: 8px;">
-      <a href="{{ url_for('bursar_routes.dashboard') }}" class="btn-back">⏻ Back</a>
+      <a href="{{ url_for('bursar_routes.dashboard') }}" class="btn-back" aria-label="Back to dashboard">
+        <i class="bi bi-box-arrow-right" style="color:#b71c1c; font-size:14px; line-height:1"></i>
+        Back
+      </a>
     </div>
   </div>
 
@@ -448,16 +455,16 @@
       <!-- Statistics Cards -->
       <div class="stats-row">
         <div class="stat-card">
-          <div class="stat-label">Total Staff</div>
-          <div class="stat-value">{{ staff|length }}</div>
+          <div class="stat-label">Total Staff (Period)</div>
+          <div class="stat-value">{{ total_staff_all }}</div>
         </div>
         <div class="stat-card" style="border-left-color: #388e3c;">
           <div class="stat-label">Paid This Period</div>
-          <div class="stat-value" style="color: #388e3c;">{{ staff|selectattr('is_paid')|list|length }}</div>
+          <div class="stat-value" style="color: #388e3c;">{{ paid_count_all }}</div>
         </div>
         <div class="stat-card" style="border-left-color: #d32f2f;">
           <div class="stat-label">Unpaid This Period</div>
-          <div class="stat-value" style="color: #d32f2f;">{{ staff|rejectattr('is_paid')|list|length }}</div>
+          <div class="stat-value" style="color: #d32f2f;">{{ unpaid_count_all }}</div>
         </div>
       </div>
 
@@ -604,7 +611,7 @@
   </div>
 
   <!-- Confirmation Modal -->
-  <div id="confirmModal" class="modal-overlay" aria-hidden="true">
+  <div id="confirmModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
         <h4 class="modal-title" id="confirmTitle">Please confirm</h4>
@@ -620,7 +627,7 @@
   </div>
 
   <!-- Message Modal (for success / error) -->
-  <div id="messageModal" class="modal-overlay" aria-hidden="true">
+  <div id="messageModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
         <h4 class="modal-title" id="messageTitle">Message</h4>
@@ -636,6 +643,10 @@
   {% include 'footer.html' %}
 
   <script>
+    // Endpoint patterns provided by Flask so JS doesn't hardcode routes
+    const _MARK_PAID_URL_PATTERN = "{{ url_for('bursar_routes.mark_staff_paid_bursar', user_id=0) }}";
+    const _MARK_UNPAID_URL_PATTERN = "{{ url_for('bursar_routes.mark_staff_unpaid', user_id=0) }}";
+
     let currentUserId = null;
     // read month/year from body dataset to avoid embedding Jinja directly inside JS
     let currentMonth = parseInt(document.body.getAttribute('data-current-month')) || (new Date()).getMonth() + 1;
@@ -666,23 +677,31 @@
 
     function closePaymentModal() {
       document.getElementById('paymentModal').classList.remove('show');
+      // ensure modal is interactive when closed
+      // (previously used 'inert' which blocks interaction; removed)
       try { document.getElementById('paymentForm').reset(); } catch(e){}
       currentUserId = null;
     }
 
     function submitPayment() {
+      console.log('[submitPayment] Starting...');
+
       const amount = parseFloat(document.getElementById('amount').value);
       const reference = document.getElementById('reference').value.trim();
       const notes = document.getElementById('notes').value.trim();
       const paymentMethod = document.getElementById('paymentMethod').value;
       const bankName = document.getElementById('bankName').value;
 
+      console.log('[submitPayment] amount=', amount, 'method=', paymentMethod);
+
       if (!amount || amount <= 0) {
+        console.log('[submitPayment] Invalid amount');
         showMessage('Error', 'Please enter a valid amount', true);
         return;
       }
 
       if (paymentMethod === 'BANK' && !bankName) {
+        console.log('[submitPayment] Bank method but no bank selected');
         showMessage('Error', 'Please select a bank for bank transfer', true);
         return;
       }
@@ -697,68 +716,192 @@
         bank_name: paymentMethod === 'BANK' ? bankName : null
       };
 
+      console.log('[submitPayment] Payload ready, calling showConfirm...');
+      console.log('[submitPayment] currentUserId=', currentUserId);
+
       // ask confirmation before saving
       showConfirm(`Mark payment of UGX ${Number(amount).toLocaleString()} as paid?`, function() {
-        // perform actual save
-        fetch(`/bursar/staff/${currentUserId}/mark-paid`, {
+        console.log('[submitPayment] Confirmation callback executing');
+
+        // perform actual save using Flask-provided endpoint pattern
+        const url = _MARK_PAID_URL_PATTERN.replace('/0', '/' + currentUserId);
+        console.log('[submitPayment] Fetching POST to:', url);
+
+        fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         })
-        .then(r => r.json())
+        .then(r => {
+          console.log('[submitPayment] Response status:', r.status);
+          return r.json();
+        })
         .then(data => {
-          if (data.success) {
+          console.log('[submitPayment] Response JSON:', data);
+
+            if (data.success) {
+            console.log('[submitPayment] Success! Closing modal...');
             closePaymentModal();
+
+            // Update the staff row immediately without page reload
+            if (data.staff_update) {
+              console.log('[submitPayment] staff_update present, user_id=', data.staff_update.user_id);
+
+              const staffRow = document.querySelector(`[data-user-id="${data.staff_update.user_id}"]`);
+              console.log('[submitPayment] Staff row found?', !!staffRow);
+
+              if (staffRow) {
+                // Update status badge
+                const badge = staffRow.querySelector('.status-badge');
+                console.log('[submitPayment] Badge found?', !!badge);
+                if (badge) {
+                  console.log('[submitPayment] Updating badge...');
+                  // Set explicit content and classes so styling updates reliably
+                  badge.innerText = '';
+                  const check = document.createElement('span');
+                  check.textContent = '✓ Paid';
+                  badge.classList.remove('badge-unpaid');
+                  badge.classList.add('badge-paid');
+                  badge.appendChild(check);
+                }
+
+                // Update button text, class, AND data-ispaid attribute
+                const btn = staffRow.querySelector('.btn-open-payment');
+                console.log('[submitPayment] Button found?', !!btn);
+                if (btn) {
+                  console.log('[submitPayment] Updating button...');
+                  btn.textContent = 'Unmark';
+                  btn.classList.remove('btn-mark-paid');
+                  btn.classList.add('btn-mark-unpaid');
+                  btn.setAttribute('data-ispaid', 'true');  // IMPORTANT: Update this!
+                }
+                // If the user is currently viewing 'unpaid' filter, switch to 'all' so the newly-paid staff is visible
+                try {
+                  const params = new URLSearchParams(window.location.search);
+                  const statusFilter = params.get('status') || 'all';
+                  if (statusFilter === 'unpaid') {
+                    console.log('[submitPayment] Status filter is unpaid; switching to all to show newly-paid staff');
+                    params.set('status', 'all');
+                    window.location.search = params.toString();
+                    return; // Page will reload, no need to proceed further
+                  }
+                } catch (e) {
+                  console.error('[submitPayment] Error checking/switching filter:', e);
+                }
+              }
+            }
+
+            console.log('[submitPayment] Showing success message...');
             showMessage('Success', data.message, false, function(){
-              // Navigate to the manage staff salaries page (same page or refresh with current filters)
-              window.location.href = "{{ url_for('bursar_routes.manage_staff_salaries') }}";
+              console.log('[submitPayment] Success callback done');
+              // Update the statistics
+              updateStatsDisplay();
             });
           } else {
+            console.log('[submitPayment] Error response:', data.error);
             showMessage('Error', data.error || 'Unknown error', true);
           }
         })
         .catch(err => {
-          console.error(err);
+          console.error('[submitPayment] Fetch error:', err);
           showMessage('Error', 'Error saving payment', true);
         });
       });
     }
 
     function doUnmark(userId) {
-      // confirm already handled, call unmark endpoint
-      fetch(`/bursar/staff/${userId}/mark-unpaid`, {
+      // confirm already handled, call unmark endpoint using Flask-provided pattern
+      const url = _MARK_UNPAID_URL_PATTERN.replace('/0', '/' + userId);
+      fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ payment_id: null })
       })
       .then(r => r.json())
       .then(data => {
-        if (data.success) {
-          showMessage('Success', data.message || 'Payment reversed', false, function(){
-            window.location.href = "{{ url_for('bursar_routes.manage_staff_salaries') }}";
-          });
-        } else {
-          showMessage('Error', data.error || 'Unable to reverse payment', true);
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        showMessage('Error', 'Error reversing payment', true);
-      });
+          if (data.success) {
+            // Update the staff row immediately without page reload
+            if (data.staff_update) {
+              const staffRow = document.querySelector(`[data-user-id="${data.staff_update.user_id}"]`);
+              if (staffRow) {
+                // Update status badge
+                const badge = staffRow.querySelector('.status-badge');
+                if (badge) {
+                  badge.innerText = '';
+                  const txt = document.createElement('span');
+                  txt.textContent = '✗ Unpaid';
+                  badge.classList.remove('badge-paid');
+                  badge.classList.add('badge-unpaid');
+                  badge.appendChild(txt);
+                }
+
+                // Update button text, class, AND data-ispaid attribute
+                const btn = staffRow.querySelector('.btn-open-payment');
+                if (btn) {
+                  btn.textContent = 'Mark Paid';
+                  btn.classList.remove('btn-mark-unpaid');
+                  btn.classList.add('btn-mark-paid');
+                  btn.setAttribute('data-ispaid', 'false');  // IMPORTANT: Update this!
+                }
+              }
+            }
+
+            showMessage('Success', data.message || 'Payment reversed', false, function(){
+              // Update the statistics
+              updateStatsDisplay();
+            });
+          } else {
+            showMessage('Error', data.error || 'Unable to reverse payment', true);
+          }
+        })
+        .catch(err => {
+          console.error('[doUnmark] Fetch error:', err);
+          showMessage('Error', 'Error reversing payment', true);
+        });
     }
 
     // Confirmation modal helpers
     let _reopenPaymentModal = false;
+
     function showConfirm(message, onConfirm) {
+      console.log('[showConfirm] Message:', message);
+      console.log('[showConfirm] onConfirm is function?', typeof onConfirm === 'function');
+
       document.getElementById('confirmTitle').innerText = 'Please confirm';
       document.getElementById('confirmBody').innerText = message;
+
+      // Store the callback
       _pendingConfirmAction = onConfirm;
+      console.log('[showConfirm] _pendingConfirmAction set, type:', typeof _pendingConfirmAction);
+
       const okBtn = document.getElementById('confirmOkBtn');
-      okBtn.onclick = function(){
-        // Close confirm without reopening the payment modal (we are proceeding with the action).
+      if (!okBtn) {
+        console.error('[showConfirm] confirmOkBtn not found!');
+        return;
+      }
+
+      // Remove old event listener and add new one
+      const newOkBtn = okBtn.cloneNode(true);
+      okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+
+      const freshBtn = document.getElementById('confirmOkBtn');
+      freshBtn.addEventListener('click', function(){
+        console.log('[confirmOkBtn.click] Clicked!');
+        console.log('[confirmOkBtn.click] _pendingConfirmAction type:', typeof _pendingConfirmAction);
+
+        // SAVE the callback BEFORE closing the modal (closeConfirmModal sets it to null)
+        const callbackToExecute = _pendingConfirmAction;
+
+        // Close confirm without reopening the payment modal
         closeConfirmModal(/*confirmed=*/true);
-        if (typeof _pendingConfirmAction === 'function') _pendingConfirmAction();
-      };
+
+        if (typeof callbackToExecute === 'function') {
+          console.log('[confirmOkBtn.click] Calling pending action...');
+          callbackToExecute();
+        } else {
+          console.error('[confirmOkBtn.click] ERROR: callback is not a function!', callbackToExecute);
+        }
+      });
 
       // If the payment modal is open, hide it while showing confirm to avoid visual jumbling.
       const pm = document.getElementById('paymentModal');
@@ -769,14 +912,18 @@
       }
 
       document.getElementById('confirmModal').classList.add('show');
+      console.log('[showConfirm] Confirm modal shown');
     }
 
     function closeConfirmModal(confirmed=false){
+      console.log('[closeConfirmModal] confirmed=', confirmed);
       document.getElementById('confirmModal').classList.remove('show');
       // Only reopen the payment modal when the user cancelled the confirmation.
       if (!confirmed && _reopenPaymentModal) {
         const pm = document.getElementById('paymentModal');
-        if (pm) pm.classList.add('show');
+        if (pm) {
+          pm.classList.add('show');
+        }
         _reopenPaymentModal = false;
       } else {
         // If confirmed or no modal was open, just reset the flag.
@@ -841,6 +988,33 @@
         console.error('Failed to open payment modal', err);
       }
     });
+      // Update statistics display based on current DOM state
+      function updateStatsDisplay() {
+        console.log('[updateStatsDisplay] Recalculating stats...');
+
+        const allRows = document.querySelectorAll('.staff-row');
+        const totalStaff = allRows.length;
+
+        let paidCount = 0;
+        allRows.forEach(row => {
+          const badge = row.querySelector('.status-badge');
+          if (badge && badge.classList.contains('badge-paid')) {
+            paidCount++;
+          }
+        });
+
+        const unpaidCount = totalStaff - paidCount;
+
+        console.log(`[updateStatsDisplay] Total: ${totalStaff}, Paid: ${paidCount}, Unpaid: ${unpaidCount}`);
+
+        // Update the stat values in the UI
+        const statCards = document.querySelectorAll('.stat-value');
+        if (statCards.length >= 3) {
+          statCards[0].textContent = totalStaff;
+          statCards[1].textContent = paidCount;
+          statCards[2].textContent = unpaidCount;
+        }
+      }
   </script>
 </body>
 </html>

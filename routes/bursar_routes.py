@@ -307,7 +307,7 @@ def invoices():
 # Staff salary: mark-paid endpoint (AJAX)
 # If the recorder is a Secretary, backend will auto-generate reference and notes
 # ---------------------------------------------------------
-@bursar_routes.route('/bursar/staff/<int:user_id>/mark-paid', methods=['POST'])
+@bursar_routes.route('/staff/<int:user_id>/mark-paid', methods=['POST'])
 def mark_staff_paid_bursar(user_id):
     """Mark a staff member as paid for a period. Accepts JSON payload.
 
@@ -406,7 +406,37 @@ def mark_staff_paid_bursar(user_id):
         db.session.add(payment)
         db.session.commit()
 
-        return jsonify({'success': True, 'message': 'Payment recorded', 'payment_id': payment.id}), 200
+        # Fetch the user to get their updated status
+        user = User.query.get(user_id)
+
+        # Return detailed payment info for immediate template update
+        return jsonify({
+            'success': True,
+            'message': f'✓ {user.first_name} {user.last_name} marked as paid',
+            'payment_id': payment.id,
+            'payment': {
+                'id': payment.id,
+                'user_id': payment.user_id,
+                'amount': float(payment.amount),
+                'payment_method': payment.payment_method,
+                'bank_name': payment.bank_name,
+                'reference': payment.reference,
+                'notes': payment.notes,
+                'status': payment.status,
+                'period_month': payment.period_month,
+                'period_year': payment.period_year,
+                'payment_date': payment.payment_date.isoformat() if payment.payment_date else None
+            },
+            'staff_update': {
+                'user_id': user.id,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'salary_amount': float(user.salary_amount) if user.salary_amount else 0.0,
+                'is_paid': True,
+                'payment_method': payment.payment_method,
+                'bank_name': payment.bank_name
+            }
+        }), 200
 
     except Exception as e:
         db.session.rollback()
@@ -811,8 +841,10 @@ def manage_staff_salaries():
     Display all staff grouped by role with salary information and payment status.
     Allows filtering by role and period (month/year or term/year).
     """
-    # Get all roles that have users (non-empty staff)
-    roles = db.session.query(Role).join(User, Role.id == User.role_id).distinct().order_by(Role.role_name).all()
+    # Get all roles that have users (non-empty staff) — EXCLUDE 'Parent' role
+    roles = db.session.query(Role).join(User, Role.id == User.role_id).filter(
+        Role.role_name != 'Parent'
+    ).distinct().order_by(Role.role_name).all()
 
     # Get current month/year as default period
     today = datetime.utcnow()
@@ -821,8 +853,10 @@ def manage_staff_salaries():
     selected_role_id = request.args.get('role_id', None, type=int)
     filter_status = request.args.get('status', 'all')  # 'all', 'paid', 'unpaid'
 
-    # Base query: all staff users with salary-eligible roles
-    query = db.session.query(User).join(Role, User.role_id == Role.id)
+    # Base query: all staff users with salary-eligible roles — EXCLUDE 'Parent' role
+    query = db.session.query(User).join(Role, User.role_id == Role.id).filter(
+        Role.role_name != 'Parent'
+    )
 
     if selected_role_id:
         query = query.filter(User.role_id == selected_role_id)
@@ -866,13 +900,33 @@ def manage_staff_salaries():
             'bank_name': payment.bank_name if payment else None,
         })
 
+    # Compute overall stats for the selected period (ignore filters) — EXCLUDE 'Parent' role
+    all_staff = db.session.query(User).join(Role, User.role_id == Role.id).filter(
+        Role.role_name != 'Parent'
+    ).order_by(User.first_name, User.last_name).all()
+    total_staff_all = len(all_staff)
+    paid_count_all = 0
+    for u in all_staff:
+        p = SalaryPayment.query.filter(
+            SalaryPayment.user_id == u.id,
+            SalaryPayment.period_month == current_month,
+            SalaryPayment.period_year == current_year,
+            SalaryPayment.status == 'paid'
+        ).first()
+        if p:
+            paid_count_all += 1
+    unpaid_count_all = total_staff_all - paid_count_all
+
     return render_template('bursar/manage_staff_salaries.html',
                           staff=staff_data,
                           roles=roles,
                           selected_role_id=selected_role_id,
                           current_month=current_month,
                           current_year=current_year,
-                          filter_status=filter_status)
+                          filter_status=filter_status,
+                          total_staff_all=total_staff_all,
+                          paid_count_all=paid_count_all,
+                          unpaid_count_all=unpaid_count_all)
 
 
 # ---------------------------------------------------------
@@ -908,139 +962,39 @@ def staff_salary_history(user_id):
 
 
 # ---------------------------------------------------------
-# POST: Mark a staff member as paid for a period
-# ---------------------------------------------------------
-@bursar_routes.route('/staff/<int:user_id>/mark-paid', methods=['POST'])
-def mark_staff_paid(user_id):
-    """
-    Record a salary payment for a staff member for a given period.
-    Expects JSON: { amount, period_month, period_year, reference, notes }
-    """
-    try:
-        user = User.query.get_or_404(user_id)
-        data = request.get_json() or {}
-
-        # Parse request data
-        amount = Decimal(str(data.get('amount', 0)))
-        # parse period_month / period_year from JSON payload robustly
-        raw_month = data.get('period_month')
-        raw_year = data.get('period_year')
-        try:
-            period_month = int(raw_month) if raw_month is not None and raw_month != '' else None
-        except (ValueError, TypeError):
-            period_month = None
-        try:
-            period_year = int(raw_year) if raw_year is not None and raw_year != '' else None
-        except (ValueError, TypeError):
-            period_year = None
-        reference = data.get('reference', '').strip() or None
-        notes = data.get('notes', '').strip() or None
-        payment_method = data.get('payment_method', 'CASH')
-        bank_name = data.get('bank_name')
-
-        if amount <= 0:
-            return jsonify({'success': False, 'error': 'Amount must be greater than 0'}), 400
-
-        # Check if already paid for this period
-        existing = SalaryPayment.query.filter(
-            SalaryPayment.user_id == user_id,
-            SalaryPayment.period_month == period_month,
-            SalaryPayment.period_year == period_year,
-            SalaryPayment.status == 'paid'
-        ).first()
-
-        if existing:
-            return jsonify({
-                'success': False,
-                'error': f"Staff already marked as paid for this period. Payment ID: {existing.id}"
-            }), 409
-
-        # Create new salary payment record
-        payment = SalaryPayment(
-            user_id=user_id,
-            role_id=user.role_id,
-            amount=amount,
-            paid_by_user_id=None,  # Will be set if we can get current user
-            period_month=period_month,
-            period_year=period_year,
-            status='paid',
-            reference=reference,
-            notes=notes,
-            payment_date=datetime.utcnow(),
-            payment_method=payment_method if payment_method in ['CASH', 'BANK'] else 'CASH',
-            bank_name=bank_name if payment_method == 'BANK' else None
-        )
-
-        # Try to set paid_by_user_id from current_user if available
-        try:
-            from flask_login import current_user as _current_user
-            if _current_user and getattr(_current_user, 'is_authenticated', False) and hasattr(_current_user, 'id'):
-                payment.paid_by_user_id = _current_user.id
-        except:
-            pass
-
-        # If the recorder is a Secretary, auto-generate reference and notes
-        try:
-            from flask_login import current_user as _current_user
-            if _current_user and getattr(_current_user, 'is_authenticated', False) and hasattr(_current_user, 'id'):
-                recorder = User.query.get(_current_user.id)
-                recorder_role = getattr(recorder.role, 'role_name', None) if recorder and getattr(recorder, 'role', None) else None
-                if recorder_role and recorder_role.lower() == 'secretary':
-                    ts = datetime.utcnow().strftime('%Y%m%d%H%M%S')
-                    reference = f"SEC-{ts}-{uuid.uuid4().hex[:6]}"
-                    recorder_name = f"{recorder.first_name} {recorder.last_name}" if recorder else 'Secretary'
-                    notes = f"Auto-recorded by {recorder_name} on {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} (system-generated)"
-                    payment.reference = reference
-                    payment.notes = notes
-        except Exception:
-            # ignore and continue
-            pass
-
-        db.session.add(payment)
-        db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'payment_id': payment.id,
-            'message': f"✓ {user.first_name} {user.last_name} marked as paid",
-            'payment': {
-                'id': payment.id,
-                'amount': float(payment.amount),
-                'payment_date': payment.payment_date.isoformat(),
-                'period': payment.period_display,
-                'status': payment.status,
-            }
-        }), 200
-
-    except ValueError as e:
-        return jsonify({'success': False, 'error': f'Invalid input: {str(e)}'}), 400
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-# ---------------------------------------------------------
 # POST: Mark staff as unpaid / reverse payment
 # ---------------------------------------------------------
 @bursar_routes.route('/staff/<int:user_id>/mark-unpaid', methods=['POST'])
 def mark_staff_unpaid(user_id):
     """
     Reverse/delete a salary payment record for a staff member.
-    Expects JSON: { payment_id }
+    Expects JSON: { payment_id } - if not provided, reverses the most recent paid payment for the period
     """
     try:
         user = User.query.get_or_404(user_id)
         data = request.get_json() or {}
         payment_id_raw = data.get('payment_id')
+
+        payment = None
         try:
             payment_id = int(payment_id_raw) if payment_id_raw is not None and payment_id_raw != '' else None
         except (ValueError, TypeError):
             payment_id = None
 
+        # If no payment_id provided, find the most recent paid payment for this user
         if not payment_id:
-            return jsonify({'success': False, 'error': 'payment_id required'}), 400
+            payment = SalaryPayment.query.filter_by(
+                user_id=user_id,
+                status='paid'
+            ).order_by(
+                SalaryPayment.period_year.desc(),
+                SalaryPayment.period_month.desc()
+            ).first()
 
-        payment = SalaryPayment.query.get_or_404(payment_id)
+            if not payment:
+                return jsonify({'success': False, 'error': 'No paid payment found to reverse'}), 400
+        else:
+            payment = SalaryPayment.query.get_or_404(payment_id)
 
         # Verify payment belongs to this user
         if payment.user_id != user_id:
@@ -1053,10 +1007,24 @@ def mark_staff_unpaid(user_id):
 
         db.session.commit()
 
+        # Return detailed info for immediate template update
         return jsonify({
             'success': True,
             'message': f"✓ Payment reversed for {user.first_name} {user.last_name}",
-            'payment_id': payment_id,
+            'payment_id': payment.id,
+            'payment': {
+                'id': payment.id,
+                'status': payment.status,
+                'notes': payment.notes,
+                'updated_at': payment.updated_at.isoformat() if payment.updated_at else None
+            },
+            'staff_update': {
+                'user_id': user.id,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'is_paid': False,
+                'salary_amount': float(user.salary_amount) if user.salary_amount else 0.0
+            }
         }), 200
 
     except Exception as e:
