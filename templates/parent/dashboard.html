@@ -17,6 +17,10 @@
       overflow-x: hidden;
     }
 
+    /* Smooth scrolling and mobile-friendly touch behavior */
+    html { scroll-padding-bottom: calc(var(--footer-height, 48px) + 20px); }
+    body { -webkit-overflow-scrolling: touch; }
+
     /* ✅ Fixed Top Navbar */
     .navbar {
       background: linear-gradient(135deg, #ad1457 0%, #7b1141 100%);
@@ -52,6 +56,8 @@
       color: white;
       padding: 20px;
       margin-bottom: 20px;
+      /* move the search card slightly down from the fixed top nav */
+      margin-top: 5px;
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
@@ -221,6 +227,8 @@
       body {
         padding-top: 70px;
         padding-bottom: 140px;
+        /* ensure there's room to scroll the last card above the fixed footer */
+        scroll-padding-bottom: calc(var(--footer-height, 48px) + 20px);
       }
 
       .search-input-group {
@@ -319,7 +327,8 @@
   </nav>
 
   <!-- ✅ Main Content -->
-  <main class="container-fluid px-3 px-md-4">
+  <!-- add `main-scroll` so footer script can adjust padding for fixed footer + 20px gap -->
+  <main class="container-fluid px-3 px-md-4 main-scroll">
     <!-- ✅ Search Section -->
     <div class="search-section">
       <h3><i class="bi bi-search me-2"></i>Find Your Child</h3>
@@ -406,7 +415,7 @@
     document.getElementById('searchForm').addEventListener('submit', function(e) {
       e.preventDefault();
       const searchQuery = document.getElementById('searchInput').value.trim();
-      
+
       if (!searchQuery) {
         alert('Please enter a search term');
         return;
@@ -459,7 +468,7 @@
       if (e.target.closest('.feature-btn')) {
         e.preventDefault();
         const feature = e.target.closest('.feature-btn').dataset.feature;
-        
+
         if (!currentPupilId) {
           alert('Please search for a student first');
           return;
