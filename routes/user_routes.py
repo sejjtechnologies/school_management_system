@@ -1,11 +1,12 @@
 from flask import Blueprint, request, redirect, render_template, flash, session, url_for, Response
 from werkzeug.security import check_password_hash
-from models.user_models import db, User, Role
+from models.user_models import db, User, Role, AdminSession
 from models.teacher_assignment_models import TeacherAssignment
 from models.register_pupils import Pupil   # ✅ Import pupil model
 import csv
 import io
 from datetime import datetime
+import secrets
 try:
     import xlsxwriter  # type: ignore
 except Exception as e:
@@ -56,6 +57,37 @@ def login():
                     db.session.commit()
                     print(f"✅ Corrected {DEFAULT_ROLES[role]} role_id in DB for", email)
 
+            # ✅ ADMIN SESSION MANAGEMENT: Enforce single-device login for Admin role
+            if role == "admin":
+                # Invalidate previous session if exists
+                if user.active_session_id:
+                    old_session = AdminSession.query.filter_by(
+                        session_id=user.active_session_id
+                    ).first()
+                    if old_session:
+                        old_session.is_active = False
+                        db.session.commit()
+                        print(f"✅ Invalidated previous admin session: {old_session.session_id[:8]}...")
+
+                # Create new admin session
+                new_session_id = secrets.token_urlsafe(32)
+                ip_address = request.remote_addr
+                user_agent = request.headers.get("User-Agent", "")[:255]
+
+                admin_session = AdminSession(
+                    user_id=user.id,
+                    session_id=new_session_id,
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    is_active=True
+                )
+                user.active_session_id = new_session_id
+                session["active_session_id"] = new_session_id  # ✅ Store in Flask session too
+                db.session.add(admin_session)
+                db.session.commit()
+                print(f"✅ Created new admin session: {new_session_id[:8]}... from IP {ip_address}")
+                flash(f"Admin login successful from {ip_address}. Previous sessions invalidated.", "info")
+
             # ✅ Force Admin accounts to Admin dashboard regardless of DB role drift
             if email.lower() == "sejjtechnologies@gmail.com" or role == "admin":
                 # ✅ Redirect to avoid resubmission warning
@@ -71,6 +103,23 @@ def login():
 
 @user_routes.route("/logout")
 def logout():
+    user_id = session.get("user_id")
+    role = session.get("role")
+
+    # ✅ Invalidate admin session if admin is logging out
+    if role and role.lower() == "admin" and user_id:
+        user = User.query.get(user_id)
+        if user and user.active_session_id:
+            admin_session = AdminSession.query.filter_by(
+                session_id=user.active_session_id
+            ).first()
+            if admin_session:
+                admin_session.is_active = False
+                db.session.commit()
+                print(f"✅ Admin session deactivated on logout: {admin_session.session_id[:8]}...")
+            user.active_session_id = None
+            db.session.commit()
+
     session.clear()
     flash("You have been logged out.", "info")
     return redirect(url_for("user_routes.login"))

@@ -1,7 +1,8 @@
 import os
 import logging
-from flask import Flask, render_template
-from models.user_models import db
+from datetime import datetime
+from flask import Flask, render_template, session, redirect, url_for, flash
+from models.user_models import db, AdminSession
 from models import marks_model   # ✅ Import marks_model to include new tables
 from routes.user_routes import user_routes
 from routes.admin_routes import admin_routes
@@ -53,6 +54,50 @@ app.register_blueprint(teacher_routes)            # ✅ Register teacher_routes
 app.register_blueprint(teacher_manage_reports)    # ✅ Register teacher_manage_reports
 app.register_blueprint(reset_password_routes)     # ✅ Register reset password routes
 app.register_blueprint(bursar_routes, url_prefix="/bursar")  # ✅ Register bursar_routes
+
+# ✅ ADMIN SESSION VALIDATION MIDDLEWARE
+@app.before_request
+def validate_admin_session():
+    """Validate that admin sessions are still active. Logout if session was invalidated elsewhere."""
+    user_id = session.get("user_id")
+    role = session.get("role")
+    
+    # Only check for admin sessions
+    if role and role.lower() == "admin" and user_id:
+        from models.user_models import User
+        
+        # Always check the database for the current user's active session
+        user = User.query.get(user_id)
+        if not user:
+            # User no longer exists, logout
+            session.clear()
+            flash("Your account was deleted or is no longer available.", "danger")
+            return redirect(url_for("user_routes.login"))
+        
+        # Check if this admin has an active session in the database
+        if not user.active_session_id:
+            # No active session in DB, force logout
+            print(f"[⚠️ ADMIN SESSION INVALID] User {user_id} has no active session in DB")
+            session.clear()
+            flash("Your admin session is no longer valid. Please log in again.", "danger")
+            return redirect(url_for("user_routes.login"))
+        
+        # Check if the active session exists and is active
+        admin_session = AdminSession.query.filter_by(
+            session_id=user.active_session_id,
+            user_id=user_id
+        ).first()
+        
+        if not admin_session or not admin_session.is_active:
+            # Session was invalidated (logged in from another device)
+            print(f"[⚠️ ADMIN SESSION INVALIDATED] User {user_id} attempted access with inactive session")
+            session.clear()
+            flash("Your admin session was invalidated. You logged in from another device.", "danger")
+            return redirect(url_for("user_routes.login"))
+        
+        # Update last activity timestamp
+        admin_session.last_activity = datetime.utcnow()
+        db.session.commit()
 
 @app.route("/")
 def index():
