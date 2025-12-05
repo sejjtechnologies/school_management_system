@@ -6,7 +6,7 @@
 
 class AdminSessionMonitor {
     constructor(options = {}) {
-        this.checkIntervalMs = options.checkIntervalMs || 3000; // Check every 3 seconds
+        this.checkIntervalMs = options.checkIntervalMs || 1000; // Check every 1 second
         this.checkUrl = options.checkUrl || '/api/check-session';
         this.isMonitoring = false;
         this.lastCheckTime = null;
@@ -123,7 +123,7 @@ class AdminSessionMonitor {
                 ${message}
             </p>
             <p style="color: #999; margin: 0 0 20px 0; font-size: 12px;">
-                Redirecting to login...
+                Redirecting to login in 1 second...
             </p>
             <button onclick="location.href='/login'" style="
                 background: #dc3545;
@@ -139,10 +139,10 @@ class AdminSessionMonitor {
         alertDiv.appendChild(card);
         document.body.appendChild(alertDiv);
 
-        // Redirect to login after 3 seconds
+        // Redirect to login after 1 second
         setTimeout(() => {
             window.location.href = '/login';
-        }, 3000);
+        }, 1000);
     }
 }
 
@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const userRole = document.body.getAttribute('data-user-role');
         if (userRole && userRole.toLowerCase() === 'admin') {
             const monitor = new AdminSessionMonitor({
-                checkIntervalMs: 3000, // Check every 3 seconds
+                checkIntervalMs: 1000, // Check every 1 second
             });
             monitor.start();
             

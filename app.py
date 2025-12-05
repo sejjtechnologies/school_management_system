@@ -59,6 +59,10 @@ app.register_blueprint(bursar_routes, url_prefix="/bursar")  # ✅ Register burs
 @app.before_request
 def validate_admin_session():
     """Validate that admin sessions are still active. Logout if session was invalidated elsewhere."""
+    # ✅ Skip validation for API endpoints and login/logout pages
+    if request.path.startswith('/api/') or request.path in ['/login', '/logout', '/']:
+        return
+    
     user_id = session.get("user_id")
     role = session.get("role")
     client_session_id = session.get("active_session_id")  # ✅ Client's session ID from cookie
