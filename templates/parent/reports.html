@@ -33,6 +33,27 @@
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
 
+    /* Center navbar content to match card/table container width and avoid horizontal scroll */
+    .navbar-fixed .nav-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      box-sizing: border-box;
+    }
+    .navbar-fixed .nav-container h5 {
+      color: #fff;
+      margin: 0;
+      font-weight: 600;
+      flex: 1 1 auto;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .navbar-fixed h5 {
       color: #fff;
       margin: 0;
@@ -358,12 +379,14 @@
 <body>
   <!-- Fixed Top Navbar -->
   <nav class="navbar-fixed">
-    <h5><i class="bi bi-file-text me-2"></i>Academic Reports</h5>
-    <!-- Back button positioned at the right side of the top nav -->
-    <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-signout" title="Back" aria-label="Back">
-      <i class="bi bi-box-arrow-right"></i>
-      <span>Back</span>
-    </a>
+    <div class="nav-container">
+      <h5><i class="bi bi-file-text me-2"></i>Academic Reports</h5>
+      <!-- Back button positioned at the right side of the top nav -->
+      <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-signout" title="Back" aria-label="Back">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Back</span>
+      </a>
+    </div>
   </nav>
 
   <!-- Main Container -->
@@ -388,8 +411,8 @@
         flex-wrap: wrap;
       }
       .student-header.custom .info-compact { display:flex; gap:12px; align-items:flex-start; width:100%; flex-wrap:wrap; }
-      .student-header.custom .info-compact .left { display:flex; flex-direction:column; gap:4px; min-width:160px; }
-      .student-header.custom .info-compact .right { display:flex; flex-direction:column; gap:4px; flex:1; }
+      .student-header.custom .info-compact .left { display:flex; flex-direction:column; gap:4px; min-width:120px; }
+      .student-header.custom .info-compact .right { display:flex; flex-direction:column; gap:4px; flex:1; min-width:0; }
       .student-header.custom .meta { font-weight: 700; font-size: 0.92rem; margin: 0; }
       /* allow the details to wrap so they are readable; keep truncation only on extra-small screens */
       .student-header.custom .truncate { white-space: normal; overflow: visible; text-overflow: clip; display:block; }
@@ -401,7 +424,8 @@
         .student-header.custom { min-height: 70px; padding:8px 10px; align-items:center; }
         .student-header.custom .meta { font-size: 0.78rem; }
         .student-header.custom .person-icon { font-size: 1rem; width:34px; height:34px; }
-        .student-header.custom .info-compact .left { min-width:110px; }
+        .student-header.custom .info-compact { flex-direction: column; gap:8px; }
+        .student-header.custom .info-compact .left { min-width:0; }
         /* restore truncation on the smallest viewports to avoid layout breakage */
         .student-header.custom .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       }
