@@ -304,10 +304,16 @@
   <!-- Fixed Top Navbar -->
   <nav class="navbar-fixed">
     <h5><i class="bi bi-file-text me-2"></i>Academic Reports</h5>
-    <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-back" title="Back">
-      <i class="bi bi-box-arrow-left"></i>
-      <span>Back</span>
-    </a>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-back" title="Back" style="display:flex; align-items:center; gap:6px;">
+        <i class="bi bi-box-arrow-left"></i>
+        <span>Back</span>
+      </a>
+      <!-- Sign out icon placed beside Back and styled red -->
+      <a href="{{ url_for('user_routes.logout') }}" title="Sign Out" aria-label="Sign out" style="display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:6px; background:rgba(220,53,69,0.08); color:#dc3545; text-decoration:none;">
+        <i class="bi bi-box-arrow-right"></i>
+      </a>
+    </div>
   </nav>
 
   <!-- Main Container -->
@@ -317,67 +323,53 @@
       .student-header.custom {
         background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
         color: white;
-        padding: 12px 12px;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.25);
+        height: 70px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(76, 175, 80, 0.18);
         border-left: 6px solid #ff6f00;
         position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        gap: 12px;
       }
-      .student-header.custom .info-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-        font-size: 0.85rem;
-        margin-bottom: 8px;
-      }
-      .student-header.custom .info-grid .left { border-right: 2px solid rgba(255,255,255,0.18); padding-right: 10px; }
-      .student-header.custom .meta { font-weight: 700; margin: 2px 0; }
-      .student-header.custom .signout-btn { position: absolute; top: 8px; right: 8px; color: white; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; width:38px; height:38px; border-radius: 50%; background: rgba(255,255,255,0.12); transition: transform .15s, background .15s; }
-      .student-header.custom .signout-btn i { font-size: 1.1rem; }
-      .student-header.custom .signout-btn:hover { transform: scale(1.08); background: rgba(255,255,255,0.18); }
+      .student-header.custom .info-compact { display:flex; gap:12px; align-items:center; width:100%; }
+      .student-header.custom .info-compact .left { display:flex; flex-direction:column; gap:2px; min-width:140px; }
+      .student-header.custom .info-compact .right { display:flex; flex-direction:column; gap:2px; flex:1; }
+      .student-header.custom .meta { font-weight: 700; font-size: 0.82rem; margin: 0; }
+      .student-header.custom .person-icon { font-size: 1.25rem; width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; background: rgba(255,255,255,0.08); border-radius:6px; }
+      .student-header.custom .signout-btn { position: absolute; top: 8px; right: 8px; color: #fff; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; width:34px; height:34px; border-radius: 6px; background: rgba(255,255,255,0.06); transition: transform .12s, background .12s; }
+      .student-header.custom .signout-btn i { font-size: 1rem; color: #fff; }
+      .student-header.custom .signout-btn:hover { transform: scale(1.05); background: rgba(255,255,255,0.12); }
 
       @media (max-width: 576px) {
-        .student-header.custom { padding: 10px; }
-        .student-header.custom .info-grid { grid-template-columns: 1fr; gap: 6px; }
-        .student-header.custom .signout-btn { top: 6px; right: 6px; width:34px; height:34px; }
-        .student-header.custom p { font-size: 0.85rem; }
+        .student-header.custom { height:70px; padding:6px 8px; }
+        .student-header.custom .meta { font-size: 0.78rem; }
+        .student-header.custom .person-icon { font-size: 1rem; width:30px; height:30px; }
+        .student-header.custom .info-compact .left { min-width:110px; }
       }
     </style>
 
     <div class="student-header custom mb-3">
-      <!-- Sign Out Button -->
+      <!-- Small person icon -->
+      <div class="person-icon"><i class="bi bi-person-circle"></i></div>
+
+      <div class="info-compact">
+        <div class="left">
+          <p class="meta">{{ pupil.first_name }} {% if pupil.middle_name %}{{ pupil.middle_name }} {% endif %}{{ pupil.last_name }}</p>
+          <p class="meta">ID: {{ pupil.pupil_id }}</p>
+        </div>
+        <div class="right">
+          <p class="meta">Adm#: {{ pupil.admission_number or 'N/A' }} &nbsp; Roll#: {{ pupil.roll_number or 'N/A' }}</p>
+          <p class="meta">Class: {% if pupil.class_ %}{{ pupil.class_.name }}{% else %}{{ pupil.class_id }}{% endif %} / {{ pupil.stream.name if pupil.stream else pupil.stream_id or 'TBA' }} | Teacher: {% if class_teacher %}{{ class_teacher.first_name }} {{ class_teacher.last_name }}{% else %}-{% endif %}</p>
+        </div>
+      </div>
+
+      <!-- Compact guardian/contact on right (truncated on very small screens) -->
       <a href="{{ url_for('user_routes.logout') }}" class="signout-btn" title="Sign Out" aria-label="Sign out">
         <i class="bi bi-box-arrow-right"></i>
       </a>
-
-      <div style="margin-bottom: 8px;">
-        <p style="margin: 0; font-size: 1rem; font-weight: 700; padding-right: 48px;"><i class="bi bi-person-circle" style="margin-right: 8px;"></i>{{ pupil.first_name }} {% if pupil.middle_name %}{{ pupil.middle_name }} {% endif %}{{ pupil.last_name }}</p>
-      </div>
-
-      <div class="info-grid">
-        <div class="left">
-          <p class="meta"><strong>Admission #</strong> {{ pupil.admission_number or 'N/A' }}</p>
-          <p class="meta"><strong>Roll #</strong> {{ pupil.roll_number or 'N/A' }}</p>
-          <p class="meta"><strong>Pupil ID</strong> {{ pupil.pupil_id }}</p>
-        </div>
-        <div>
-          <p class="meta"><strong>Class:</strong> {% if pupil.class_ %}{{ pupil.class_.name }}{% else %}Form {{ pupil.class_id }}{% endif %}</p>
-          <p class="meta"><strong>Stream:</strong> {% if pupil.stream %}{{ pupil.stream.name }}{% else %}{{ pupil.stream_id or 'TBA' }}{% endif %}</p>
-          {% if class_teacher %}<p class="meta"><strong>Teacher:</strong> {{ class_teacher.first_name }} {{ class_teacher.last_name }}</p>{% endif %}
-        </div>
-      </div>
-
-      <div style="border-top: 2px solid rgba(255, 255, 255, 0.14); padding-top: 8px;">
-        <p style="margin: 0; font-size: 0.85rem; font-weight: 700;">
-          <i class="bi bi-person-check" style="margin-right: 6px;"></i>
-          <strong>Guardian:</strong> {{ pupil.guardian_name or 'N/A' }}
-          <span style="font-weight: 600;">({{ pupil.guardian_relationship or 'N/A' }})</span>
-          <span style="margin-left: 12px;">
-            <i class="bi bi-telephone" style="margin-right: 4px;"></i>
-            <strong>{{ pupil.guardian_phone or 'N/A' }}</strong>
-          </span>
-        </p>
-      </div>
     </div>
 
     <!-- Filter Form (placed directly after pupil header) -->
