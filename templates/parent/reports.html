@@ -326,6 +326,7 @@
       /* Place the Back button using flex so it doesn't cause horizontal scrolling */
       .navbar-fixed .btn-signout {
         margin-left: auto !important;
+        margin-right: 1cm;
         padding: 6px 10px;
         font-size: 0.8rem;
         display: inline-flex;
@@ -393,9 +394,7 @@
       /* allow the details to wrap so they are readable; keep truncation only on extra-small screens */
       .student-header.custom .truncate { white-space: normal; overflow: visible; text-overflow: clip; display:block; }
       .student-header.custom .person-icon { font-size: 1.35rem; width:42px; height:42px; display:inline-flex; align-items:center; justify-content:center; background: rgba(255,255,255,0.08); border-radius:6px; }
-      .student-header.custom .signout-btn { position: absolute; top: 10px; right: 10px; color: #fff; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; width:36px; height:36px; border-radius: 6px; background: rgba(255,255,255,0.06); transition: transform .12s, background .12s; }
-      .student-header.custom .signout-btn i { font-size: 1rem; color: #fff; }
-      .student-header.custom .signout-btn:hover { transform: scale(1.05); background: rgba(255,255,255,0.12); }
+      /* student header signout button removed; styles kept intentionally blank to avoid leftover UI */
 
       @media (max-width: 576px) {
         /* On very small screens keep things compact but still readable */
@@ -424,10 +423,7 @@
         </div>
       </div>
 
-      <!-- Compact guardian/contact on right (truncated on very small screens) -->
-      <a href="{{ url_for('user_routes.logout') }}" class="signout-btn" title="Sign Out" aria-label="Sign out">
-        Sign Out
-      </a>
+      <!-- Sign out removed from pupil header as requested -->
     </div>
 
     <!-- Filter Form (placed directly after pupil header) -->
