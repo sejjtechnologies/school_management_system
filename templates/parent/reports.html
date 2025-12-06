@@ -323,6 +323,14 @@
         display: none;
       }
 
+      /* On mobile ensure the Back button is visible on the right side
+         by cancelling any translate and letting it align to the right */
+      .navbar-fixed .btn-signout {
+        transform: none !important;
+        margin-left: auto !important;
+        display: inline-flex !important;
+      }
+
       .navbar-fixed .btn-signout {
         padding: 6px 10px;
         font-size: 0.8rem;
