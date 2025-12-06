@@ -349,13 +349,14 @@
       /* Place the Back button using flex so it doesn't cause horizontal scrolling */
       .navbar-fixed .btn-signout {
         margin-left: auto !important;
-        margin-right: 1cm;
-        padding: 6px 10px;
+        margin-right: 6px !important;
+        padding: 6px 8px;
         font-size: 0.8rem;
         display: inline-flex;
+        flex: 0 0 auto;
+        max-width: 40%;
       }
-      .navbar-fixed .btn-signout { margin-right: 8px !important; padding: 6px; }
-      /* On very small screens, show icon-only and reduce right margin to avoid overflow */
+      /* On very small screens, show icon-only and hide the label to avoid overflow */
       .navbar-fixed .btn-signout span { display: none; }
 
       .marks-table {
