@@ -261,6 +261,55 @@
       font-size: 0.9rem;
     }
 
+    /* School Info Card */
+    .school-card {
+      background: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%);
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 6px 18px rgba(16, 24, 40, 0.06);
+      border-left: 6px solid #2e7d32;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .school-card .school-logo {
+      width: 64px;
+      height: 64px;
+      background: #e8f5e9;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #2e7d32;
+      flex: 0 0 auto;
+    }
+
+    .school-card .school-details {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .school-card h3 {
+      margin: 0 0 4px 0;
+      font-size: 1.15rem;
+      color: #1b5e20;
+      font-weight: 700;
+    }
+
+    .school-card p { margin: 0; color: #234; font-size: 0.9rem; }
+
+    .school-card .meta { color: #556; font-size: 0.85rem; }
+
+    @media (max-width: 500px) {
+      .school-card { padding: 10px; gap: 8px; }
+      .school-card .school-logo { width:48px; height:48px; }
+      .school-card h3 { font-size: 1rem; }
+    }
+
     /* Mobile Responsive */
     .card-midterm { border-top: 4px solid #e74c3c; }
     .card-midterm .card-header { background-color: #e8f4f8; }
@@ -631,6 +680,17 @@
         <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Filter</button>
       </div>
     </form>
+
+    <!-- School Info Card -->
+    <div class="school-card">
+      <div class="school-logo"><i class="bi bi-building-fill"></i></div>
+      <div class="school-details">
+        <h3>HOPEFUL FUTURE PRIMARY SCHOOL</h3>
+        <p class="meta"><em>"Naturing minds, Shaping future"</em></p>
+        <p class="mt-2">Location: Entebbe, Wakiso - Uganda &nbsp; • &nbsp; Email: info@hopefulfuture.example</p>
+        <p>Contacts: 0744 137174, 0768 936641</p>
+      </div>
+    </div>
 
     <!-- Exam Reports Grid (Side by Side) -->
     {% if filtered_data %}
