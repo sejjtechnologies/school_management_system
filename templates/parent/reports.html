@@ -316,36 +316,50 @@
     <div class="student-header mb-4" style="
       background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
       color: white;
-      padding: 24px;
+      padding: 16px;
       border-radius: 12px;
       box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
       border-left: 6px solid #ff6f00;
+      position: relative;
     ">
-      <div style="margin-bottom: 12px;">
-        <p style="margin: 0; font-size: 1.1rem; font-weight: 700;"><i class="bi bi-person-circle" style="margin-right: 8px;"></i>{{ pupil.first_name }} {% if pupil.middle_name %}{{ pupil.middle_name }} {% endif %}{{ pupil.last_name }}</p>
+      <!-- Sign Out Button -->
+      <a href="{{ url_for('user_routes.logout') }}" style="
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        color: white;
+        font-size: 1.3rem;
+        text-decoration: none;
+        transition: transform 0.2s;
+      " title="Sign Out" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">
+        <i class="bi bi-box-arrow-right"></i>
+      </a>
+
+      <div style="margin-bottom: 10px;">
+        <p style="margin: 0; font-size: 1rem; font-weight: 700; padding-right: 40px;"><i class="bi bi-person-circle" style="margin-right: 8px;"></i>{{ pupil.first_name }} {% if pupil.middle_name %}{{ pupil.middle_name }} {% endif %}{{ pupil.last_name }}</p>
       </div>
       
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px;">
-        <div style="border-right: 2px solid rgba(255, 255, 255, 0.3); padding-right: 16px;">
-          <p style="margin: 4px 0; font-size: 0.85rem; font-weight: 600;"><strong>Admission #</strong> {{ pupil.admission_number or 'N/A' }}</p>
-          <p style="margin: 4px 0; font-size: 0.85rem; font-weight: 600;"><strong>Roll #</strong> {{ pupil.roll_number or 'N/A' }}</p>
-          <p style="margin: 4px 0; font-size: 0.85rem; font-weight: 600;"><strong>Pupil ID</strong> {{ pupil.pupil_id }}</p>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; font-size: 0.8rem;">
+        <div style="border-right: 2px solid rgba(255, 255, 255, 0.3); padding-right: 12px;">
+          <p style="margin: 2px 0; font-weight: 600;"><strong>Admission #</strong> {{ pupil.admission_number or 'N/A' }}</p>
+          <p style="margin: 2px 0; font-weight: 600;"><strong>Roll #</strong> {{ pupil.roll_number or 'N/A' }}</p>
+          <p style="margin: 2px 0; font-weight: 600;"><strong>Pupil ID</strong> {{ pupil.pupil_id }}</p>
         </div>
         <div>
-          <p style="margin: 4px 0; font-size: 0.85rem; font-weight: 600;"><strong>Class:</strong> {% if pupil.class_ %}{{ pupil.class_.name }}{% else %}Form {{ pupil.class_id }}{% endif %}</p>
-          <p style="margin: 4px 0; font-size: 0.85rem; font-weight: 600;"><strong>Stream:</strong> {% if pupil.stream %}{{ pupil.stream.name }}{% else %}{{ pupil.stream_id or 'TBA' }}{% endif %}</p>
-          {% if class_teacher %}<p style="margin: 4px 0; font-size: 0.85rem; font-weight: 600;"><strong>Class Teacher:</strong> {{ class_teacher.first_name }} {{ class_teacher.last_name }}</p>{% endif %}
+          <p style="margin: 2px 0; font-weight: 600;"><strong>Class:</strong> {% if pupil.class_ %}{{ pupil.class_.name }}{% else %}Form {{ pupil.class_id }}{% endif %}</p>
+          <p style="margin: 2px 0; font-weight: 600;"><strong>Stream:</strong> {% if pupil.stream %}{{ pupil.stream.name }}{% else %}{{ pupil.stream_id or 'TBA' }}{% endif %}</p>
+          {% if class_teacher %}<p style="margin: 2px 0; font-weight: 600;"><strong>Teacher:</strong> {{ class_teacher.first_name }} {{ class_teacher.last_name }}</p>{% endif %}
         </div>
       </div>
 
-      <div style="border-top: 2px solid rgba(255, 255, 255, 0.3); padding-top: 12px;">
-        <p style="margin: 0; font-size: 0.85rem; font-weight: 600;">
+      <div style="border-top: 2px solid rgba(255, 255, 255, 0.3); padding-top: 8px;">
+        <p style="margin: 0; font-size: 0.8rem; font-weight: 600;">
           <i class="bi bi-person-check" style="margin-right: 6px;"></i>
-          <strong>Guardian/Parent:</strong> {{ pupil.guardian_name or 'N/A' }} 
+          <strong>Guardian:</strong> {{ pupil.guardian_name or 'N/A' }} 
           <span style="font-weight: 500;">({{ pupil.guardian_relationship or 'N/A' }})</span>
-          <span style="margin-left: 16px;">
+          <span style="margin-left: 12px;">
             <i class="bi bi-telephone" style="margin-right: 4px;"></i>
-            <strong>Contact:</strong> {{ pupil.guardian_phone or 'N/A' }}
+            <strong>{{ pupil.guardian_phone or 'N/A' }}</strong>
           </span>
         </p>
       </div>
