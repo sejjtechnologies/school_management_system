@@ -356,9 +356,8 @@
   <nav class="navbar-fixed">
     <h5><i class="bi bi-file-text me-2"></i>Academic Reports</h5>
     <div style="display:flex; gap:8px; align-items:center; width:100%;">
-      <!-- Back button with white background, pushed to far right -->
-      <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-signout" title="Back" aria-label="Back">
-        <i class="bi bi-box-arrow-right"></i>
+      <!-- Back button shifted left by 3cm -->
+      <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-signout" title="Back" aria-label="Back" style="transform: translateX(-3cm);">
         <span>Back</span>
       </a>
     </div>
@@ -425,7 +424,7 @@
 
       <!-- Compact guardian/contact on right (truncated on very small screens) -->
       <a href="{{ url_for('user_routes.logout') }}" class="signout-btn" title="Sign Out" aria-label="Sign out">
-        <i class="bi bi-box-arrow-right"></i>
+        Sign Out
       </a>
     </div>
 
