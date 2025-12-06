@@ -304,6 +304,17 @@
 
     .school-card .meta { color: #ff4081; font-size: 0.85rem; font-style: italic; }
 
+    /* Search icon rotation for realistic filter action */
+    .search-icon.rotating {
+      display: inline-block;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
     @media (max-width: 500px) {
       .school-card { padding: 10px; gap: 8px; }
       .school-card .school-logo { width:48px; height:48px; }
@@ -607,6 +618,8 @@
           <option value="">Select Exam Set</option>
           <option value="Midterm" {% if selected_exam_set == 'Midterm' %}selected{% endif %}>Midterm</option>
           <option value="End_term" {% if selected_exam_set == 'End_term' %}selected{% endif %}>End Term</option>
+          <!-- Allow choosing both canonical sets together -->
+          <option value="both" {% if selected_exam_set == 'both' %}selected{% endif %}>Both (Midterm & End Term)</option>
         </select>
       </div>
       <div class="col-md-3">
@@ -619,7 +632,7 @@
         </select>
       </div>
       <div class="col-md-3">
-        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Filter</button>
+        <button type="submit" class="btn btn-primary w-100" id="filter-button"><i class="bi bi-search search-icon"></i> <span id="filter-label">Filter</span></button>
       </div>
     </form>
 
@@ -838,6 +851,29 @@
       </div>
     {% endif %}
   </div>
+
+  <!-- Small script to animate the filter search icon and prevent double submits -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      try {
+        const form = document.querySelector('form[method="get"]');
+        const btn = document.getElementById('filter-button');
+        const icon = btn ? btn.querySelector('.search-icon') : null;
+        const label = document.getElementById('filter-label');
+        if (form && btn) {
+          form.addEventListener('submit', function () {
+            if (icon) icon.classList.add('rotating');
+            if (label) label.textContent = 'Searching...';
+            // disable the button to avoid duplicate submissions
+            btn.disabled = true;
+          });
+        }
+      } catch (e) {
+        // fail silently - UX enhancement only
+        console.error('Filter button script error', e);
+      }
+    });
+  </script>
 
   <!-- Footer -->
   {% include 'footer.html' %}

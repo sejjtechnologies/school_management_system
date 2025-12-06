@@ -363,7 +363,30 @@ def view_reports(pupil_id):
     if selected_term:
         rpt_q = rpt_q.filter(Exam.term == selected_term)
     if selected_exam_set:
-        rpt_q = rpt_q.filter(Exam.name == selected_exam_set)
+        # Support a special 'both' option which should include the main
+        # canonical exam sets (Midterm and End Term). We match case-insensitively
+        # against available exam names in the DB for the selected term/year
+        # to avoid hardcoding exact DB values.
+        if selected_exam_set == 'both':
+            try:
+                names_q = Exam.query
+                if selected_term:
+                    names_q = names_q.filter(Exam.term == selected_term)
+                if selected_year:
+                    names_q = names_q.filter(Exam.year == selected_year)
+                candidate_names = [e.name for e in names_q.all() if e.name]
+                # pick names that look like midterm/endterm by substring
+                chosen = [n for n in candidate_names if ('mid' in n.lower() or 'end' in n.lower())]
+                if chosen:
+                    rpt_q = rpt_q.filter(Exam.name.in_(chosen))
+                else:
+                    # fallback: do not filter by name if we couldn't find expected names
+                    pass
+            except Exception:
+                # if anything goes wrong, fall back to no name-filter
+                pass
+        else:
+            rpt_q = rpt_q.filter(Exam.name == selected_exam_set)
     if selected_year:
         rpt_q = rpt_q.filter(Exam.year == selected_year)
     filtered_reports = rpt_q.order_by(Exam.year.desc(), Exam.term.asc(), Exam.name.asc()).all()
