@@ -79,11 +79,14 @@
       text-decoration: none;
       transition: all 0.3s ease;
       cursor: pointer;
+      /* move left by 3cm relative to the nav container */
+      transform: translateX(-3cm);
     }
 
     .btn-back:hover {
       background-color: #f0f0f0;
-      transform: translateX(-2px);
+      /* preserve base left shift while nudging slightly on hover */
+      transform: translateX(calc(-3cm - 2px));
     }
 
     .btn-back i {
@@ -340,10 +343,11 @@
         margin-left: 0 !important;
         padding: 4px 6px;
         font-size: 0.75rem;
+        /* keep label visible on small screens as requested */
       }
 
       .navbar-fixed .btn-back span {
-        display: none;
+        display: inline-block !important;
       }
 
       /* Place the Back button using flex so it doesn't cause horizontal scrolling */
@@ -386,12 +390,12 @@
   <!-- Fixed Top Navbar -->
   <nav class="navbar-fixed">
     <div class="nav-container">
-      <h5><i class="bi bi-file-text me-2"></i>Academic Reports</h5>
-      <!-- Back button positioned at the right side of the top nav -->
-      <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-signout" title="Back" aria-label="Back">
-        <i class="bi bi-box-arrow-right"></i>
+      <!-- Back button moved to the left and shifted 3cm as requested -->
+      <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-back" title="Back" aria-label="Back">
+        <i class="bi bi-box-arrow-left"></i>
         <span>Back</span>
       </a>
+      <h5><i class="bi bi-file-text me-2"></i>Academic Reports</h5>
     </div>
   </nav>
 
