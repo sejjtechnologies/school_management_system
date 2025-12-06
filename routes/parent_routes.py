@@ -324,6 +324,16 @@ def view_reports(pupil_id):
         flash('Access denied. You can only view your own child.', 'danger')
         return redirect(url_for('parent_routes.dashboard'))
 
+    # Get class teacher (if available)
+    class_teacher = None
+    if pupil.class_id and pupil.stream_id:
+        teacher_assignment = TeacherAssignment.query.filter_by(
+            class_id=pupil.class_id,
+            stream_id=pupil.stream_id
+        ).first()
+        if teacher_assignment:
+            class_teacher = teacher_assignment.teacher
+
     # Filters
     selected_term = request.args.get('term', type=int)
     selected_exam_set = request.args.get('exam_set', default=None, type=str)
@@ -369,12 +379,29 @@ def view_reports(pupil_id):
         try:
             marks_rows = Mark.query.filter_by(pupil_id=pupil_id, exam_id=getattr(exam, 'id', None)).all()
             for mr in marks_rows:
+                # Calculate percentage and letter grade from score
+                score = getattr(mr, 'score', None)
+                percentage = score  # Assuming score is out of 100
+                letter_grade = None
+
+                if score is not None:
+                    if score >= 90:
+                        letter_grade = 'A'
+                    elif score >= 80:
+                        letter_grade = 'B'
+                    elif score >= 70:
+                        letter_grade = 'C'
+                    elif score >= 60:
+                        letter_grade = 'D'
+                    else:
+                        letter_grade = 'E'
+
                 marks_for_exam.append({
                     'subject': getattr(mr.subject, 'name', None) if getattr(mr, 'subject', None) else None,
-                    'score': getattr(mr, 'score', None),
+                    'score': score,
                     'weight': getattr(mr.subject, 'weight', None) if getattr(mr, 'subject', None) else None,
-                    'percentage': getattr(mr, 'percentage', None) if hasattr(mr, 'percentage') else None,
-                    'grade': getattr(mr, 'grade', None) if hasattr(mr, 'grade') else None
+                    'percentage': percentage,
+                    'grade': letter_grade
                 })
         except Exception:
             marks_for_exam = []
@@ -392,8 +419,8 @@ def view_reports(pupil_id):
             'stream_position': getattr(report, 'stream_position', None),
             'class_position': getattr(report, 'class_position', None),
             'combined_position': getattr(report, 'combined_position', None),
-            'teacher_comment': getattr(report, 'general_remark', None),
             'general_remark': getattr(report, 'general_remark', None),
+            'teacher_comment': getattr(report, 'general_remark', None),
             'awards': getattr(report, 'awards', None) if hasattr(report, 'awards') else None,
             'marks': marks_for_exam
         })
@@ -413,6 +440,7 @@ def view_reports(pupil_id):
                 term_reports.append({
                     'exam_set': getattr(ex, 'name', None),
                     'report_id': getattr(tr, 'id', None),
+                    'grade': getattr(tr, 'grade', None),
                     'total_score': getattr(tr, 'total_score', None),
                     'average_score': getattr(tr, 'average_score', None),
                     'stream_position': getattr(tr, 'stream_position', None),
@@ -423,6 +451,12 @@ def view_reports(pupil_id):
                 })
         except Exception:
             term_reports = []
+
+    # Get counts for stream/class (BEFORE building combined_summary)
+    # Count pupils in the class (all streams in the class)
+    class_count = Pupil.query.filter_by(class_id=pupil.class_id).count() if getattr(pupil, 'class_id', None) else None
+    # Count pupils in BOTH the same stream AND class
+    stream_count = Pupil.query.filter_by(stream_id=pupil.stream_id, class_id=pupil.class_id).count() if getattr(pupil, 'stream_id', None) and getattr(pupil, 'class_id', None) else None
 
     # Build combined term summary (aggregate across all exam sets in the
     # selected term/year) for the pupil's class and stream. We compute the
@@ -470,8 +504,9 @@ def view_reports(pupil_id):
                 if pid in stream_pupil_ids:
                     stream_totals[pid] = stream_totals.get(pid, 0) + ts
 
-            class_count = len(class_totals)
-            stream_count = len(stream_totals)
+            # DO NOT overwrite class_count and stream_count - they should remain as total counts
+            # class_count = len(class_totals)
+            # stream_count = len(stream_totals)
 
             # Ranking function (competition style)
             def compute_rankings(totals_dict):
@@ -528,6 +563,13 @@ def view_reports(pupil_id):
             pupil_teacher_comments = [tr.get('teacher_comment') for tr in term_reports if tr.get('teacher_comment')]
             pupil_remarks = [tr.get('remarks') for tr in term_reports if tr.get('remarks')]
 
+            # Get final grade and general remark from the last report (or any report) in the term
+            final_grade = None
+            general_remark = None
+            if term_rows:
+                final_grade = getattr(term_rows[0], 'grade', None)
+                general_remark = getattr(term_rows[0], 'general_remark', None)
+
             combined_summary = {
                 'combined_total': my_class_total,
                 'combined_sets': my_sets,
@@ -536,15 +578,13 @@ def view_reports(pupil_id):
                 'class_count': class_count,
                 'stream_position': my_stream_pos,
                 'stream_count': stream_count,
+                'final_grade': final_grade,
+                'general_remark': general_remark,
                 'combined_teacher_comments': pupil_teacher_comments,
                 'combined_remarks': pupil_remarks
             }
         except Exception:
             combined_summary = None
-
-    # Counts for stream/class (for display only, do not use to compute positions)
-    stream_count = Pupil.query.filter_by(stream_id=pupil.stream_id).count() if getattr(pupil, 'stream_id', None) else None
-    class_count = Pupil.query.filter_by(class_id=pupil.class_id).count() if getattr(pupil, 'class_id', None) else None
 
     # Build a simple subject->score map for the first (selected) report so the
     # template can show a per-subject listing. We intentionally do not perform
@@ -568,6 +608,7 @@ def view_reports(pupil_id):
 
     return render_template('parent/reports.html',
                            pupil=pupil,
+                           class_teacher=class_teacher,
                            filtered_data=filtered_data,
                            term_reports=term_reports,
                            available_terms=available_terms,
