@@ -326,7 +326,7 @@
               </div>
             </div>
             <div class="receipt-description">{{ receipt.description or 'Payment Receipt' }}</div>
-            <div class="receipt-amount">Ksh {{ "%.2f"|format(receipt.amount) }}</div>
+            <div class="receipt-amount">UGX {{ "%.2f"|format(receipt.amount) }}</div>
             <div class="receipt-meta">
               <span class="receipt-ref">{{ receipt.transaction_id or receipt.id }}</span>
               <span>

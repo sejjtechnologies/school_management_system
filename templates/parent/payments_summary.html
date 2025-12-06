@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payments Summary - Parent</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background-color: #f5f7fa;
+      font-family: 'Segoe UI', sans-serif;
+      padding-top: 70px;
+      padding-bottom: 120px;
+      overflow-x: hidden;
+    }
+
+    html { scroll-padding-bottom: calc(var(--footer-height, 48px) + 20px); }
+    body { -webkit-overflow-scrolling: touch; }
+
+    /* Fixed Top Navbar */
+    .navbar-fixed {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      background: linear-gradient(135deg, #ad1457 0%, #7b1141 100%);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      z-index: 1050;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .navbar-fixed h5 {
+      color: #fff;
+      margin: 0;
+      flex: 1;
+      font-weight: 600;
+    }
+
+    /* Back Button */
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: #fff;
+      color: #333;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .btn-back:hover {
+      background-color: #f0f0f0;
+      transform: translateX(-2px);
+    }
+
+    .btn-back i {
+      font-size: 1rem;
+      color: #d32f2f;
+    }
+
+    /* Main Container */
+    .container-payments {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px 16px;
+    }
+
+    /* Student Header */
+    .student-header {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+      border-left: 5px solid #ad1457;
+    }
+
+    .student-header p {
+      margin: 6px 0;
+      font-size: 0.95rem;
+    }
+
+    .student-header strong {
+      color: #333;
+      margin-right: 8px;
+    }
+
+    /* Summary Cards Grid */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .summary-card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+      border-top: 4px solid;
+    }
+
+    .summary-card.outstanding {
+      border-top-color: #d32f2f;
+    }
+
+    .summary-card.paid {
+      border-top-color: #2e7d32;
+    }
+
+    .summary-card.balance-debit {
+      border-top-color: #f57c00;
+    }
+
+    .summary-card.balance-credit {
+      border-top-color: #388e3c;
+    }
+
+    .summary-card.total {
+      border-top-color: #1565c0;
+    }
+
+    .summary-card-label {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .summary-card-value {
+      font-size: 2rem;
+      font-weight: bold;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .summary-card.outstanding .summary-card-value { color: #d32f2f; }
+    .summary-card.paid .summary-card-value { color: #2e7d32; }
+    .summary-card.balance-debit .summary-card-value { color: #f57c00; }
+    .summary-card.balance-credit .summary-card-value { color: #388e3c; }
+    .summary-card.total .summary-card-value { color: #1565c0; }
+
+    /* Section Headers */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 24px;
+      margin-bottom: 16px;
+    }
+
+    .section-header h5 {
+      color: #333;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .section-header i {
+      font-size: 1.3rem;
+      color: #ad1457;
+    }
+
+    /* Payments Table */
+    .payments-card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+      margin-bottom: 24px;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    .payments-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .payments-table thead {
+      background-color: #f5f5f5;
+      border-bottom: 2px solid #ddd;
+    }
+
+    .payments-table th {
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #333;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    .payments-table td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      font-size: 0.9rem;
+    }
+
+    .payments-table tbody tr:hover {
+      background-color: #f9f9f9;
+    }
+
+    /* Status Badge */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .status-completed {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .status-pending {
+      background-color: #fff3e0;
+      color: #e65100;
+    }
+
+    .amount-value {
+      font-weight: 600;
+      color: #1565c0;
+    }
+
+    /* No Payments Message */
+    .no-payments-message {
+      background: #e3f2fd;
+      border: 1px solid #90caf9;
+      border-radius: 8px;
+      padding: 30px;
+      text-align: center;
+      color: #1565c0;
+      margin-bottom: 24px;
+    }
+
+    .no-payments-message i {
+      font-size: 3rem;
+      margin-bottom: 15px;
+      opacity: 0.6;
+    }
+
+    .no-payments-message p {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    /* Receipt Item */
+    .receipt-item {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .receipt-info {
+      flex: 1;
+    }
+
+    .receipt-id {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .receipt-detail {
+      font-size: 0.85rem;
+      color: #666;
+      margin: 2px 0;
+    }
+
+    .receipt-amount {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #2e7d32;
+      text-align: right;
+      min-width: 100px;
+    }
+
+    /* Info Box */
+    .info-box {
+      background: #f0f4ff;
+      border-left: 4px solid #1565c0;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 20px;
+    }
+
+    .info-box p {
+      margin: 0;
+      color: #0d47a1;
+      font-size: 0.9rem;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      body {
+        padding-top: 70px;
+        padding-bottom: 140px;
+      }
+
+      .container-payments {
+        padding: 12px;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+
+      .summary-card {
+        padding: 16px;
+      }
+
+      .summary-card-value {
+        font-size: 1.5rem;
+      }
+
+      .payments-table th,
+      .payments-table td {
+        padding: 8px;
+        font-size: 0.8rem;
+      }
+
+      .receipt-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .receipt-amount {
+        text-align: left;
+        margin-top: 8px;
+        min-width: auto;
+      }
+    }
+
+    @media (max-width: 500px) {
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section-header {
+        margin-top: 20px;
+      }
+
+      .navbar-fixed {
+        height: auto;
+        flex-wrap: wrap;
+        padding: 8px 12px;
+      }
+
+      .navbar-fixed h5 {
+        font-size: 1.1rem;
+      }
+
+      .btn-back {
+        padding: 4px 8px;
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Fixed Top Navbar -->
+  <nav class="navbar-fixed">
+    <h5><i class="bi bi-credit-card me-2"></i>Payment Summary</h5>
+    <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-back" title="Back" aria-label="Back">
+      <i class="bi bi-box-arrow-left"></i>
+      <span>Back</span>
+    </a>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="container-payments">
+    <!-- Student Header -->
+    <div class="student-header">
+      <p><strong>Student:</strong> {{ pupil.first_name }} {% if pupil.middle_name %}{{ pupil.middle_name }} {% endif %}{{ pupil.last_name }}</p>
+      <p><strong>Admission ID:</strong> {{ pupil.pupil_id }} | <strong>Admission Number:</strong> {{ pupil.admission_number or 'N/A' }}</p>
+      <p><strong>Roll Number:</strong> {{ pupil.roll_number or 'N/A' }} | <strong>Class:</strong> {% if pupil.class_ %}{{ pupil.class_.name }}{% else %}{{ pupil.class_id }}{% endif %}</p>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+      <!-- Outstanding Payment -->
+      <div class="summary-card outstanding">
+        <div class="summary-card-label"><i class="bi bi-exclamation-circle me-2"></i>Outstanding Payment</div>
+        <div class="summary-card-value">
+          UGX {{ "{:,.0f}".format(summary.outstanding) }}
+        </div>
+      </div>
+
+      <!-- Paid Amount -->
+      <div class="summary-card paid">
+        <div class="summary-card-label"><i class="bi bi-check-circle me-2"></i>Paid Amount</div>
+        <div class="summary-card-value">
+          UGX {{ "{:,.0f}".format(summary.paid) }}
+        </div>
+      </div>
+
+      <!-- Balance Status -->
+      <div class="summary-card {% if summary.balance_status == 'Credit' %}balance-credit{% else %}balance-debit{% endif %}">
+        <div class="summary-card-label"><i class="bi bi-wallet me-2"></i>Balance ({{ summary.balance_status }})</div>
+        <div class="summary-card-value">
+          UGX {{ "{:,.0f}".format(summary.balance_amount) }}
+        </div>
+      </div>
+
+      <!-- Total Amount -->
+      <div class="summary-card total">
+        <div class="summary-card-label"><i class="bi bi-cash me-2"></i>Total Amount</div>
+        <div class="summary-card-value">
+          UGX {{ "{:,.0f}".format(summary.total) }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Fee Breakdown Section -->
+    <div class="section-header">
+      <i class="bi bi-list-check"></i>
+      <h5>Fee Breakdown</h5>
+    </div>
+
+    {% if fee_items %}
+      <div class="payments-card">
+        <div class="table-wrapper">
+          <table class="payments-table">
+            <thead>
+              <tr>
+                <th>Fee Item</th>
+                <th>Required</th>
+                <th>Paid</th>
+                <th>Outstanding</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for fi in fee_items %}
+                <tr>
+                  <td>{{ fi.item_name }}</td>
+                  <td>UGX {{ "{:,.0f}".format(fi.required) }}</td>
+                  <td>UGX {{ "{:,.0f}".format(fi.paid) }}</td>
+                  <td>UGX {{ "{:,.0f}".format(fi.outstanding) }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Payment Status Section -->
+    <div class="section-header">
+      <i class="bi bi-card-checklist"></i>
+      <h5>Payment Records</h5>
+    </div>
+
+    {% if payments %}
+      <div class="payments-card">
+        <div class="table-wrapper">
+          <table class="payments-table">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th>Year/Term</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for payment in payments %}
+                <tr>
+                  <td>
+                    {% if payment.description %}
+                      {{ payment.description }}
+                    {% else %}
+                      Payment Record
+                    {% endif %}
+                  </td>
+                  <td class="amount-value">UGX {{ "{:,.0f}".format(payment.amount) }}</td>
+                  <td>{{ payment.payment_method or 'N/A' }}</td>
+                  <td>{{ payment.year or '' }} {{ payment.term or '' }}</td>
+                  <td>
+                    {% if payment.status == 'completed' %}
+                      <span class="status-badge status-completed">
+                        <i class="bi bi-check-circle-fill me-1"></i>Completed
+                      </span>
+                    {% elif payment.status == 'pending' %}
+                      <span class="status-badge status-pending">
+                        <i class="bi bi-clock-fill me-1"></i>Pending
+                      </span>
+                    {% else %}
+                      <span class="status-badge">{{ payment.status }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if payment.date_created %}
+                      {{ payment.date_created.strftime('%d %b %Y') }}
+                    {% else %}
+                      N/A
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% else %}
+      <div class="no-payments-message">
+        <i class="bi bi-inbox"></i>
+        <p>No payment records found for this student</p>
+      </div>
+    {% endif %}
+
+    <!-- Balance Details Section -->
+    <div class="section-header">
+      <i class="bi bi-graph-up"></i>
+      <h5>Balance Summary</h5>
+    </div>
+
+      <div class="payments-card">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+          <!-- Outstanding Detail -->
+          <div style="padding: 16px; background-color: #fff3e0; border-radius: 8px;">
+            <p style="margin: 0 0 8px 0; color: #666; font-size: 0.9rem;"><strong>Outstanding Balance</strong></p>
+            <p style="margin: 0; color: #d32f2f; font-size: 1.5rem; font-weight: 600;">
+              UGX {{ "{:,.0f}".format(summary.outstanding) }}
+            </p>
+          </div>
+
+          <!-- Paid Detail -->
+          <div style="padding: 16px; background-color: #e8f5e9; border-radius: 8px;">
+            <p style="margin: 0 0 8px 0; color: #666; font-size: 0.9rem;"><strong>Total Paid</strong></p>
+            <p style="margin: 0; color: #2e7d32; font-size: 1.5rem; font-weight: 600;">
+              UGX {{ "{:,.0f}".format(summary.paid) }}
+            </p>
+          </div>
+
+          <!-- Balance Detail - Credit -->
+          {% if summary.balance_status == 'Credit' %}
+            <div style="padding: 16px; background-color: #e8f5e9; border-radius: 8px;">
+              <p style="margin: 0 0 8px 0; color: #666; font-size: 0.9rem;"><strong>Balance Status</strong></p>
+              <p style="margin: 0; color: #2e7d32; font-size: 1.5rem; font-weight: 600;">
+                Credit: UGX {{ "{:,.0f}".format(summary.balance_amount) }}
+              </p>
+            </div>
+          {% else %}
+            <!-- Balance Detail - Debit -->
+            <div style="padding: 16px; background-color: #fff3e0; border-radius: 8px;">
+              <p style="margin: 0 0 8px 0; color: #666; font-size: 0.9rem;"><strong>Balance Status</strong></p>
+              <p style="margin: 0; color: #f57c00; font-size: 1.5rem; font-weight: 600;">
+                Debit: UGX {{ "{:,.0f}".format(summary.balance_amount) }}
+              </p>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Balance Explanation -->
+        <div style="margin-top: 16px; padding: 12px; background-color: #f5f5f5; border-radius: 6px; font-size: 0.85rem; color: #666;">
+          <p style="margin: 0;">
+            {% if summary.balance_status == 'Credit' %}
+              <strong>Credit:</strong> The student has overpaid. The balance amount of UGX {{ "{:,.0f}".format(summary.balance_amount) }} can be used for future payments.
+            {% else %}
+              <strong>Debit:</strong> The student has an outstanding balance of UGX {{ "{:,.0f}".format(summary.balance_amount) }} that needs to be paid.
+            {% endif %}
+          </p>
+        </div>
+      </div>    <!-- Receipts Section -->
+    <div class="section-header">
+      <i class="bi bi-receipt"></i>
+      <h5>Payment Receipts</h5>
+    </div>
+
+    {% if payments %}
+      <div class="payments-card">
+        {% set completed_payments = payments | selectattr('status', 'equalto', 'completed') | list %}
+        {% if completed_payments %}
+          {% for payment in completed_payments %}
+            <div class="receipt-item">
+              <div class="receipt-info">
+                <div class="receipt-id">
+                  <i class="bi bi-receipt me-2"></i>Receipt #{{ payment.id }}
+                </div>
+                <div class="receipt-detail">
+                  <strong>Description:</strong> {{ payment.description or 'Payment Record' }}
+                </div>
+                <div class="receipt-detail">
+                  <strong>Date:</strong> {% if payment.date_created %}{{ payment.date_created.strftime('%d %B %Y') }}{% else %}N/A{% endif %}
+                </div>
+              </div>
+              <div class="receipt-amount">
+                UGX {{ "{:,.0f}".format(payment.amount) }}
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div style="text-align: center; padding: 30px; color: #999;">
+            <i class="bi bi-inbox" style="font-size: 2.5rem; margin-bottom: 10px; display: block;"></i>
+            <p>No completed payments / receipts yet</p>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <!-- Info Box -->
+    <div class="info-box">
+      <p>
+        <i class="bi bi-info-circle me-2"></i>
+        For questions about payments or to make a payment, please contact the school administration. Keep this summary for your records.
+      </p>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  {% include 'footer.html' %}
+</body>
+</html>

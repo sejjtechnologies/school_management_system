@@ -356,19 +356,41 @@
       <p><strong>Pupil ID:</strong> {{ pupil.pupil_id }}</p>
     </div>
 
+    <!-- Fee Items Card (under pupil details) -->
+    <div class="summary-grid" style="margin-bottom: 18px;">
+      <div class="summary-card total" style="padding: 12px;">
+        <div class="summary-card-label">Fee Items for this Class</div>
+        <div style="margin-top: 10px;">
+          {% set items = fee_items if fee_items is defined else pupil.class_fees %}
+          {% if items %}
+            <ul style="list-style: none; padding-left: 0; margin: 0;">
+              {% for fi in items %}
+                <li style="display:flex; justify-content:space-between; padding:6px 0; border-bottom: 1px solid #f0f0f0;">
+                  <span style="color:#333;">{{ fi.item_name }}</span>
+                  <span style="font-weight:600; color:#1565c0;">UGX {{ "{:,.0f}".format(fi.amount) }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p style="margin:0; color:#666;">No fee items defined for this class.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
     <!-- Summary Cards -->
     <div class="summary-grid">
       <div class="summary-card outstanding">
         <div class="summary-card-label">Outstanding Fees</div>
-        <div class="summary-card-value">Ksh {{ "%.2f"|format(summary.outstanding) }}</div>
+        <div class="summary-card-value">UGX {{ "%.2f"|format(summary.outstanding) }}</div>
       </div>
       <div class="summary-card paid">
         <div class="summary-card-label">Amount Paid</div>
-        <div class="summary-card-value">Ksh {{ "%.2f"|format(summary.paid) }}</div>
+        <div class="summary-card-value">UGX {{ "%.2f"|format(summary.paid) }}</div>
       </div>
       <div class="summary-card total">
         <div class="summary-card-label">Total Fees</div>
-        <div class="summary-card-value">Ksh {{ "%.2f"|format(summary.total) }}</div>
+        <div class="summary-card-value">UGX {{ "%.2f"|format(summary.total) }}</div>
       </div>
     </div>
 
@@ -380,8 +402,11 @@
           <thead>
             <tr>
               <th>Date</th>
+              <th>Fee Item</th>
               <th>Description</th>
               <th>Amount</th>
+              <th>Method</th>
+              <th>Year/Term</th>
               <th>Status</th>
               <th>Reference</th>
             </tr>
@@ -390,8 +415,11 @@
             {% for payment in payments %}
               <tr>
                 <td>{{ payment.date_created.strftime('%d %b %Y') if payment.date_created else 'N/A' }}</td>
+                <td>{{ payment.fee_item_name or '' }}</td>
                 <td>{{ payment.description or 'Payment' }}</td>
-                <td class="amount-value">Ksh {{ "%.2f"|format(payment.amount) }}</td>
+                <td class="amount-value">UGX {{ "{:,.0f}".format(payment.amount) }}</td>
+                <td>{{ payment.payment_method or 'N/A' }}</td>
+                <td>{{ payment.year or '' }} {{ payment.term or '' }}</td>
                 <td>
                   {% if payment.status == 'completed' %}
                     <span class="status-badge status-completed">Completed</span>

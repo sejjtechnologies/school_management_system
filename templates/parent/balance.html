@@ -300,8 +300,8 @@
     <div class="balance-card {% if balance.status == 'Credit' %}credit{% else %}debit{% endif %}">
       <div class="balance-label">Current Account Balance</div>
       <div class="balance-amount">
-        <span>Ksh</span>
-        <span>{{ "%.2f"|format(balance.amount) }}</span>
+        <span>UGX</span>
+        <span>{{ "{:,.0f}".format(balance.amount) }}</span>
         <span style="font-size: 1.5rem; margin-left: 10px;">
           {% if balance.status == 'Credit' %}
             <i class="bi bi-check-circle-fill" style="color: #2e7d32;"></i>
@@ -317,11 +317,15 @@
     <div class="details-grid">
       <div class="detail-card paid">
         <div class="detail-label">Amount Paid</div>
-        <div class="detail-value">Ksh {{ "%.2f"|format(balance.paid) }}</div>
+        <div class="detail-value">UGX {{ "{:,.0f}".format(balance.paid) }}</div>
       </div>
       <div class="detail-card owed">
         <div class="detail-label">Outstanding Fees</div>
-        <div class="detail-value">Ksh {{ "%.2f"|format(balance.outstanding) }}</div>
+        <div class="detail-value">UGX {{ "{:,.0f}".format(balance.outstanding) }}</div>
+      </div>
+      <div class="detail-card">
+        <div class="detail-label">Total Fees Required</div>
+        <div class="detail-value">UGX {{ "{:,.0f}".format(balance.total_required) }}</div>
       </div>
     </div>
 

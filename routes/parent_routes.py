@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, flash
 from models.user_models import db, User, Role
 from models.term_model import Term
-from models.register_pupils import Pupil, Payment
+from models.register_pupils import Pupil, Payment, ClassFeeStructure
 from models.timetable_model import TimeTableSlot
 from models.attendance_model import Attendance
 from models.marks_model import Mark, Subject, Report, Exam
@@ -647,6 +647,106 @@ def view_reports(pupil_id):
                            combined_summary=combined_summary)
 
 
+@parent_routes.route("/parent/pupil/<int:pupil_id>/payments-summary")
+def view_payments_summary(pupil_id):
+    """Consolidated view: Payment Status, Balance, and Receipts all on one page."""
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('user_routes.login'))
+
+    pupil = Pupil.query.get_or_404(pupil_id)
+    user = User.query.get(user_id)
+    if not _parent_authorized_for_pupil(user, pupil):
+        flash('Access denied.', 'danger')
+        return redirect(url_for('parent_routes.dashboard'))
+
+    # Fetch all payments for the pupil
+    payments = Payment.query.filter_by(pupil_id=pupil_id).all()
+
+    # Build fee items from the DB table for this pupil's class. We explicitly
+    # query ClassFeeStructure so totals reflect the authoritative DB values
+    # (useful if pupil.class_fees is stale or computed differently).
+    fee_items = []
+    try:
+        class_fee_items = ClassFeeStructure.query.filter_by(class_id=pupil.class_id).all() or []
+        for fi in class_fee_items:
+            # total required for this item (from class fee structure table)
+            required = getattr(fi, 'amount', 0) or 0
+            # sum of payments made toward this fee item (only completed payments)
+            paid_for_item = sum(p.amount_paid for p in payments if getattr(p, 'fee_id', None) == fi.id and getattr(p, 'status', None) == 'completed')
+            outstanding = max(required - paid_for_item, 0)
+            fee_items.append({
+                'fee_id': fi.id,
+                'item_name': fi.item_name,
+                'required': required,
+                'paid': paid_for_item,
+                'outstanding': outstanding
+            })
+    except Exception:
+        fee_items = []
+
+    # Calculate payment aggregates
+    total_pending = sum(p.amount_paid for p in payments if getattr(p, 'status', None) == 'pending')
+    total_paid = sum(p.amount_paid for p in payments if getattr(p, 'status', None) == 'completed')
+
+    # Determine selected term (if provided via querystring) and use it to
+    # filter payments when computing what has been paid for that term. If no
+    # term is supplied we consider all recorded payments.
+    selected_term = request.args.get('term')
+
+    if selected_term:
+        try:
+            # payments.term stored as string (e.g., 'Term 1') — compare directly
+            total_paid = sum(p.amount_paid for p in payments if getattr(p, 'status', None) == 'completed' and str(getattr(p, 'term', '')) == str(selected_term))
+            total_pending = sum(p.amount_paid for p in payments if getattr(p, 'status', None) == 'pending' and str(getattr(p, 'term', '')) == str(selected_term))
+        except Exception:
+            # fallback to previous totals if anything goes wrong
+            total_paid = sum(p.amount_paid for p in payments if getattr(p, 'status', None) == 'completed')
+            total_pending = sum(p.amount_paid for p in payments if getattr(p, 'status', None) == 'pending')
+
+    # Totals from class fee items (authoritative DB source)
+    total_required = sum(fi['required'] for fi in fee_items) if fee_items else sum(getattr(p.fee_item, 'amount', 0) for p in payments)
+
+    balance_status = 'Credit' if total_paid > total_required else 'Debit'
+    balance_amount = abs(total_required - total_paid)
+
+    summary = {
+        'outstanding': total_required - total_paid if total_required >= total_paid else 0,
+        'paid': total_paid,
+        'total_required': total_required,
+        'total': total_required,
+        'balance_status': balance_status,
+        'balance_amount': balance_amount
+    }
+
+    # Enrich payments data with payment_method, year, term for template ease
+    payments_data = []
+    for p in payments:
+        payments_data.append({
+            'id': p.id,
+            'fee_id': p.fee_id,
+            'amount_paid': p.amount_paid,
+            'amount': p.amount_paid,
+            'payment_date': p.payment_date,
+            'date_created': p.payment_date,
+            'payment_method': p.payment_method,
+            'reference': p.reference,
+            'transaction_id': p.reference,
+            'status': p.status,
+            'description': p.description,
+            'year': p.year,
+            'term': p.term
+        })
+
+    return render_template(
+        'parent/payments_summary.html',
+        pupil=pupil,
+        payments=payments_data,
+        summary=summary,
+        fee_items=fee_items
+    )
+
+
 @parent_routes.route("/parent/pupil/<int:pupil_id>/payments")
 def view_payments(pupil_id):
     user_id = session.get('user_id')
@@ -660,9 +760,47 @@ def view_payments(pupil_id):
         return redirect(url_for('parent_routes.dashboard'))
 
     payments = Payment.query.filter_by(pupil_id=pupil_id).all()
-    total_pending = sum(getattr(p, 'amount', 0) for p in payments if getattr(p, 'status', None) == 'pending')
-    total_paid = sum(getattr(p, 'amount', 0) for p in payments if getattr(p, 'status', None) == 'completed')
-    return render_template('parent/payment_status.html', pupil=pupil, payments=payments, summary={'outstanding': total_pending, 'paid': total_paid, 'total': total_pending + total_paid})
+
+    # Enrich payments for template: include payment_method, year, term
+    payments_data = []
+    for p in payments:
+        payments_data.append({
+            'id': p.id,
+            'fee_id': p.fee_id,
+            'amount_paid': p.amount_paid,
+            # Template compatibility aliases
+            'amount': p.amount_paid or 0,
+            'payment_date': p.payment_date,
+            'date_created': p.payment_date,
+            'payment_method': p.payment_method,
+            'reference': p.reference,
+            'transaction_id': p.reference or p.id,
+            'status': p.status,
+            'description': p.description,
+            'year': p.year,
+            'term': p.term,
+            'fee_item_name': getattr(p.fee_item, 'item_name', None),
+            'fee_item_required': getattr(p.fee_item, 'amount', None)
+        })
+
+    total_pending = sum(p['amount_paid'] for p in payments_data if p['status'] == 'pending')
+    total_paid = sum(p['amount_paid'] for p in payments_data if p['status'] == 'completed')
+    # Compute total required from DB fee items for this pupil's class
+    try:
+        class_fee_items = ClassFeeStructure.query.filter_by(class_id=pupil.class_id).all() or []
+        total_required = sum(getattr(fi, 'amount', 0) or 0 for fi in class_fee_items)
+    except Exception:
+        total_required = 0
+
+    summary = {
+        'outstanding': max(total_required - total_paid, 0),
+        'paid': total_paid,
+        'total_required': total_required,
+        'total': total_pending + total_paid
+    }
+    # Pass the authoritative fee items list to the template so the UI can
+    # display each fee item and its required amount in the pupil details area.
+    return render_template('parent/payment_status.html', pupil=pupil, payments=payments_data, summary=summary, fee_items=class_fee_items)
 
 
 @parent_routes.route("/parent/pupil/<int:pupil_id>/balance")
@@ -672,11 +810,36 @@ def view_balance(pupil_id):
         return redirect(url_for('user_routes.login'))
     pupil = Pupil.query.get_or_404(pupil_id)
     payments = Payment.query.filter_by(pupil_id=pupil_id).all()
-    total_owed = sum(getattr(p, 'amount', 0) for p in payments if getattr(p, 'status', None) == 'pending')
-    total_paid = sum(getattr(p, 'amount', 0) for p in payments if getattr(p, 'status', None) == 'completed')
-    balance_status = 'Credit' if total_paid > total_owed else 'Debit'
-    balance_amount = abs(total_paid - total_owed)
-    return render_template('parent/balance.html', pupil=pupil, balance={'status': balance_status, 'amount': balance_amount, 'outstanding': total_owed, 'paid': total_paid})
+
+    # Compute totals from the authoritative class fees table for this pupil's
+    # class. Also allow filtering by term via querystring (so the balance can
+    # be viewed per-term).
+    selected_term = request.args.get('term')
+    try:
+        class_fee_items = ClassFeeStructure.query.filter_by(class_id=pupil.class_id).all() or []
+        total_required = sum(getattr(fi, 'amount', 0) or 0 for fi in class_fee_items)
+    except Exception:
+        total_required = 0
+
+    if selected_term:
+        total_paid = sum(p.amount_paid for p in payments if getattr(p, 'status', None) == 'completed' and str(getattr(p, 'term', '')) == str(selected_term))
+        total_pending = sum(p.amount_paid for p in payments if getattr(p, 'status', None) == 'pending' and str(getattr(p, 'term', '')) == str(selected_term))
+    else:
+        total_paid = sum(p.amount_paid for p in payments if getattr(p, 'status', None) == 'completed')
+        total_pending = sum(p.amount_paid for p in payments if getattr(p, 'status', None) == 'pending')
+
+    balance_status = 'Credit' if total_paid > total_required else 'Debit'
+    balance_amount = abs(total_required - total_paid)
+
+    balance = {
+        'status': balance_status,
+        'amount': balance_amount,
+        'outstanding': max(total_required - total_paid, 0),
+        'paid': total_paid,
+        'total_required': total_required
+    }
+
+    return render_template('parent/balance.html', pupil=pupil, balance=balance)
 
 
 @parent_routes.route("/parent/pupil/<int:pupil_id>/receipts")

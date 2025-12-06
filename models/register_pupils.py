@@ -113,7 +113,11 @@ class Payment(db.Model):
     payment_date = db.Column(db.DateTime, default=datetime.utcnow)
     payment_method = db.Column(db.String(50), nullable=True)
     reference = db.Column(db.String(100), nullable=True)
-    
+
+    # Payment status and description (now present in DB via migration)
+    status = db.Column(db.String(20), default='completed', nullable=False)  # 'completed' or 'pending'
+    description = db.Column(db.String(255), nullable=True)  # Payment description/note
+
     # Academic period tracking
     year = db.Column(db.Integer, nullable=True)
     term = db.Column(db.String(20), nullable=True)
@@ -121,6 +125,24 @@ class Payment(db.Model):
     # Relationships
     pupil = db.relationship("Pupil", back_populates="payments")
     fee_item = db.relationship("ClassFeeStructure")
+
+    # Alias properties for template compatibility
+    @property
+    def amount(self):
+        """Alias for amount_paid for template compatibility"""
+        return self.amount_paid
+
+    # (status and description are now mapped Columns; no derived properties)
+
+    @property
+    def date_created(self):
+        """Alias for payment_date for template compatibility"""
+        return self.payment_date
+
+    @property
+    def transaction_id(self):
+        """Alias for reference for template compatibility"""
+        return self.reference
 
     def __repr__(self):
         return f"<Payment {self.amount_paid} for Pupil {self.pupil_id}, Fee {self.fee_id}>"
