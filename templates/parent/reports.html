@@ -270,11 +270,27 @@
 
     @media (max-width: 500px) {
       .navbar-fixed {
-        padding: 0 12px;
+        padding: 0 8px;
+        height: 70px;
       }
 
       .navbar-fixed h5 {
         font-size: 1rem;
+        flex: 0 1 auto;
+      }
+
+      .navbar-fixed > div {
+        gap: 4px !important;
+      }
+
+      .navbar-fixed .btn-back {
+        margin-left: 0 !important;
+        padding: 4px 6px;
+        font-size: 0.75rem;
+      }
+
+      .navbar-fixed .btn-back span {
+        display: none;
       }
 
       .marks-table {
@@ -304,12 +320,12 @@
   <!-- Fixed Top Navbar -->
   <nav class="navbar-fixed">
     <h5><i class="bi bi-file-text me-2"></i>Academic Reports</h5>
-    <div style="display:flex; gap:8px; align-items:center; width:100%;">
+    <div style="display:flex; gap:8px; align-items:center;">
       <a href="{{ url_for('user_routes.logout') }}" title="Sign Out" aria-label="Sign out" style="display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:6px; background:rgba(220,53,69,0.08); color:#dc3545; text-decoration:none;">
         <i class="bi bi-box-arrow-right"></i>
       </a>
-      <!-- Push back to the far right -->
-      <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-back" title="Back" style="margin-left:auto; display:flex; align-items:center; gap:6px;">
+      <!-- Back button visible on desktop, icon-only on mobile -->
+      <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-back" title="Back" style="display:flex; align-items:center; gap:6px;">
         <i class="bi bi-box-arrow-left"></i>
         <span>Back</span>
       </a>
