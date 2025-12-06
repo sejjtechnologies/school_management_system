@@ -304,13 +304,13 @@
   <!-- Fixed Top Navbar -->
   <nav class="navbar-fixed">
     <h5><i class="bi bi-file-text me-2"></i>Academic Reports</h5>
-    <div style="display:flex; gap:8px; align-items:center;">
+    <div style="display:flex; gap:8px; align-items:center; width:100%;">
       <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-back" title="Back" style="display:flex; align-items:center; gap:6px;">
         <i class="bi bi-box-arrow-left"></i>
         <span>Back</span>
       </a>
-      <!-- Sign out icon placed beside Back and styled red -->
-      <a href="{{ url_for('user_routes.logout') }}" title="Sign Out" aria-label="Sign out" style="display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:6px; background:rgba(220,53,69,0.08); color:#dc3545; text-decoration:none;">
+      <!-- Push sign-out to the far right -->
+      <a href="{{ url_for('user_routes.logout') }}" title="Sign Out" aria-label="Sign out" style="margin-left:auto; display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:6px; background:rgba(220,53,69,0.08); color:#dc3545; text-decoration:none;">
         <i class="bi bi-box-arrow-right"></i>
       </a>
     </div>
@@ -320,35 +320,42 @@
   <div class="container-reports">
     <!-- Student Header (moved to top) -->
     <style>
+      /* Make header taller so all details are visible and allow wrapping for details */
       .student-header.custom {
         background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
         color: white;
-        height: 70px;
-        padding: 8px 12px;
+        min-height: 110px;
+        padding: 12px 14px;
         border-radius: 8px;
         box-shadow: 0 4px 10px rgba(76, 175, 80, 0.18);
         border-left: 6px solid #ff6f00;
         position: relative;
-        overflow: hidden;
+        /* allow content to flow to multiple lines */
+        overflow: visible;
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: 12px;
+        flex-wrap: wrap;
       }
-      .student-header.custom .info-compact { display:flex; gap:12px; align-items:center; width:100%; }
-      .student-header.custom .info-compact .left { display:flex; flex-direction:column; gap:2px; min-width:140px; }
-      .student-header.custom .info-compact .right { display:flex; flex-direction:column; gap:2px; flex:1; }
-      .student-header.custom .meta { font-weight: 700; font-size: 0.82rem; margin: 0; }
-      .student-header.custom .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display:block; }
-      .student-header.custom .person-icon { font-size: 1.25rem; width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; background: rgba(255,255,255,0.08); border-radius:6px; }
-      .student-header.custom .signout-btn { position: absolute; top: 8px; right: 8px; color: #fff; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; width:34px; height:34px; border-radius: 6px; background: rgba(255,255,255,0.06); transition: transform .12s, background .12s; }
+      .student-header.custom .info-compact { display:flex; gap:12px; align-items:flex-start; width:100%; flex-wrap:wrap; }
+      .student-header.custom .info-compact .left { display:flex; flex-direction:column; gap:4px; min-width:160px; }
+      .student-header.custom .info-compact .right { display:flex; flex-direction:column; gap:4px; flex:1; }
+      .student-header.custom .meta { font-weight: 700; font-size: 0.92rem; margin: 0; }
+      /* allow the details to wrap so they are readable; keep truncation only on extra-small screens */
+      .student-header.custom .truncate { white-space: normal; overflow: visible; text-overflow: clip; display:block; }
+      .student-header.custom .person-icon { font-size: 1.35rem; width:42px; height:42px; display:inline-flex; align-items:center; justify-content:center; background: rgba(255,255,255,0.08); border-radius:6px; }
+      .student-header.custom .signout-btn { position: absolute; top: 10px; right: 10px; color: #fff; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; width:36px; height:36px; border-radius: 6px; background: rgba(255,255,255,0.06); transition: transform .12s, background .12s; }
       .student-header.custom .signout-btn i { font-size: 1rem; color: #fff; }
       .student-header.custom .signout-btn:hover { transform: scale(1.05); background: rgba(255,255,255,0.12); }
 
       @media (max-width: 576px) {
-        .student-header.custom { height:70px; padding:6px 8px; }
+        /* On very small screens keep things compact but still readable */
+        .student-header.custom { min-height: 70px; padding:8px 10px; align-items:center; }
         .student-header.custom .meta { font-size: 0.78rem; }
-        .student-header.custom .person-icon { font-size: 1rem; width:30px; height:30px; }
+        .student-header.custom .person-icon { font-size: 1rem; width:34px; height:34px; }
         .student-header.custom .info-compact .left { min-width:110px; }
+        /* restore truncation on the smallest viewports to avoid layout breakage */
+        .student-header.custom .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       }
     </style>
 
