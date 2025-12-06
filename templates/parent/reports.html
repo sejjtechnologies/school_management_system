@@ -295,9 +295,9 @@
 
     .school-card h3 {
       margin: 0 0 4px 0;
-      font-size: 1.15rem;
-      color: #1b5e20;
-      font-weight: 700;
+      font-size: 1.5rem;
+      color: #c1272d; /* red bold as requested */
+      font-weight: 800;
     }
 
     .school-card p { margin: 0; color: #234; font-size: 0.9rem; }
@@ -588,64 +588,7 @@
 
   <!-- Main Container -->
   <div class="container-reports">
-    <!-- Student Header (moved to top) -->
-    <style>
-      /* Make header taller so all details are visible and allow wrapping for details */
-      .student-header.custom {
-        background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
-        color: white;
-        min-height: 110px;
-        padding: 12px 14px;
-        border-radius: 8px;
-        box-shadow: 0 4px 10px rgba(76, 175, 80, 0.18);
-        border-left: 6px solid #ff6f00;
-        position: relative;
-        /* allow content to flow to multiple lines */
-        overflow: visible;
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-      .student-header.custom .info-compact { display:flex; gap:12px; align-items:flex-start; width:100%; flex-wrap:wrap; }
-      .student-header.custom .info-compact .left { display:flex; flex-direction:column; gap:4px; min-width:80px; flex: 0 0 auto; }
-      .student-header.custom .info-compact .right { display:flex; flex-direction:column; gap:4px; flex:1; min-width:0; overflow-wrap: break-word; word-break: break-word; }
-      .student-header.custom .meta { font-weight: 700; font-size: 0.92rem; margin: 0; }
-      /* allow the details to wrap so they are readable; keep truncation only on extra-small screens */
-      .student-header.custom .truncate { white-space: normal; overflow: visible; text-overflow: clip; display:block; }
-      .student-header.custom .person-icon { font-size: 1.35rem; width:42px; height:42px; display:inline-flex; align-items:center; justify-content:center; background: rgba(255,255,255,0.08); border-radius:6px; }
-      /* student header signout button removed; styles kept intentionally blank to avoid leftover UI */
-
-      @media (max-width: 576px) {
-        /* On very small screens keep things compact but still readable */
-        .student-header.custom { min-height: 70px; padding:8px 10px; align-items:center; }
-        .student-header.custom .meta { font-size: 0.78rem; }
-        .student-header.custom .person-icon { font-size: 1rem; width:34px; height:34px; }
-        .student-header.custom .info-compact { flex-direction: column; gap:8px; }
-        .student-header.custom .info-compact .left { min-width:0; }
-        /* restore truncation on the smallest viewports to avoid layout breakage */
-        .student-header.custom .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      }
-    </style>
-
-    <div class="student-header custom mb-3">
-      <!-- Small person icon -->
-      <div class="person-icon"><i class="bi bi-person-circle"></i></div>
-
-      <div class="info-compact">
-        <div class="left">
-          <p class="meta">{{ pupil.first_name }} {% if pupil.middle_name %}{{ pupil.middle_name }} {% endif %}{{ pupil.last_name }}</p>
-          <p class="meta">ID: {{ pupil.pupil_id }}</p>
-        </div>
-        <div class="right">
-          <p class="meta truncate" title="Adm#: {{ pupil.admission_number or 'N/A' }}  Roll#: {{ pupil.roll_number or 'N/A' }}">Adm#: {{ pupil.admission_number or 'N/A' }} &nbsp; Roll#: {{ pupil.roll_number or 'N/A' }}</p>
-          <p class="meta truncate" title="Class: {% if pupil.class_ %}{{ pupil.class_.name }}{% else %}{{ pupil.class_id }}{% endif %} / {{ pupil.stream.name if pupil.stream else pupil.stream_id or 'TBA' }} | Teacher: {% if class_teacher %}{{ class_teacher.first_name }} {{ class_teacher.last_name }}{% else %}-{% endif %}">Class: {% if pupil.class_ %}{{ pupil.class_.name }}{% else %}{{ pupil.class_id }}{% endif %} / {{ pupil.stream.name if pupil.stream else pupil.stream_id or 'TBA' }} | Teacher: {% if class_teacher %}{{ class_teacher.first_name }} {{ class_teacher.last_name }}{% else %}-{% endif %}</p>
-          <p class="meta truncate" title="Guardian: {{ pupil.guardian_name or 'N/A' }} ({{ pupil.guardian_relationship or 'N/A' }}) • Contact: {{ pupil.guardian_phone or 'N/A' }} • Adm Date: {{ pupil.admission_date.strftime('%d %b %Y') if pupil.admission_date else 'N/A' }}">Guardian: {{ pupil.guardian_name or 'N/A' }} ({{ pupil.guardian_relationship or 'N/A' }}) • {{ pupil.guardian_phone or 'N/A' }} • Adm: {{ pupil.admission_date.strftime('%d %b %Y') if pupil.admission_date else 'N/A' }}</p>
-        </div>
-      </div>
-
-      <!-- Sign out removed from pupil header as requested -->
-    </div>
+    <!-- student header moved below the school info card (rendered later) -->
 
     <!-- Filter Form (placed directly after pupil header) -->
     <form method="get" class="row g-3 mb-4 align-items-end">
@@ -687,9 +630,29 @@
       <div class="school-details">
         <h3>HOPEFUL FUTURE PRIMARY SCHOOL</h3>
         <p class="meta"><em>"Naturing minds, Shaping future"</em></p>
-        <p class="mt-2">Location: Entebbe, Wakiso - Uganda &nbsp; • &nbsp; Email: info@hopefulfuture.example</p>
-        <p>Contacts: 0744 137174, 0768 936641</p>
+        <p class="mt-2">Entebbe, Wakiso-Uganda</p>
+        <p>info@hopefulfuture.ac.ug &nbsp;•&nbsp; 0744 137174, 0768 936641</p>
       </div>
+    </div>
+
+    <!-- Student Header (moved under school info card) -->
+    <div class="student-header custom mb-3" role="region" aria-label="Pupil details">
+      <!-- Small person icon -->
+      <div class="person-icon"><i class="bi bi-person-circle"></i></div>
+
+      <div class="info-compact">
+        <div class="left">
+          <p class="meta">{{ pupil.first_name }} {% if pupil.middle_name %}{{ pupil.middle_name }} {% endif %}{{ pupil.last_name }}</p>
+          <p class="meta">ID: {{ pupil.pupil_id }}</p>
+        </div>
+        <div class="right">
+          <p class="meta truncate" title="Adm#: {{ pupil.admission_number or 'N/A' }}  Roll#: {{ pupil.roll_number or 'N/A' }}">Adm#: {{ pupil.admission_number or 'N/A' }} &nbsp; Roll#: {{ pupil.roll_number or 'N/A' }}</p>
+          <p class="meta truncate" title="Class: {% if pupil.class_ %}{{ pupil.class_.name }}{% else %}{{ pupil.class_id }}{% endif %} / {{ pupil.stream.name if pupil.stream else pupil.stream_id or 'TBA' }} | Teacher: {% if class_teacher %}{{ class_teacher.first_name }} {{ class_teacher.last_name }}{% else %}-{% endif %}">Class: {% if pupil.class_ %}{{ pupil.class_.name }}{% else %}{{ pupil.class_id }}{% endif %} / {{ pupil.stream.name if pupil.stream else pupil.stream_id or 'TBA' }} | Teacher: {% if class_teacher %}{{ class_teacher.first_name }} {{ class_teacher.last_name }}{% else %}-{% endif %}</p>
+          <p class="meta truncate" title="Guardian: {{ pupil.guardian_name or 'N/A' }} ({{ pupil.guardian_relationship or 'N/A' }}) • Contact: {{ pupil.guardian_phone or 'N/A' }} • Adm Date: {{ pupil.admission_date.strftime('%d %b %Y') if pupil.admission_date else 'N/A' }}">Guardian: {{ pupil.guardian_name or 'N/A' }} ({{ pupil.guardian_relationship or 'N/A' }}) • {{ pupil.guardian_phone or 'N/A' }} • Adm: {{ pupil.admission_date.strftime('%d %b %Y') if pupil.admission_date else 'N/A' }}</p>
+        </div>
+      </div>
+
+      <!-- Sign out removed from pupil header as requested -->
     </div>
 
     <!-- Exam Reports Grid (Side by Side) -->
