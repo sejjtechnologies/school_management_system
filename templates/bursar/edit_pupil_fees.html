@@ -98,16 +98,16 @@
         <p class="mb-1"><strong>Stream:</strong> {{ pupil.stream.name if pupil.stream else 'N/A' }}</p>
         <div class="row">
           <div class="col-md-6 mb-2">
-            <label for="year" class="form-label">Year</label>
-            <select id="year" name="year" class="form-select form-select-sm">
+            <label for="pupilYear" class="form-label">Year</label>
+            <select id="pupilYear" name="year" class="form-select form-select-sm">
               {% for y in range(2020, 2031) %}
                 <option value="{{ y }}">{{ y }}</option>
               {% endfor %}
             </select>
           </div>
           <div class="col-md-6 mb-2">
-            <label for="term" class="form-label">Term</label>
-            <select id="term" name="term" class="form-select form-select-sm">
+            <label for="pupilTerm" class="form-label">Term</label>
+            <select id="pupilTerm" name="term" class="form-select form-select-sm">
               <option value="Term 1">Term 1</option>
               <option value="Term 2">Term 2</option>
               <option value="Term 3">Term 3</option>
@@ -151,7 +151,7 @@
         </thead>
         <tbody>
           {% for payment in pupil.payments %}
-          <tr>
+          <tr data-payment-id="{{ payment.id }}">
             <td>{{ loop.index }}</td>
             <td>
               {{ payment.fee_item.item_name }}
@@ -190,9 +190,13 @@
                     </div>
                     <div class="modal-footer py-2">
                       <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                      <form action="{{ url_for('bursar_routes.delete_payment', payment_id=payment.id) }}" method="POST" class="d-inline">
-                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                      </form>
+                              <!-- Button uses data- attributes; JS attaches click handlers to '.confirm-delete-btn' -->
+                              <button type="button" class="btn btn-danger btn-sm confirm-delete-btn"
+                                      data-action="{{ url_for('bursar_routes.delete_payment', payment_id=payment.id) }}"
+                                      data-payment-id="{{ payment.id }}"
+                                      data-modal="#deleteModal{{ payment.id }}">
+                                Delete
+                              </button>
                     </div>
                   </div>
                 </div>
@@ -373,6 +377,10 @@
                   </button>
                 </td>
               `;
+              // ensure the new row has data-payment-id so delegated delete handler can find it
+              if (data.payment && data.payment.id) {
+                newRow.setAttribute('data-payment-id', data.payment.id);
+              }
               tbody.insertBefore(newRow, tbody.firstChild);
             }
 
@@ -410,5 +418,85 @@
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Delete forms: handle via delegated listener so dynamic DOM/modal cases work.
+       Uses fetch() with credentials so session cookie is sent. On success the
+       modal is hidden and the corresponding table row (data-payment-id) is removed. -->
+  <script>
+    // explicit handler used by Delete buttons rendered in modal footers
+    async function handleDelete(id, actionUrl, modalSelector) {
+      try {
+        const resp = await fetch(actionUrl, { method: 'POST', credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        if (!resp.ok) {
+          if (resp.status === 302 || resp.redirected) {
+            alert('Session expired or not authorized. Please login and try again.');
+            window.location = resp.url;
+            return;
+          }
+          const text = await resp.text();
+          alert('Delete failed: ' + resp.status + '\n' + text);
+          return;
+        }
+
+        // Success: hide modal and remove DOM only after Bootstrap fully hides it.
+        const modal = modalSelector ? document.querySelector(modalSelector) : null;
+        if (modal) {
+          const bsModal = bootstrap.Modal.getInstance(modal) || new bootstrap.Modal(modal);
+          // create a promise that resolves on 'hidden.bs.modal'
+          const hiddenPromise = new Promise((resolve) => {
+            modal.addEventListener('hidden.bs.modal', function handler() {
+              modal.removeEventListener('hidden.bs.modal', handler);
+              resolve();
+            });
+          });
+          try { bsModal.hide(); } catch (err) { /* ignore */ }
+          await hiddenPromise;
+
+          // remove modal element and any leftover backdrop to ensure UI isn't blocked
+          try { modal.parentNode && modal.parentNode.removeChild(modal); } catch (err) { /* ignore */ }
+          document.querySelectorAll('.modal-backdrop').forEach(function(el){ el.remove(); });
+          document.body.classList.remove('modal-open');
+        }
+
+        // remove the corresponding table row using data-payment-id
+        const row = document.querySelector(`tr[data-payment-id="${id}"]`);
+        if (row) row.remove();
+        return;
+      } catch (err) {
+        console.error('Delete request failed', err);
+        alert('Error deleting payment: ' + (err && err.message));
+        return;
+      }
+    }
+
+    // Note: we do NOT use a delegated 'submit' listener anymore. Buttons with
+    // the class '.confirm-delete-btn' call handleDelete() directly. This avoids
+    // interference with forms inside modals and makes behavior consistent.
+
+    // Attach click listeners to explicit delete buttons (safer than inline onclick)
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.confirm-delete-btn').forEach(function (btn) {
+        btn.addEventListener('click', function (ev) {
+          const action = btn.getAttribute('data-action');
+          const pid = btn.getAttribute('data-payment-id');
+          const modalSelector = btn.getAttribute('data-modal');
+          if (action && pid) {
+            // call the shared handler
+            handleDelete(pid, action, modalSelector || null);
+          }
+        });
+      });
+    });
+    // Delegated click handler as a robust fallback (works even if listeners
+    // weren't attached because DOMContentLoaded already fired).
+    document.addEventListener('click', function (e) {
+      const btn = e.target && e.target.closest ? e.target.closest('.confirm-delete-btn') : null;
+      if (!btn) return;
+      e.preventDefault();
+      const action = btn.getAttribute('data-action');
+      const pid = btn.getAttribute('data-payment-id');
+      const modalSelector = btn.getAttribute('data-modal');
+      if (action && pid) handleDelete(pid, action, modalSelector || null);
+    }, false);
+  </script>
 </body>
 </html>
