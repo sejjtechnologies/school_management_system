@@ -323,17 +323,15 @@
         display: none;
       }
 
-      /* On mobile ensure the Back button is visible on the right side
-         by cancelling any translate and letting it align to the right */
+      /* Position the Back button on the right side of the top nav */
       .navbar-fixed .btn-signout {
-        transform: none !important;
-        margin-left: auto !important;
-        display: inline-flex !important;
-      }
-
-      .navbar-fixed .btn-signout {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
         padding: 6px 10px;
         font-size: 0.8rem;
+        display: inline-flex;
       }
 
       .marks-table {
@@ -364,8 +362,9 @@
   <nav class="navbar-fixed">
     <h5><i class="bi bi-file-text me-2"></i>Academic Reports</h5>
     <div style="display:flex; gap:8px; align-items:center; width:100%;">
-      <!-- Back button shifted left by 3cm -->
-      <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-signout" title="Back" aria-label="Back" style="transform: translateX(-3cm);">
+      <!-- Back button positioned at the right side of the top nav -->
+      <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-signout" title="Back" aria-label="Back">
+        <i class="bi bi-box-arrow-right"></i>
         <span>Back</span>
       </a>
     </div>
