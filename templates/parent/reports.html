@@ -32,6 +32,8 @@
       z-index: 1050;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
+    /* prevent the top navbar from causing horizontal scroll */
+    .navbar-fixed { overflow-x: hidden; }
 
     /* Center navbar content to match card/table container width and avoid horizontal scroll */
     .navbar-fixed .nav-container {
@@ -352,6 +354,9 @@
         font-size: 0.8rem;
         display: inline-flex;
       }
+      .navbar-fixed .btn-signout { margin-right: 8px !important; padding: 6px; }
+      /* On very small screens, show icon-only and reduce right margin to avoid overflow */
+      .navbar-fixed .btn-signout span { display: none; }
 
       .marks-table {
         font-size: 0.8rem;
