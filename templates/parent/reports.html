@@ -3,6 +3,7 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -35,8 +36,10 @@
     .navbar-fixed h5 {
       color: #fff;
       margin: 0;
-      flex: 1;
+      flex: 0 1 auto;
       font-weight: 600;
+      white-space: nowrap;
+      min-width: 0;
     }
 
     /* Back Button */
@@ -63,6 +66,33 @@
     .btn-back i {
       font-size: 1rem;
       color: #d32f2f;
+    }
+
+    /* Sign Out Button */
+    .btn-signout {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: #fff;
+      color: #dc3545;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      margin-left: auto;
+    }
+
+    .btn-signout:hover {
+      background-color: #f0f0f0;
+      transform: scale(1.05);
+    }
+
+    .btn-signout i {
+      font-size: 1rem;
+      color: #dc3545;
     }
 
     /* Main Container */
@@ -293,6 +323,11 @@
         display: none;
       }
 
+      .navbar-fixed .btn-signout {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+      }
+
       .marks-table {
         font-size: 0.8rem;
       }
@@ -320,13 +355,10 @@
   <!-- Fixed Top Navbar -->
   <nav class="navbar-fixed">
     <h5><i class="bi bi-file-text me-2"></i>Academic Reports</h5>
-    <div style="display:flex; gap:8px; align-items:center;">
-      <a href="{{ url_for('user_routes.logout') }}" title="Sign Out" aria-label="Sign out" style="display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:6px; background:rgba(220,53,69,0.08); color:#dc3545; text-decoration:none;">
+    <div style="display:flex; gap:8px; align-items:center; width:100%;">
+      <!-- Back button with white background, pushed to far right -->
+      <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-signout" title="Back" aria-label="Back">
         <i class="bi bi-box-arrow-right"></i>
-      </a>
-      <!-- Back button visible on desktop, icon-only on mobile -->
-      <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-back" title="Back" style="display:flex; align-items:center; gap:6px;">
-        <i class="bi bi-box-arrow-left"></i>
         <span>Back</span>
       </a>
     </div>
