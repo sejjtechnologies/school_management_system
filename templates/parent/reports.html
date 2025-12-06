@@ -323,15 +323,32 @@
       }
     }
 
+    /* Ensure all tables have scrolling wrapper on mobile */
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
     @media (max-width: 500px) {
+      body {
+        overflow-x: hidden;
+        width: 100vw;
+      }
+
       .navbar-fixed {
         padding: 0 8px;
         height: 70px;
+        width: 100%;
+        overflow-x: hidden;
       }
 
       .navbar-fixed h5 {
-        font-size: 1rem;
+        font-size: 0.95rem;
         flex: 0 1 auto;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .navbar-fixed > div {
@@ -342,7 +359,6 @@
         margin-left: 0 !important;
         padding: 4px 6px;
         font-size: 0.8rem;
-        /* keep label visible on small screens as requested */
         flex: 0 0 auto;
         white-space: nowrap;
       }
@@ -351,7 +367,6 @@
         display: inline-block !important;
       }
 
-      /* Place the Back button using flex so it doesn't cause horizontal scrolling */
       .navbar-fixed .btn-signout {
         margin-left: auto !important;
         margin-right: 6px !important;
@@ -361,8 +376,15 @@
         flex: 0 0 auto;
         max-width: 40%;
       }
-      /* On very small screens, show icon-only and hide the label to avoid overflow */
+
       .navbar-fixed .btn-signout span { display: none; }
+
+      .container-reports {
+        padding: 8px;
+        width: 100%;
+        overflow-x: hidden;
+        box-sizing: border-box;
+      }
 
       .marks-table {
         font-size: 0.8rem;
@@ -383,6 +405,120 @@
 
       .student-header p {
         font-size: 0.8rem;
+      }
+
+      /* Force form fields to stack and avoid overflow */
+      form.row {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+      }
+
+      form.row > div {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-bottom: 8px;
+      }
+
+      /* Ensure student header content stays within bounds */
+      .student-header.custom {
+        min-height: auto;
+        padding: 8px 10px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .student-header.custom .info-compact {
+        flex-direction: column;
+        gap: 6px;
+        width: 100%;
+      }
+
+      .student-header.custom .info-compact .left {
+        min-width: 0;
+        width: 100%;
+      }
+
+      .student-header.custom .info-compact .right {
+        width: 100%;
+        flex: 1 1 100%;
+      }
+
+      .student-header.custom .meta {
+        font-size: 0.75rem;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        margin: 0;
+      }
+
+      .student-header.custom .truncate {
+        white-space: normal !important;
+        overflow-wrap: break-word;
+        word-break: break-word;
+      }
+
+      /* Ensure all text wraps properly */
+      .card-body p {
+        overflow-wrap: break-word;
+        word-break: break-word;
+        hyphens: auto;
+      }
+
+      /* Ensure badges wrap and don't overflow */
+      .badge {
+        display: inline-block !important;
+        max-width: 100%;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        padding: 6px 8px !important;
+        margin: 4px 4px 4px 0 !important;
+      }
+
+      /* Make report cards responsive */
+      .row > .col-lg-6 {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+    }
+
+    /* Extra small screens (< 360px) */
+    @media (max-width: 360px) {
+      body {
+        overflow-x: hidden;
+        width: 100vw;
+      }
+
+      .navbar-fixed {
+        padding: 0 4px;
+      }
+
+      .navbar-fixed h5 {
+        font-size: 0.85rem;
+      }
+
+      .navbar-fixed .btn-back {
+        padding: 3px 4px;
+        font-size: 0.7rem;
+      }
+
+      .container-reports {
+        padding: 6px 4px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .student-header.custom {
+        padding: 6px 8px;
+      }
+
+      .student-header.custom .person-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 0.9rem;
+      }
+
+      .student-header.custom .meta {
+        font-size: 0.7rem;
       }
     }
   </style>
@@ -423,8 +559,8 @@
         flex-wrap: wrap;
       }
       .student-header.custom .info-compact { display:flex; gap:12px; align-items:flex-start; width:100%; flex-wrap:wrap; }
-      .student-header.custom .info-compact .left { display:flex; flex-direction:column; gap:4px; min-width:120px; }
-      .student-header.custom .info-compact .right { display:flex; flex-direction:column; gap:4px; flex:1; min-width:0; }
+      .student-header.custom .info-compact .left { display:flex; flex-direction:column; gap:4px; min-width:80px; flex: 0 0 auto; }
+      .student-header.custom .info-compact .right { display:flex; flex-direction:column; gap:4px; flex:1; min-width:0; overflow-wrap: break-word; word-break: break-word; }
       .student-header.custom .meta { font-weight: 700; font-size: 0.92rem; margin: 0; }
       /* allow the details to wrap so they are readable; keep truncation only on extra-small screens */
       .student-header.custom .truncate { white-space: normal; overflow: visible; text-overflow: clip; display:block; }
@@ -515,31 +651,33 @@
               <div class="card-body">
                 <!-- Subject Marks Table -->
                 {% if report.marks %}
-                  <table class="table table-sm" style="margin-bottom: 16px;">
-                    <thead style="background-color: #f5f5f5;">
-                      <tr>
-                        <th style="font-weight: 600;">Subj</th>
-                        <th style="text-align: center; font-weight: 600;">Pupil</th>
-                        <th style="text-align: center; font-weight: 600;">Max</th>
-                        <th style="text-align: center; font-weight: 600;">Grade</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {% for m in report.marks %}
+                  <div class="table-wrapper">
+                    <table class="table table-sm" style="margin-bottom: 16px;">
+                      <thead style="background-color: #f5f5f5;">
                         <tr>
-                          <td style="font-weight: 500;">{{ m.subject or 'N/A' }}</td>
-                          <td style="text-align: center; font-weight: 600; color: #1565c0;">{{ m.score if m.score is not none else 'N/A' }}</td>
-                          <td style="text-align: center;">100</td>
-                          <td style="text-align: center;">
-                            {% set grade_class = 'percentage-high' if m.grade in ['A', 'A+'] else ('percentage-medium' if m.grade in ['B', 'B+'] else 'percentage-low') %}
-                            <span class="{{ grade_class }}" style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-weight: 600; min-width: 40px;">
-                              {{ m.grade if m.grade else '-' }}
-                            </span>
-                          </td>
+                          <th style="font-weight: 600;">Subj</th>
+                          <th style="text-align: center; font-weight: 600;">Pupil</th>
+                          <th style="text-align: center; font-weight: 600;">Max</th>
+                          <th style="text-align: center; font-weight: 600;">Grade</th>
                         </tr>
-                      {% endfor %}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {% for m in report.marks %}
+                          <tr>
+                            <td style="font-weight: 500;">{{ m.subject or 'N/A' }}</td>
+                            <td style="text-align: center; font-weight: 600; color: #1565c0;">{{ m.score if m.score is not none else 'N/A' }}</td>
+                            <td style="text-align: center;">100</td>
+                            <td style="text-align: center;">
+                              {% set grade_class = 'percentage-high' if m.grade in ['A', 'A+'] else ('percentage-medium' if m.grade in ['B', 'B+'] else 'percentage-low') %}
+                              <span class="{{ grade_class }}" style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-weight: 600; min-width: 40px;">
+                                {{ m.grade if m.grade else '-' }}
+                              </span>
+                            </td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
                 {% endif %}
 
                 <!-- Total & Average Section -->
