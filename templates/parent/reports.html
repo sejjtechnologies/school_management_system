@@ -313,50 +313,65 @@
   <!-- Main Container -->
   <div class="container-reports">
     <!-- Student Header (moved to top) -->
-    <div class="student-header mb-4" style="
-      background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
-      color: white;
-      padding: 16px;
-      border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
-      border-left: 6px solid #ff6f00;
-      position: relative;
-    ">
-      <!-- Sign Out Button -->
-      <a href="{{ url_for('user_routes.logout') }}" style="
-        position: absolute;
-        top: 12px;
-        right: 12px;
+    <style>
+      .student-header.custom {
+        background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
         color: white;
-        font-size: 1.3rem;
-        text-decoration: none;
-        transition: transform 0.2s;
-      " title="Sign Out" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">
+        padding: 12px 12px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.25);
+        border-left: 6px solid #ff6f00;
+        position: relative;
+      }
+      .student-header.custom .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        font-size: 0.85rem;
+        margin-bottom: 8px;
+      }
+      .student-header.custom .info-grid .left { border-right: 2px solid rgba(255,255,255,0.18); padding-right: 10px; }
+      .student-header.custom .meta { font-weight: 700; margin: 2px 0; }
+      .student-header.custom .signout-btn { position: absolute; top: 8px; right: 8px; color: white; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; width:38px; height:38px; border-radius: 50%; background: rgba(255,255,255,0.12); transition: transform .15s, background .15s; }
+      .student-header.custom .signout-btn i { font-size: 1.1rem; }
+      .student-header.custom .signout-btn:hover { transform: scale(1.08); background: rgba(255,255,255,0.18); }
+
+      @media (max-width: 576px) {
+        .student-header.custom { padding: 10px; }
+        .student-header.custom .info-grid { grid-template-columns: 1fr; gap: 6px; }
+        .student-header.custom .signout-btn { top: 6px; right: 6px; width:34px; height:34px; }
+        .student-header.custom p { font-size: 0.85rem; }
+      }
+    </style>
+
+    <div class="student-header custom mb-3">
+      <!-- Sign Out Button -->
+      <a href="{{ url_for('user_routes.logout') }}" class="signout-btn" title="Sign Out" aria-label="Sign out">
         <i class="bi bi-box-arrow-right"></i>
       </a>
 
-      <div style="margin-bottom: 10px;">
-        <p style="margin: 0; font-size: 1rem; font-weight: 700; padding-right: 40px;"><i class="bi bi-person-circle" style="margin-right: 8px;"></i>{{ pupil.first_name }} {% if pupil.middle_name %}{{ pupil.middle_name }} {% endif %}{{ pupil.last_name }}</p>
+      <div style="margin-bottom: 8px;">
+        <p style="margin: 0; font-size: 1rem; font-weight: 700; padding-right: 48px;"><i class="bi bi-person-circle" style="margin-right: 8px;"></i>{{ pupil.first_name }} {% if pupil.middle_name %}{{ pupil.middle_name }} {% endif %}{{ pupil.last_name }}</p>
       </div>
-      
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; font-size: 0.8rem;">
-        <div style="border-right: 2px solid rgba(255, 255, 255, 0.3); padding-right: 12px;">
-          <p style="margin: 2px 0; font-weight: 600;"><strong>Admission #</strong> {{ pupil.admission_number or 'N/A' }}</p>
-          <p style="margin: 2px 0; font-weight: 600;"><strong>Roll #</strong> {{ pupil.roll_number or 'N/A' }}</p>
-          <p style="margin: 2px 0; font-weight: 600;"><strong>Pupil ID</strong> {{ pupil.pupil_id }}</p>
+
+      <div class="info-grid">
+        <div class="left">
+          <p class="meta"><strong>Admission #</strong> {{ pupil.admission_number or 'N/A' }}</p>
+          <p class="meta"><strong>Roll #</strong> {{ pupil.roll_number or 'N/A' }}</p>
+          <p class="meta"><strong>Pupil ID</strong> {{ pupil.pupil_id }}</p>
         </div>
         <div>
-          <p style="margin: 2px 0; font-weight: 600;"><strong>Class:</strong> {% if pupil.class_ %}{{ pupil.class_.name }}{% else %}Form {{ pupil.class_id }}{% endif %}</p>
-          <p style="margin: 2px 0; font-weight: 600;"><strong>Stream:</strong> {% if pupil.stream %}{{ pupil.stream.name }}{% else %}{{ pupil.stream_id or 'TBA' }}{% endif %}</p>
-          {% if class_teacher %}<p style="margin: 2px 0; font-weight: 600;"><strong>Teacher:</strong> {{ class_teacher.first_name }} {{ class_teacher.last_name }}</p>{% endif %}
+          <p class="meta"><strong>Class:</strong> {% if pupil.class_ %}{{ pupil.class_.name }}{% else %}Form {{ pupil.class_id }}{% endif %}</p>
+          <p class="meta"><strong>Stream:</strong> {% if pupil.stream %}{{ pupil.stream.name }}{% else %}{{ pupil.stream_id or 'TBA' }}{% endif %}</p>
+          {% if class_teacher %}<p class="meta"><strong>Teacher:</strong> {{ class_teacher.first_name }} {{ class_teacher.last_name }}</p>{% endif %}
         </div>
       </div>
 
-      <div style="border-top: 2px solid rgba(255, 255, 255, 0.3); padding-top: 8px;">
-        <p style="margin: 0; font-size: 0.8rem; font-weight: 600;">
+      <div style="border-top: 2px solid rgba(255, 255, 255, 0.14); padding-top: 8px;">
+        <p style="margin: 0; font-size: 0.85rem; font-weight: 700;">
           <i class="bi bi-person-check" style="margin-right: 6px;"></i>
-          <strong>Guardian:</strong> {{ pupil.guardian_name or 'N/A' }} 
-          <span style="font-weight: 500;">({{ pupil.guardian_relationship or 'N/A' }})</span>
+          <strong>Guardian:</strong> {{ pupil.guardian_name or 'N/A' }}
+          <span style="font-weight: 600;">({{ pupil.guardian_relationship or 'N/A' }})</span>
           <span style="margin-left: 12px;">
             <i class="bi bi-telephone" style="margin-right: 4px;"></i>
             <strong>{{ pupil.guardian_phone or 'N/A' }}</strong>
