@@ -338,6 +338,7 @@
       .student-header.custom .info-compact .left { display:flex; flex-direction:column; gap:2px; min-width:140px; }
       .student-header.custom .info-compact .right { display:flex; flex-direction:column; gap:2px; flex:1; }
       .student-header.custom .meta { font-weight: 700; font-size: 0.82rem; margin: 0; }
+      .student-header.custom .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display:block; }
       .student-header.custom .person-icon { font-size: 1.25rem; width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; background: rgba(255,255,255,0.08); border-radius:6px; }
       .student-header.custom .signout-btn { position: absolute; top: 8px; right: 8px; color: #fff; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; width:34px; height:34px; border-radius: 6px; background: rgba(255,255,255,0.06); transition: transform .12s, background .12s; }
       .student-header.custom .signout-btn i { font-size: 1rem; color: #fff; }
@@ -361,8 +362,9 @@
           <p class="meta">ID: {{ pupil.pupil_id }}</p>
         </div>
         <div class="right">
-          <p class="meta">Adm#: {{ pupil.admission_number or 'N/A' }} &nbsp; Roll#: {{ pupil.roll_number or 'N/A' }}</p>
-          <p class="meta">Class: {% if pupil.class_ %}{{ pupil.class_.name }}{% else %}{{ pupil.class_id }}{% endif %} / {{ pupil.stream.name if pupil.stream else pupil.stream_id or 'TBA' }} | Teacher: {% if class_teacher %}{{ class_teacher.first_name }} {{ class_teacher.last_name }}{% else %}-{% endif %}</p>
+          <p class="meta truncate" title="Adm#: {{ pupil.admission_number or 'N/A' }}  Roll#: {{ pupil.roll_number or 'N/A' }}">Adm#: {{ pupil.admission_number or 'N/A' }} &nbsp; Roll#: {{ pupil.roll_number or 'N/A' }}</p>
+          <p class="meta truncate" title="Class: {% if pupil.class_ %}{{ pupil.class_.name }}{% else %}{{ pupil.class_id }}{% endif %} / {{ pupil.stream.name if pupil.stream else pupil.stream_id or 'TBA' }} | Teacher: {% if class_teacher %}{{ class_teacher.first_name }} {{ class_teacher.last_name }}{% else %}-{% endif %}">Class: {% if pupil.class_ %}{{ pupil.class_.name }}{% else %}{{ pupil.class_id }}{% endif %} / {{ pupil.stream.name if pupil.stream else pupil.stream_id or 'TBA' }} | Teacher: {% if class_teacher %}{{ class_teacher.first_name }} {{ class_teacher.last_name }}{% else %}-{% endif %}</p>
+          <p class="meta truncate" title="Guardian: {{ pupil.guardian_name or 'N/A' }} ({{ pupil.guardian_relationship or 'N/A' }}) • Contact: {{ pupil.guardian_phone or 'N/A' }} • Adm Date: {{ pupil.admission_date.strftime('%d %b %Y') if pupil.admission_date else 'N/A' }}">Guardian: {{ pupil.guardian_name or 'N/A' }} ({{ pupil.guardian_relationship or 'N/A' }}) • {{ pupil.guardian_phone or 'N/A' }} • Adm: {{ pupil.admission_date.strftime('%d %b %Y') if pupil.admission_date else 'N/A' }}</p>
         </div>
       </div>
 
