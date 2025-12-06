@@ -302,7 +302,7 @@
 
     .school-card p { margin: 0; color: #234; font-size: 0.9rem; }
 
-    .school-card .meta { color: #556; font-size: 0.85rem; }
+    .school-card .meta { color: #ff4081; font-size: 0.85rem; font-style: italic; }
 
     @media (max-width: 500px) {
       .school-card { padding: 10px; gap: 8px; }
@@ -604,10 +604,9 @@
       <div class="col-md-3">
         <label for="exam_set" class="form-label">Exam Set</label>
         <select name="exam_set" id="exam_set" class="form-select">
-          <option value="">All Sets</option>
-          {% for e in available_exam_sets %}
-            <option value="{{ e }}" {% if selected_exam_set == e %}selected{% endif %}>{{ e }}</option>
-          {% endfor %}
+          <option value="">Select Exam Set</option>
+          <option value="Midterm" {% if selected_exam_set == 'Midterm' %}selected{% endif %}>Midterm</option>
+          <option value="End_term" {% if selected_exam_set == 'End_term' %}selected{% endif %}>End Term</option>
         </select>
       </div>
       <div class="col-md-3">
@@ -643,12 +642,13 @@
       <div class="info-compact">
         <div class="left">
           <p class="meta">{{ pupil.first_name }} {% if pupil.middle_name %}{{ pupil.middle_name }} {% endif %}{{ pupil.last_name }}</p>
-          <p class="meta">ID: {{ pupil.pupil_id }}</p>
+          <p class="meta">Admission ID: {{ pupil.pupil_id }}</p>
         </div>
         <div class="right">
-          <p class="meta truncate" title="Adm#: {{ pupil.admission_number or 'N/A' }}  Roll#: {{ pupil.roll_number or 'N/A' }}">Adm#: {{ pupil.admission_number or 'N/A' }} &nbsp; Roll#: {{ pupil.roll_number or 'N/A' }}</p>
+          <p class="meta truncate" title="Admission Number: {{ pupil.admission_number or 'N/A' }}  Roll Number: {{ pupil.roll_number or 'N/A' }}">Admission Number: {{ pupil.admission_number or 'N/A' }} &nbsp; Roll Number: {{ pupil.roll_number or 'N/A' }}</p>
           <p class="meta truncate" title="Class: {% if pupil.class_ %}{{ pupil.class_.name }}{% else %}{{ pupil.class_id }}{% endif %} / {{ pupil.stream.name if pupil.stream else pupil.stream_id or 'TBA' }} | Teacher: {% if class_teacher %}{{ class_teacher.first_name }} {{ class_teacher.last_name }}{% else %}-{% endif %}">Class: {% if pupil.class_ %}{{ pupil.class_.name }}{% else %}{{ pupil.class_id }}{% endif %} / {{ pupil.stream.name if pupil.stream else pupil.stream_id or 'TBA' }} | Teacher: {% if class_teacher %}{{ class_teacher.first_name }} {{ class_teacher.last_name }}{% else %}-{% endif %}</p>
-          <p class="meta truncate" title="Guardian: {{ pupil.guardian_name or 'N/A' }} ({{ pupil.guardian_relationship or 'N/A' }}) • Contact: {{ pupil.guardian_phone or 'N/A' }} • Adm Date: {{ pupil.admission_date.strftime('%d %b %Y') if pupil.admission_date else 'N/A' }}">Guardian: {{ pupil.guardian_name or 'N/A' }} ({{ pupil.guardian_relationship or 'N/A' }}) • {{ pupil.guardian_phone or 'N/A' }} • Adm: {{ pupil.admission_date.strftime('%d %b %Y') if pupil.admission_date else 'N/A' }}</p>
+          <p class="meta truncate" title="Guardian: {{ pupil.guardian_name or 'N/A' }} ({{ pupil.guardian_relationship or 'N/A' }}) • Contact: {{ pupil.guardian_phone or 'N/A' }}">Guardian: {{ pupil.guardian_name or 'N/A' }} ({{ pupil.guardian_relationship or 'N/A' }}) • {{ pupil.guardian_phone or 'N/A' }}</p>
+          <p class="meta" title="Admission date: {{ pupil.admission_date.strftime('%d %b %Y') if pupil.admission_date else 'N/A' }}">Admission date: {{ pupil.admission_date.strftime('%d %b %Y') if pupil.admission_date else 'N/A' }}</p>
         </div>
       </div>
 
@@ -656,107 +656,114 @@
     </div>
 
     <!-- Exam Reports Grid (Side by Side) -->
-    {% if filtered_data %}
-      <div class="row" style="margin-bottom: 30px;">
-        {% for report in filtered_data %}
-          {% set is_midterm = (report.exam_set == 'Midterm') %}
-          <div class="col-lg-6 col-md-12 mb-4">
-            <!-- Report Card -->
-            <div class="card {% if is_midterm %}card-midterm{% else %}card-endterm{% endif %}">
-              <!-- Card Header -->
-              <div class="card-header">
-                <h5 style="color: #c1272d; margin: 0; font-weight: 600;">
-                  {{ report.exam_set }} - Term {{ report.term }}/{{ report.year }}
-                </h5>
-              </div>
+    {% if selected_term and selected_exam_set and selected_year %}
+      {% if filtered_data %}
+        <div class="row" style="margin-bottom: 30px;">
+          {% for report in filtered_data %}
+            {% set is_midterm = (report.exam_set == 'Midterm') %}
+            <div class="col-lg-6 col-md-12 mb-4">
+              <!-- Report Card -->
+              <div class="card {% if is_midterm %}card-midterm{% else %}card-endterm{% endif %}">
+                <!-- Card Header -->
+                <div class="card-header">
+                  <h5 style="color: #c1272d; margin: 0; font-weight: 600;">
+                    {{ report.exam_set }} - Term {{ report.term }}/{{ report.year }}
+                  </h5>
+                </div>
 
-              <!-- Card Body -->
-              <div class="card-body">
-                <!-- Subject Marks Table -->
-                {% if report.marks %}
-                  <div class="table-wrapper">
-                    <table class="table table-sm" style="margin-bottom: 16px;">
-                      <thead style="background-color: #f5f5f5;">
-                        <tr>
-                          <th style="font-weight: 600;">Subj</th>
-                          <th style="text-align: center; font-weight: 600;">Pupil</th>
-                          <th style="text-align: center; font-weight: 600;">Max</th>
-                          <th style="text-align: center; font-weight: 600;">Grade</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {% for m in report.marks %}
+                <!-- Card Body -->
+                <div class="card-body">
+                  <!-- Subject Marks Table -->
+                  {% if report.marks %}
+                    <div class="table-wrapper">
+                      <table class="table table-sm" style="margin-bottom: 16px;">
+                        <thead style="background-color: #f5f5f5;">
                           <tr>
-                            <td style="font-weight: 500;">{{ m.subject or 'N/A' }}</td>
-                            <td style="text-align: center; font-weight: 600; color: #1565c0;">{{ m.score if m.score is not none else 'N/A' }}</td>
-                            <td style="text-align: center;">100</td>
-                            <td style="text-align: center;">
-                              {% set grade_class = 'percentage-high' if m.grade in ['A', 'A+'] else ('percentage-medium' if m.grade in ['B', 'B+'] else 'percentage-low') %}
-                              <span class="{{ grade_class }}" style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-weight: 600; min-width: 40px;">
-                                {{ m.grade if m.grade else '-' }}
-                              </span>
-                            </td>
+                            <th style="font-weight: 600;">Subj</th>
+                            <th style="text-align: center; font-weight: 600;">Pupil</th>
+                            <th style="text-align: center; font-weight: 600;">Max</th>
+                            <th style="text-align: center; font-weight: 600;">Grade</th>
                           </tr>
-                        {% endfor %}
-                      </tbody>
-                    </table>
-                  </div>
-                {% endif %}
+                        </thead>
+                        <tbody>
+                          {% for m in report.marks %}
+                            <tr>
+                              <td style="font-weight: 500;">{{ m.subject or 'N/A' }}</td>
+                              <td style="text-align: center; font-weight: 600; color: #1565c0;">{{ m.score if m.score is not none else 'N/A' }}</td>
+                              <td style="text-align: center;">100</td>
+                              <td style="text-align: center;">
+                                {% set grade_class = 'percentage-high' if m.grade in ['A', 'A+'] else ('percentage-medium' if m.grade in ['B', 'B+'] else 'percentage-low') %}
+                                <span class="{{ grade_class }}" style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-weight: 600; min-width: 40px;">
+                                  {{ m.grade if m.grade else '-' }}
+                                </span>
+                              </td>
+                            </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  {% endif %}
 
-                <!-- Total & Average Section -->
-                <div class="{% if is_midterm %}summary-midterm{% else %}summary-endterm{% endif %}" style="padding: 12px; border-radius: 4px; margin-bottom: 12px;">
-                  <p style="margin: 5px 0; font-size: 0.9rem;"><strong>Total: {{ report.total_score or 'N/A' }} / 400</strong></p>
-                  <p style="margin: 5px 0; font-size: 0.9rem;"><strong>Avg: {{ report.average_score or 'N/A' }}</strong></p>
+                  <!-- Total & Average Section -->
+                  <div class="{% if is_midterm %}summary-midterm{% else %}summary-endterm{% endif %}" style="padding: 12px; border-radius: 4px; margin-bottom: 12px;">
+                    <p style="margin: 5px 0; font-size: 0.9rem;"><strong>Total: {{ report.total_score or 'N/A' }} / 400</strong></p>
+                    <p style="margin: 5px 0; font-size: 0.9rem;"><strong>Avg: {{ report.average_score or 'N/A' }}</strong></p>
+                  </div>
+
+                  <!-- Grade Badge -->
+                  <div style="margin-bottom: 12px;">
+                    {% set grade_class = 'percentage-high' if report.grade in ['A', 'A+'] else ('percentage-medium' if report.grade in ['B', 'B+'] else 'percentage-low') %}
+                    <span class="{{ grade_class }}" style="display: inline-block; padding: 6px 12px; border-radius: 4px; font-weight: 600; font-size: 1rem;">
+                      Grade: {{ report.grade if report.grade else '-' }}
+                    </span>
+                  </div>
+
+                  <!-- Positions Section -->
+                  <div style="margin-bottom: 12px;">
+                    <span class="badge" style="background-color: #6f42c1; display: inline-block; padding: 6px 10px; font-size: 0.85rem; margin-right: 8px;">
+                      Stream: {{ report.stream_position or 'N/A' }}/{{ stream_count or 'N/A' }}
+                    </span>
+                    <span class="badge" style="background-color: #0d7377; display: inline-block; padding: 6px 10px; font-size: 0.85rem;">
+                      Class: {{ report.class_position or 'N/A' }}/{{ class_count or 'N/A' }}
+                    </span>
+                  </div>
+
+                  <!-- Combined Position (if available) -->
+                  {% if report.combined_position %}
+                    <div style="margin-bottom: 12px; padding: 8px; background-color: #f3e5f5; border-radius: 4px;">
+                      <p style="margin: 0; font-size: 0.85rem;"><strong>Combined Position:</strong> {{ report.combined_position }}/{{ class_count or 'N/A' }}</p>
+                    </div>
+                  {% endif %}
+
+                  <!-- Remarks -->
+                  {% if report.remarks %}
+                    <div style="margin-top: 12px; padding: 10px; background-color: #fff8e1; border-radius: 4px; border-left: 3px solid #f39c12;">
+                      <p style="margin: 0; font-size: 0.9rem;"><strong><i class="bi bi-chat-left-text"></i> Remark:</strong> {{ report.remarks }}</p>
+                    </div>
+                  {% endif %}
+
+                  <!-- General Remark (from Report table) -->
+                  {% if report.general_remark %}
+                    <div style="margin-top: 10px; padding: 10px; background-color: #e3f2fd; border-radius: 4px; border-left: 3px solid #1976d2;">
+                      <p style="margin: 0; font-size: 0.9rem;"><strong><i class="bi bi-chat-dots"></i> Comment:</strong> {{ report.general_remark }}</p>
+                    </div>
+                  {% endif %}
                 </div>
-
-                <!-- Grade Badge -->
-                <div style="margin-bottom: 12px;">
-                  {% set grade_class = 'percentage-high' if report.grade in ['A', 'A+'] else ('percentage-medium' if report.grade in ['B', 'B+'] else 'percentage-low') %}
-                  <span class="{{ grade_class }}" style="display: inline-block; padding: 6px 12px; border-radius: 4px; font-weight: 600; font-size: 1rem;">
-                    Grade: {{ report.grade if report.grade else '-' }}
-                  </span>
-                </div>
-
-                <!-- Positions Section -->
-                <div style="margin-bottom: 12px;">
-                  <span class="badge" style="background-color: #6f42c1; display: inline-block; padding: 6px 10px; font-size: 0.85rem; margin-right: 8px;">
-                    Stream: {{ report.stream_position or 'N/A' }}/{{ stream_count or 'N/A' }}
-                  </span>
-                  <span class="badge" style="background-color: #0d7377; display: inline-block; padding: 6px 10px; font-size: 0.85rem;">
-                    Class: {{ report.class_position or 'N/A' }}/{{ class_count or 'N/A' }}
-                  </span>
-                </div>
-
-                <!-- Combined Position (if available) -->
-                {% if report.combined_position %}
-                  <div style="margin-bottom: 12px; padding: 8px; background-color: #f3e5f5; border-radius: 4px;">
-                    <p style="margin: 0; font-size: 0.85rem;"><strong>Combined Position:</strong> {{ report.combined_position }}/{{ class_count or 'N/A' }}</p>
-                  </div>
-                {% endif %}
-
-                <!-- Remarks -->
-                {% if report.remarks %}
-                  <div style="margin-top: 12px; padding: 10px; background-color: #fff8e1; border-radius: 4px; border-left: 3px solid #f39c12;">
-                    <p style="margin: 0; font-size: 0.9rem;"><strong><i class="bi bi-chat-left-text"></i> Remark:</strong> {{ report.remarks }}</p>
-                  </div>
-                {% endif %}
-
-                <!-- General Remark (from Report table) -->
-                {% if report.general_remark %}
-                  <div style="margin-top: 10px; padding: 10px; background-color: #e3f2fd; border-radius: 4px; border-left: 3px solid #1976d2;">
-                    <p style="margin: 0; font-size: 0.9rem;"><strong><i class="bi bi-chat-dots"></i> Comment:</strong> {{ report.general_remark }}</p>
-                  </div>
-                {% endif %}
               </div>
             </div>
-          </div>
-        {% endfor %}
-      </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="no-reports-message">
+          <i class="bi bi-inbox"></i>
+          <p>No academic reports found for the selected Term / Exam Set / Year</p>
+          <p style="font-size: 0.85rem; margin-top: 8px; opacity: 0.8;">Try different filters or confirm records exist for this pupil.</p>
+        </div>
+      {% endif %}
     {% else %}
       <div class="no-reports-message">
-        <i class="bi bi-inbox"></i>
-        <p>No academic reports available yet</p>
-        <p style="font-size: 0.85rem; margin-top: 8px; opacity: 0.8;">Reports will appear here once marks are recorded</p>
+        <i class="bi bi-info-circle"></i>
+        <p>Please select Term, Exam Set and Year and click Filter to view reports.</p>
       </div>
     {% endif %}
 
