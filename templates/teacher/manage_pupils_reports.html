@@ -292,7 +292,7 @@
             </thead>
             <tbody>
               {% for pupil in pupils %}
-                <tr>
+                <tr data-pupil-id="{{ pupil.id }}">
                   <td>{{ loop.index }}</td>
                   <td>
                     {{ pupil.first_name }} {{ pupil.last_name }}
@@ -320,69 +320,18 @@
                   {% endif %}
                   {% set rep = report_map.get(pupil.id) if report_map is defined else None %}
 
-                  <td class="text-center">
-                    {% if cs and ('combined_average' in cs) %}
-                      {{ cs['combined_average'] }}
-                    {% elif rep and (rep.combined_average is not none) %}
-                      {{ rep.combined_average }}
-                    {% else %}
-                      -
-                    {% endif %}
-                  </td>
-                  <td class="text-center">
-                    {% if cs and ('combined_grade' in cs) %}
-                      {{ cs['combined_grade'] }}
-                    {% elif rep and (rep.combined_grade is not none) %}
-                      {{ rep.combined_grade }}
-                    {% else %}
-                      -
-                    {% endif %}
-                  </td>
-                  <td class="text-center">
-                    {% if cs and ('general_remark' in cs) %}
-                      {{ cs['general_remark'] }}
-                    {% elif rep and (rep.general_remark is not none) %}
-                      {{ rep.general_remark }}
-                    {% else %}
-                      -
-                    {% endif %}
-                  </td>
-                  <td class="text-center">
-                    {% if cs and ('stream_combined_position' in cs) %}
-                      {{ cs['stream_combined_position'] }} of {{ students_per_stream.get(pupil.stream_id, '-') if students_per_stream is defined else '-' }}
-                    {% else %}
-                      -
-                    {% endif %}
-                  </td>
-                  <td class="text-center">
-                    {# Prefer class-wide position from class_stats if available via combined_stats snapshot #}
-                    {% if cs and ('class_combined_position' in cs) %}
-                      {{ cs['class_combined_position'] }} of {{ students_per_class.get(pupil.class_id, '-') if students_per_class is defined else '-' }}
-                    {% else %}
-                      -
-                    {% endif %}
-                  </td>
+                  <td class="text-center combinedAvgCell">-</td>
+                  <td class="text-center combinedGradeCell">-</td>
+                  <td class="text-center generalRemarkCell">-</td>
+                  <td class="text-center streamPosCell">-</td>
+                  <td class="text-center classPosCell">-</td>
                 </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
-        <!-- Pagination -->
-        <nav aria-label="Pupil list pagination" class="mt-3">
-          <ul class="pagination" id="pupilPagination" data-per-page="{{ per_page|default(50) }}">
-            {% set _p = page if page is defined else 1 %}
-            {% set _tp = total_pages if total_pages is defined else 1 %}
-            <li class="page-item {% if _p == 1 %}disabled{% endif %}">
-              <a class="page-link" href="?page={{ _p-1 }}&per_page={{ per_page }}&year={{ selected_year }}&term={{ selected_term or 'all' }}&types={{ selected_types }}" data-page="{{ _p-1 }}">Previous</a>
-            </li>
-            {% for i in range(1, _tp+1) %}
-            <li class="page-item {% if i == _p %}active{% endif %}"><a class="page-link" href="?page={{ i }}&per_page={{ per_page }}&year={{ selected_year }}&term={{ selected_term or 'all' }}&types={{ selected_types }}" data-page="{{ i }}">{{ i }}</a></li>
-            {% endfor %}
-            <li class="page-item {% if _p == _tp %}disabled{% endif %}">
-              <a class="page-link" href="?page={{ _p+1 }}&per_page={{ per_page }}&year={{ selected_year }}&term={{ selected_term or 'all' }}&types={{ selected_types }}" data-page="{{ _p+1 }}">Next</a>
-            </li>
-          </ul>
-        </nav>
+        <!-- No pagination - display all pupils in the assigned streams alphabetically -->
+        <div id="pageMeta" data-year="{{ selected_year }}" data-term="{{ selected_term or 'all' }}" data-types="{{ selected_types }}"></div>
       {% else %}
         <p class="text-muted">No pupils assigned to you yet.</p>
       {% endif %}
@@ -398,12 +347,9 @@
       var input = document.getElementById('searchInput');
       if (!input) return;
 
-      // Read per-page from the pagination element to avoid embedding Jinja directly into JS
-      var paginationEl = document.getElementById('pupilPagination');
+      // Read per-page (not used when showing all) and filter meta from pageMeta dataset
       var perPage = 50;
-      if (paginationEl && paginationEl.dataset && paginationEl.dataset.perPage) {
-        perPage = parseInt(paginationEl.dataset.perPage, 10) || 50;
-      }
+      var pageMeta = document.getElementById('pageMeta');
 
       // Filters controls
       var filterYearEl = document.getElementById('filterYear');
@@ -421,7 +367,7 @@
       if (applyBtn) {
         applyBtn.addEventListener('click', function(){
           // reload page with filters applied
-          var url = window.location.pathname + '?page=1&per_page=' + encodeURIComponent(perPage) + getFilterQuery();
+          var url = window.location.pathname + '?' + getFilterQuery().slice(1); // getFilterQuery returns leading '&'
           window.location.href = url;
         });
       }
@@ -435,6 +381,70 @@
           if (!tds || tds.length === 0) return;
           row.dataset.searchText = row.textContent.trim().toLowerCase();
         });
+        // After caching rows, fetch per-pupil stats for visible rows
+        populateStatsForVisibleRows();
+      }
+
+      function populateStatsForVisibleRows() {
+        var year = pageMeta && pageMeta.dataset && pageMeta.dataset.year ? pageMeta.dataset.year : '';
+        var term = pageMeta && pageMeta.dataset && pageMeta.dataset.term ? pageMeta.dataset.term : '';
+        var types = pageMeta && pageMeta.dataset && pageMeta.dataset.types ? pageMeta.dataset.types : '';
+
+        rows.forEach(function(row){
+          if (row.style.display === 'none') return; // skip hidden rows
+          if (row.dataset.statsLoaded) return; // already loaded
+          var pid = row.getAttribute('data-pupil-id');
+          if (!pid) return;
+          // build URL
+          var url = '/teacher/api/pupil_summary/' + encodeURIComponent(pid) + '?';
+          if (year) url += 'year=' + encodeURIComponent(year) + '&';
+          if (term) url += 'term=' + encodeURIComponent(term) + '&';
+          if (types) url += 'types=' + encodeURIComponent(types) + '&';
+          // fetch and populate
+          fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(resp){ if (!resp.ok) throw new Error('Network error'); return resp.json(); })
+            .then(function(json){
+              try {
+                var ca = row.querySelector('.combinedAvgCell');
+                var cg = row.querySelector('.combinedGradeCell');
+                var gr = row.querySelector('.generalRemarkCell');
+                var sp = row.querySelector('.streamPosCell');
+                var cp = row.querySelector('.classPosCell');
+
+                if (json && json.combined && json.combined.combined_average !== undefined && json.combined.combined_average !== null) {
+                  ca.textContent = json.combined.combined_average;
+                } else {
+                  ca.textContent = '-';
+                }
+                if (json && json.combined && json.combined.combined_grade) {
+                  cg.textContent = json.combined.combined_grade;
+                } else {
+                  cg.textContent = '-';
+                }
+                if (json && json.combined && json.combined.general_remark) {
+                  gr.textContent = json.combined.general_remark;
+                } else {
+                  gr.textContent = '-';
+                }
+                if (json && (json.stream_position || json.stream_position === 0 || json.stream_position === null)) {
+                  sp.textContent = (json.stream_position ? json.stream_position : '-') + ' of ' + (json.stream_total || '-');
+                } else {
+                  sp.textContent = '-';
+                }
+                if (json && (json.class_position || json.class_position === 0 || json.class_position === null)) {
+                  cp.textContent = (json.class_position ? json.class_position : '-') + ' of ' + (json.class_total || '-');
+                } else {
+                  cp.textContent = '-';
+                }
+                row.dataset.statsLoaded = '1';
+              } catch (e) {
+                console.error('Failed to populate stats for row', e);
+              }
+            }).catch(function(err){
+              // ignore per-row failures
+              console.error('Failed to fetch pupil summary for', pid, err);
+            });
+        });
       }
 
       cacheRows();
@@ -445,6 +455,8 @@
           if (!row.dataset.searchText) return;
           row.style.display = (!filter || row.dataset.searchText.indexOf(filter) !== -1) ? '' : 'none';
         });
+        // After filtering, fetch stats for any newly visible rows
+        populateStatsForVisibleRows();
       }
 
       function debounce(fn, delay) {
@@ -469,37 +481,7 @@
         clearBtn.addEventListener('click', function(){ if (input) { input.value = ''; applyFilter(); input.focus(); } });
       }
 
-      // AJAX pagination: intercept clicks on pagination links and load page via fetch
-      var pagination = document.getElementById('pupilPagination');
-      if (pagination) {
-        pagination.addEventListener('click', function(evt){
-          var a = evt.target.closest('a[data-page]');
-          if (!a) return;
-          evt.preventDefault();
-          var page = a.getAttribute('data-page');
-          if (!page) return;
-          // fetch the same URL with page param and current filters
-          var url = window.location.pathname + '?page=' + encodeURIComponent(page) + '&per_page=' + encodeURIComponent(perPage) + getFilterQuery();
-          fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(function(resp){ return resp.text(); }).then(function(html){
-            // parse the returned HTML and extract the tbody and pagination
-            var parser = new DOMParser();
-            var doc = parser.parseFromString(html, 'text/html');
-            var newTbody = doc.querySelector('#pupilTable tbody');
-            var newPagination = doc.querySelector('#pupilPagination');
-            if (newTbody) {
-              var tbody = document.querySelector('#pupilTable tbody');
-              tbody.innerHTML = newTbody.innerHTML;
-              cacheRows();
-              applyFilter();
-            }
-            if (newPagination) {
-              pagination.innerHTML = newPagination.innerHTML;
-            }
-            // update browser URL without reloading
-            try { window.history.pushState({}, '', url); } catch (e) { /* ignore */ }
-          }).catch(function(err){ console.error('Page load failed', err); });
-        });
-      }
+      // No AJAX pagination when showing all pupils; nothing to do here.
     })();
   </script>
 </body>

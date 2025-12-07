@@ -49,16 +49,7 @@ def manage_pupils_reports():
         if filters:
             assigned_pupils = Pupil.query.filter(or_(*filters)).all()
 
-    # pagination
-    try:
-        page = int(request.args.get('page', 1))
-    except ValueError:
-        page = 1
-    try:
-        per_page = int(request.args.get('per_page', 50))
-    except ValueError:
-        per_page = 50
-
+    # Show all assigned pupils (no pagination) and sort alphabetically by last then first name
     if not assigned_pupils:
         return render_template(
             "teacher/manage_pupils_reports.html",
@@ -70,20 +61,12 @@ def manage_pupils_reports():
             combined_stats={},
             students_per_stream={},
             students_per_class={},
-            page=page,
-            per_page=per_page,
             total=0
         )
 
-    total_assigned = len(assigned_pupils)
-    total_pages = max(1, (total_assigned + per_page - 1) // per_page)
-    if page < 1:
-        page = 1
-    if page > total_pages:
-        page = total_pages
-    start = (page - 1) * per_page
-    end = start + per_page
-    paged_assigned_pupils = assigned_pupils[start:end]
+    # sort alphabetically (case-insensitive)
+    assigned_pupils = sorted(assigned_pupils, key=lambda p: ((p.last_name or '').lower(), (p.first_name or '').lower()))
+    paged_assigned_pupils = assigned_pupils
 
     assigned_ids = [p.id for p in assigned_pupils]
 
@@ -170,11 +153,7 @@ def manage_pupils_reports():
         reports_by_pupil.setdefault(r.pupil_id, []).append(r)
     report_map = {pid: reps[0] for pid, reps in reports_by_pupil.items() if reps}
 
-    # AJAX fragment support
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template('teacher/_pupil_table_fragment.html', pupils=paged_assigned_pupils, combined_stats=combined_stats, students_per_stream=students_per_stream, students_per_class=students_per_class, report_map=report_map, page=page, per_page=per_page, total_pages=total_pages, selected_year=selected_year, selected_term=selected_term, selected_types=types_param)
-
-    return render_template('teacher/manage_pupils_reports.html', teacher=teacher, pupils=paged_assigned_pupils, reports=reports, subjects=subjects, exams=exams, combined_stats=combined_stats, students_per_stream=students_per_stream, students_per_class=students_per_class, report_map=report_map, page=page, per_page=per_page, total=total_assigned, total_pages=total_pages, selected_year=selected_year, selected_term=selected_term, selected_types=types_param, years=years)
+    return render_template('teacher/manage_pupils_reports.html', teacher=teacher, pupils=paged_assigned_pupils, reports=reports, subjects=subjects, exams=exams, combined_stats=combined_stats, students_per_stream=students_per_stream, students_per_class=students_per_class, report_map=report_map, total=len(assigned_pupils), selected_year=selected_year, selected_term=selected_term, selected_types=types_param, years=years)
 
 
 @teacher_manage_reports.route("/pupil/<int:pupil_id>", methods=["GET"])
@@ -510,3 +489,181 @@ def print_selected(pupil_id):
     pupil.stream_name = stream_obj.name if stream_obj else (f"Stream {pupil.stream_id}" if pupil.stream_id else 'N/A')
 
     return render_template('teacher/print_selected.html', pupil=pupil, exams=exams, reports=reports, marks_by_exam=marks_by_exam, subjects=subjects, combined=combined, exam_stats=exam_stats, class_position=class_position, class_total=class_total, class_teacher=class_teacher)
+
+
+@teacher_manage_reports.route('/api/pupil_summary/<int:pupil_id>', methods=['GET'])
+def api_pupil_summary(pupil_id):
+    """Return a JSON summary for the pupil: combined average, grade, general remark,
+    stream position (and total in stream), and class position (and total in class).
+    Accepts query params: year, term, types (mid/end/both).
+    """
+    teacher, redirect_resp = _require_teacher()
+    if redirect_resp:
+        return redirect_resp
+
+    # parse filters from querystring
+    try:
+        selected_year = int(request.args.get('year')) if request.args.get('year') else None
+    except ValueError:
+        selected_year = None
+    term_param = request.args.get('term')
+    try:
+        selected_term = int(term_param) if term_param and term_param.lower() != 'all' else None
+    except ValueError:
+        selected_term = None
+    types_param = (request.args.get('types') or 'both').lower()
+
+    pupil = Pupil.query.get_or_404(pupil_id)
+
+    # Build exam query limited by filters
+    exams_q = Exam.query
+    if selected_year:
+        exams_q = exams_q.filter(Exam.year == selected_year)
+    if selected_term is not None:
+        exams_q = exams_q.filter(Exam.term == selected_term)
+    if types_param != 'both':
+        if types_param == 'mid':
+            exams_q = exams_q.filter(Exam.name.ilike('%mid%'))
+        elif types_param == 'end':
+            exams_q = exams_q.filter(Exam.name.ilike('%end%'))
+
+    exams = exams_q.all()
+    exam_ids = [e.id for e in exams]
+
+    # fetch reports and marks for this pupil for selected exams
+    reports = Report.query.filter(Report.pupil_id == pupil.id, Report.exam_id.in_(exam_ids)).all() if exam_ids else []
+    marks = Mark.query.filter(Mark.pupil_id == pupil.id, Mark.exam_id.in_(exam_ids)).all() if exam_ids else []
+
+    # compute combined average/grade/remark if possible (use heuristics similar to other endpoints)
+    combined = None
+    if exams:
+        subjects = Subject.query.all()
+        subject_count = len(subjects) if subjects else 1
+        # weights
+        weights = {}
+        for ex in exams:
+            name = (ex.name or '').lower()
+            if 'mid' in name:
+                weights[ex.id] = 0.4
+            elif 'end' in name or 'end term' in name or 'end_term' in name:
+                weights[ex.id] = 0.6
+            else:
+                weights[ex.id] = None
+        assigned_sum = sum(w for w in weights.values() if w)
+        none_count = sum(1 for w in weights.values() if w is None)
+        if none_count > 0:
+            remaining = max(0.0, 1.0 - assigned_sum)
+            per_none = remaining / none_count if none_count else 0
+            for k in list(weights.keys()):
+                if weights[k] is None:
+                    weights[k] = per_none
+        elif assigned_sum == 0 and len(weights) > 0:
+            for k in weights.keys():
+                weights[k] = 1.0 / len(weights)
+
+        # build maps for student's reports/marks
+        reports_map = {r.exam_id: r for r in reports}
+        marks_map = {}
+        for m in marks:
+            marks_map.setdefault(m.exam_id, []).append(m)
+
+        weighted_total = 0.0
+        has_any = False
+        for ex in exams:
+            rep = reports_map.get(ex.id)
+            if rep and getattr(rep, 'total_score', None) is not None:
+                weighted_total += (rep.total_score or 0) * weights.get(ex.id, 0)
+                has_any = True
+            else:
+                mlist = marks_map.get(ex.id, [])
+                if mlist:
+                    total = sum((m.score or 0) for m in mlist)
+                    weighted_total += total * weights.get(ex.id, 0)
+                    has_any = True
+
+        if has_any:
+            combined_avg = round(weighted_total / (subject_count or 1), 2)
+            combined = {
+                'combined_average': combined_avg,
+                'combined_grade': calculate_grade(combined_avg),
+                'general_remark': calculate_general_remark(combined_avg),
+                'combined_total': round(weighted_total, 2)
+            }
+
+    # compute stream and class positions using cached queries among pupils in same class/stream
+    stream_pupils = Pupil.query.filter_by(class_id=pupil.class_id, stream_id=pupil.stream_id).all()
+    stream_pupil_ids = [p.id for p in stream_pupils]
+    stream_total = len(stream_pupil_ids)
+
+    class_pupils = Pupil.query.filter_by(class_id=pupil.class_id).all()
+    class_pupil_ids = [p.id for p in class_pupils]
+    class_total = len(class_pupil_ids)
+
+    # fetch reports/marks for all relevant pupils to compute rankings
+    relevant_ids = set(stream_pupil_ids) | set(class_pupil_ids)
+    reports_all = Report.query.filter(Report.pupil_id.in_(relevant_ids), Report.exam_id.in_(exam_ids)).all() if exam_ids else []
+    marks_all = Mark.query.filter(Mark.pupil_id.in_(relevant_ids), Mark.exam_id.in_(exam_ids)).all() if exam_ids else []
+
+    # build lookup maps
+    reports_map_all = {(r.pupil_id, r.exam_id): r for r in reports_all}
+    marks_map_all = {}
+    for m in marks_all:
+        marks_map_all.setdefault((m.pupil_id, m.exam_id), []).append(m)
+
+    # compute stream ranking for the selected exams - use average per exam or combined? we'll compute combined average across exams similar to above
+    stream_vals = []
+    for pid in stream_pupil_ids:
+        weighted_total_p = 0.0
+        has_any_p = False
+        for ex in exams:
+            rep = reports_map_all.get((pid, ex.id))
+            if rep and getattr(rep, 'total_score', None) is not None:
+                weighted_total_p += (rep.total_score or 0) * weights.get(ex.id, 0)
+                has_any_p = True
+            else:
+                mlist = marks_map_all.get((pid, ex.id), [])
+                if mlist:
+                    total = sum((m.score or 0) for m in mlist)
+                    weighted_total_p += total * weights.get(ex.id, 0)
+                    has_any_p = True
+        if has_any_p:
+            avg_p = round(weighted_total_p / (subject_count or 1), 2)
+            stream_vals.append((pid, avg_p))
+
+    stream_ranked = sorted(stream_vals, key=lambda kv: kv[1], reverse=True)
+    stream_positions = {pid: idx+1 for idx, (pid, _) in enumerate(stream_ranked)}
+
+    # compute class combined positions
+    class_vals = []
+    for pid in class_pupil_ids:
+        weighted_total_p = 0.0
+        has_any_p = False
+        for ex in exams:
+            rep = reports_map_all.get((pid, ex.id))
+            if rep and getattr(rep, 'total_score', None) is not None:
+                weighted_total_p += (rep.total_score or 0) * weights.get(ex.id, 0)
+                has_any_p = True
+            else:
+                mlist = marks_map_all.get((pid, ex.id), [])
+                if mlist:
+                    total = sum((m.score or 0) for m in mlist)
+                    weighted_total_p += total * weights.get(ex.id, 0)
+                    has_any_p = True
+        if has_any_p:
+            avg_p = round(weighted_total_p / (subject_count or 1), 2)
+            class_vals.append((pid, avg_p))
+
+    class_ranked = sorted(class_vals, key=lambda kv: kv[1], reverse=True)
+    class_positions = {pid: idx+1 for idx, (pid, _) in enumerate(class_ranked)}
+
+    result = {
+        'pupil_id': pupil.id,
+        'combined': combined,
+        'stream_position': stream_positions.get(pupil.id),
+        'stream_total': stream_total,
+        'class_position': class_positions.get(pupil.id),
+        'class_total': class_total
+    }
+
+    from flask import jsonify
+    return jsonify(result)

@@ -15,8 +15,8 @@
         </tr>
       </thead>
       <tbody>
-        {% for pupil in pupils %}
-          <tr>
+          {% for pupil in pupils %}
+          <tr data-pupil-id="{{ pupil.id }}">
             <td>{{ loop.index }}</td>
             <td>
               {{ pupil.first_name }} {{ pupil.last_name }}
@@ -42,47 +42,11 @@
             {% endif %}
             {% set rep = report_map.get(pupil.id) if report_map is defined else None %}
 
-            <td class="text-center">
-              {% if cs and ('combined_average' in cs) %}
-                {{ cs['combined_average'] }}
-              {% elif rep and (rep.combined_average is not none) %}
-                {{ rep.combined_average }}
-              {% else %}
-                -
-              {% endif %}
-            </td>
-            <td class="text-center">
-              {% if cs and ('combined_grade' in cs) %}
-                {{ cs['combined_grade'] }}
-              {% elif rep and (rep.combined_grade is not none) %}
-                {{ rep.combined_grade }}
-              {% else %}
-                -
-              {% endif %}
-            </td>
-            <td class="text-center">
-              {% if cs and ('general_remark' in cs) %}
-                {{ cs['general_remark'] }}
-              {% elif rep and (rep.general_remark is not none) %}
-                {{ rep.general_remark }}
-              {% else %}
-                -
-              {% endif %}
-            </td>
-            <td class="text-center">
-              {% if cs and ('stream_combined_position' in cs) %}
-                {{ cs['stream_combined_position'] }} of {{ students_per_stream.get(pupil.stream_id, '-') if students_per_stream is defined else '-' }}
-              {% else %}
-                -
-              {% endif %}
-            </td>
-            <td class="text-center">
-              {% if cs and ('class_combined_position' in cs) %}
-                {{ cs['class_combined_position'] }} of {{ students_per_class.get(pupil.class_id, '-') if students_per_class is defined else '-' }}
-              {% else %}
-                -
-              {% endif %}
-            </td>
+                  <td class="text-center combinedAvgCell">-</td>
+                  <td class="text-center combinedGradeCell">-</td>
+                  <td class="text-center generalRemarkCell">-</td>
+                  <td class="text-center streamPosCell">-</td>
+                  <td class="text-center classPosCell">-</td>
           </tr>
         {% endfor %}
       </tbody>
