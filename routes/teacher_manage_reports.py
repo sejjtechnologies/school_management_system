@@ -117,152 +117,35 @@ def manage_pupils_reports():
     selected_exams = exams_q.all()
     selected_exam_ids = [e.id for e in selected_exams]
 
-    # Prefetch marks for assigned pupils and create/update reports for them
+    # ✅ ONLY FETCH existing reports - don't create/update them here
+    # Reports should be created when marks are entered, not here
     reports = []
     if selected_exam_ids:
-        marks = Mark.query.filter(Mark.pupil_id.in_(assigned_ids), Mark.exam_id.in_(selected_exam_ids)).all()
-    else:
-        marks = []
-    marks_by_pupil = {}
-    for m in marks:
-        marks_by_pupil.setdefault(m.pupil_id, []).append(m)
+        reports = Report.query.filter(Report.pupil_id.in_(assigned_ids), Report.exam_id.in_(selected_exam_ids)).all()
 
-    # existing reports limited to selected exams
-    existing_reports = Report.query.filter(Report.pupil_id.in_(assigned_ids), Report.exam_id.in_(selected_exam_ids)).all() if selected_exam_ids else []
-    report_map = {(r.pupil_id, r.exam_id): r for r in existing_reports}
+    # Build report map for template
+    report_map = {(r.pupil_id, r.exam_id): r for r in reports}
 
-    # attach class/stream names and compute per-pupil report rows (upsert)
+    # Attach class/stream names to pupils
     for pupil in assigned_pupils:
         class_obj = class_map.get(pupil.class_id)
         stream_obj = stream_map.get(pupil.stream_id)
         pupil.class_name = class_obj.name if class_obj else (f"Class {pupil.class_id}" if pupil.class_id else 'N/A')
         pupil.stream_name = stream_obj.name if stream_obj else (f"Stream {pupil.stream_id}" if pupil.stream_id else 'N/A')
 
-        pm = marks_by_pupil.get(pupil.id, [])
-        if not pm:
-            continue
-        exam_ids_for_pupil = list({m.exam_id for m in pm})
-        for exam_id in exam_ids_for_pupil:
-            exam_marks = [m.score for m in pm if m.exam_id == exam_id]
-            total_score = sum(exam_marks)
-            average_score = total_score / len(exam_marks) if exam_marks else 0
-            grade = calculate_grade(average_score)
-            remarks = "Keep working hard!" if grade != "A" else "Excellent work!"
-            key = (pupil.id, exam_id)
-            report = report_map.get(key)
-            if not report:
-                report = Report(
-                    pupil_id=pupil.id,
-                    exam_id=exam_id,
-                    total_score=total_score,
-                    average_score=average_score,
-                    grade=grade,
-                    remarks=remarks
-                )
-                db.session.add(report)
-                report_map[key] = report
-            else:
-                report.total_score = total_score
-                report.average_score = average_score
-                report.grade = grade
-                report.remarks = remarks
-            reports.append(report)
-
-    db.session.commit()
-
     # Prepare subject count and pupils_by_class map
     subjects = Subject.query.all()
     subject_count = len(subjects) if subjects else 0
     pupils_by_class = {}
     classes_to_check = set(p.class_id for p in assigned_pupils if p.class_id)
-    for cid in classes_to_check:
-        pupils_by_class[cid] = Pupil.query.filter_by(class_id=cid).all()
+    if classes_to_check:
+        all_class_pupils = Pupil.query.filter(Pupil.class_id.in_(classes_to_check)).all()
+        for cid in classes_to_check:
+            pupils_by_class[cid] = [p for p in all_class_pupils if p.class_id == cid]
 
-    # Compute combined stats per term using selected exams
+    # ✅ ONLY FETCH existing reports from database - no calculations
+    # Combined stats are pre-calculated when reports are created
     combined_stats = {}
-    all_exams = selected_exams if selected_exams else []
-    term_groups = {}
-    for ex in all_exams:
-        term_groups.setdefault(ex.term, []).append(ex.id)
-
-    for term, exam_ids_in_term in term_groups.items():
-        exams_objs = [ex for ex in all_exams if ex.id in exam_ids_in_term]
-        weights_template = {}
-        for ex in exams_objs:
-            name = (ex.name or "").lower()
-            if "mid" in name:
-                weights_template[ex.id] = 0.4
-            elif "end" in name or "end term" in name or "end_term" in name:
-                weights_template[ex.id] = 0.6
-            else:
-                weights_template[ex.id] = None
-
-        assigned_sum = sum(w for w in weights_template.values() if w)
-        none_count = sum(1 for w in weights_template.values() if w is None)
-        if none_count > 0:
-            remaining = max(0.0, 1.0 - assigned_sum)
-            per_none = remaining / none_count if none_count else 0
-            for k in list(weights_template.keys()):
-                if weights_template[k] is None:
-                    weights_template[k] = per_none
-        elif assigned_sum == 0 and len(weights_template) > 0:
-            for k in weights_template.keys():
-                weights_template[k] = 1.0 / len(weights_template)
-
-        combined_totals = {}
-        # for each class, fetch all reports for pupils in the class for these exams
-        for class_id, pupils_in_class_full in pupils_by_class.items():
-            pids = [p.id for p in pupils_in_class_full]
-            if not pids:
-                continue
-            class_reports = Report.query.filter(Report.pupil_id.in_(pids), Report.exam_id.in_(exam_ids_in_term)).all()
-            reports_by_pid = {}
-            for r in class_reports:
-                reports_by_pid.setdefault(r.pupil_id, []).append(r)
-            for p in pupils_in_class_full:
-                reps = reports_by_pid.get(p.id, [])
-                if not reps:
-                    continue
-                weighted_total = 0.0
-                for r in reps:
-                    w = weights_template.get(r.exam_id, 0)
-                    weighted_total += (r.total_score or 0) * w
-                denom = subject_count if subject_count else 1
-                combined_avg = weighted_total / denom
-                combined_totals[p.id] = {'combined_total': round(weighted_total, 2), 'combined_average': round(combined_avg, 2)}
-
-        # assign positions
-        for class_id, pupils_in_class_full in pupils_by_class.items():
-            class_pids = [pid for pid in combined_totals.keys() if any(p.id == pid for p in pupils_in_class_full)]
-            ranked = sorted(class_pids, key=lambda pid: combined_totals[pid]['combined_average'], reverse=True)
-            for pos, pid in enumerate(ranked, start=1):
-                combined_totals[pid]['class_combined_position'] = pos
-            stream_ids_in_class = set(p.stream_id for p in pupils_in_class_full if p.stream_id)
-            for stream_id in stream_ids_in_class:
-                stream_pids = [pid for pid in ranked if any(p.id == pid and p.stream_id == stream_id for p in pupils_in_class_full)]
-                for pos, pid in enumerate(stream_pids, start=1):
-                    combined_totals[pid]['stream_combined_position'] = pos
-
-        # persist combined stats back to report rows in batch and snapshot
-        if combined_totals:
-            affected_pids = list(combined_totals.keys())
-            affected_reports = Report.query.filter(Report.pupil_id.in_(affected_pids), Report.exam_id.in_(exam_ids_in_term)).all()
-            for rep in affected_reports:
-                stats = combined_totals.get(rep.pupil_id)
-                if not stats:
-                    continue
-                gen_remark = calculate_general_remark(stats['combined_average'])
-                combined_grade = calculate_grade(stats['combined_average'])
-                rep.combined_total = stats['combined_total']
-                rep.combined_average = stats['combined_average']
-                rep.combined_grade = combined_grade
-                rep.general_remark = gen_remark
-                rep.combined_position = stats.get('class_combined_position')
-                rep.stream_combined_position = stats.get('stream_combined_position')
-            db.session.commit()
-
-        for pid, stats in combined_totals.items():
-            combined_stats.setdefault(pid, {})[term] = stats
 
     # Prepare template lists and counts
     subjects = Subject.query.all()
@@ -422,18 +305,23 @@ def prepare_print(pupil_id):
     pupil = Pupil.query.get_or_404(pupil_id)
 
     # Build exam query limited by filters
+    # Note: For prepare_print, we show ALL exams by default (no term filter)
+    # unless explicitly filtered. Users can select term via quick buttons.
     exams_q = Exam.query
     if selected_year:
         exams_q = exams_q.filter(Exam.year == selected_year)
-    if selected_term is not None:
-        exams_q = exams_q.filter(Exam.term == selected_term)
-    if types_param != 'both':
+    # Don't filter by term by default on prepare_print - show all terms
+    # if selected_term is not None:
+    #     exams_q = exams_q.filter(Exam.term == selected_term)
+    if types_param != 'both' and types_param != 'all':
         if types_param == 'mid':
             exams_q = exams_q.filter(Exam.name.ilike('%mid%'))
         elif types_param == 'end':
             exams_q = exams_q.filter(Exam.name.ilike('%end%'))
 
     exams_filtered = exams_q.all()
+    # Filter to only generic Midterm and End Term exams (not subject-specific)
+    exams_filtered = [e for e in exams_filtered if e.name in ['Midterm', 'End Term', 'End_term', 'End_Term']]
     exam_ids = [e.id for e in exams_filtered]
 
     # determine which of these exams have reports/marks for this pupil
@@ -445,6 +333,8 @@ def prepare_print(pupil_id):
         marks_exist = {m.exam_id for m in Mark.query.filter(Mark.pupil_id == pupil.id, Mark.exam_id.in_(exam_ids)).all()}
         have_ids = rep_exam_ids.union(marks_exist)
         available_exams = [e for e in exams_filtered if e.id in have_ids]
+        # Sort by term and then by name (Midterm before End Term)
+        available_exams = sorted(available_exams, key=lambda e: (e.term, 'Midterm' not in e.name))
 
     return render_template('teacher/prepare_print.html', pupil=pupil, available_exams=available_exams, selected_year=selected_year, selected_term=selected_term, selected_types=types_param)
 
@@ -454,6 +344,9 @@ def print_selected(pupil_id):
     teacher, redirect_resp = _require_teacher()
     if redirect_resp:
         return redirect_resp
+    import datetime as _dt
+    start_time = _dt.datetime.now()
+    print(f"[PRINT_SELECTED] start {start_time.isoformat()}")
 
     pupil = Pupil.query.get_or_404(pupil_id)
     exam_ids_param = request.args.get('exam_ids') or ''
@@ -468,9 +361,15 @@ def print_selected(pupil_id):
 
     # fetch exams, reports and marks for those exam ids
     exams = Exam.query.filter(Exam.id.in_(exam_ids)).all()
+    # Sort exams by term and then by name (Midterm before End Term)
+    exams = sorted(exams, key=lambda e: (e.term, 'Midterm' not in e.name))
+    print(f"[PRINT_SELECTED] fetched exams ({len(exams)}) at " + _dt.datetime.now().isoformat())
     reports = Report.query.filter(Report.pupil_id == pupil.id, Report.exam_id.in_(exam_ids)).all()
+    print(f"[PRINT_SELECTED] fetched pupil reports ({len(reports)}) at " + _dt.datetime.now().isoformat())
     marks = Mark.query.filter(Mark.pupil_id == pupil.id, Mark.exam_id.in_(exam_ids)).all()
+    print(f"[PRINT_SELECTED] fetched pupil marks ({len(marks)}) at " + _dt.datetime.now().isoformat())
     subjects = Subject.query.all()
+    print(f"[PRINT_SELECTED] fetched subjects ({len(subjects)}) at " + _dt.datetime.now().isoformat())
 
     # Build marks map: exam_id -> list of marks
     marks_by_exam = {}
@@ -514,7 +413,7 @@ def print_selected(pupil_id):
                 mlist = marks_by_exam.get(ex.id, [])
                 total = sum(m.score for m in mlist) if mlist else 0
                 weighted_total += total * weights_template.get(ex.id, 0)
-        combined_avg = round((weighted_total / (subject_count or 1)), 2)
+        combined_avg = round(weighted_total / (subject_count or 1))
         combined = {'combined_total': round(weighted_total,2), 'combined_average': combined_avg, 'combined_grade': calculate_grade(combined_avg), 'general_remark': calculate_general_remark(combined_avg)}
 
     # compute stream positions for each exam and class combined position (if multiple exams)
@@ -530,16 +429,32 @@ def print_selected(pupil_id):
     class_pupil_ids = [p.id for p in class_pupils]
     class_total = len(class_pupil_ids)
 
+    # To avoid N+1 queries, fetch all reports and marks for pupils in this class/stream
+    relevant_pupil_ids = set(stream_pupil_ids) | set(class_pupil_ids)
+    reports_all = Report.query.filter(Report.pupil_id.in_(relevant_pupil_ids), Report.exam_id.in_(exam_ids)).all() if exam_ids else []
+    print(f"[PRINT_SELECTED] fetched reports_all ({len(reports_all)}) for relevant pupils at " + _dt.datetime.now().isoformat())
+    marks_all = Mark.query.filter(Mark.pupil_id.in_(relevant_pupil_ids), Mark.exam_id.in_(exam_ids)).all() if exam_ids else []
+    print(f"[PRINT_SELECTED] fetched marks_all ({len(marks_all)}) for relevant pupils at " + _dt.datetime.now().isoformat())
+
+    # build maps for fast lookup
+    reports_map = {(r.pupil_id, r.exam_id): r for r in reports_all}
+    marks_map = {}
+    for m in marks_all:
+        marks_map.setdefault((m.pupil_id, m.exam_id), []).append(m)
+
     for ex in exams:
-        # build list of (pupil_id, avg) for pupils in same stream
+        # build list of (pupil_id, avg) for pupils in same stream using cached maps
         vals = []
         for pid in stream_pupil_ids:
-            rep = Report.query.filter_by(pupil_id=pid, exam_id=ex.id).first()
-            if rep:
+            rep = reports_map.get((pid, ex.id))
+            if rep and rep.average_score is not None:
                 avg = rep.average_score
             else:
-                marks_other = Mark.query.filter(Mark.pupil_id == pid, Mark.exam_id == ex.id).all()
-                avg = (sum(m.score for m in marks_other) / (len(marks_other) or 1)) if marks_other else None
+                mlist = marks_map.get((pid, ex.id), [])
+                if mlist:
+                    avg = sum(m.score for m in mlist) / len(mlist)
+                else:
+                    avg = None
             if avg is not None:
                 vals.append((pid, avg))
 
@@ -555,20 +470,20 @@ def print_selected(pupil_id):
     # compute combined class ranking if combined was calculated
     class_position = None
     if combined:
-        # compute combined for all pupils in class
+        # compute combined for all pupils in class using cached reports/marks maps
         class_vals = []
         for pid in class_pupil_ids:
             weighted_total_p = 0.0
             has_any = False
             for ex in exams:
-                rep = Report.query.filter_by(pupil_id=pid, exam_id=ex.id).first()
+                rep = reports_map.get((pid, ex.id))
                 if rep:
                     weighted_total_p += (rep.total_score or 0) * weights_template.get(ex.id, 0)
                     has_any = True
                 else:
-                    marks_other = Mark.query.filter(Mark.pupil_id == pid, Mark.exam_id == ex.id).all()
-                    if marks_other:
-                        total = sum(m.score for m in marks_other)
+                    mlist = marks_map.get((pid, ex.id), [])
+                    if mlist:
+                        total = sum(m.score for m in mlist)
                         weighted_total_p += total * weights_template.get(ex.id, 0)
                         has_any = True
             if has_any:
@@ -580,6 +495,7 @@ def print_selected(pupil_id):
             if pid == pupil.id:
                 class_position = idx
                 break
+    print(f"[PRINT_SELECTED] finished calculations at " + _dt.datetime.now().isoformat())
 
     # find class teacher for this class/stream
     class_teacher = None

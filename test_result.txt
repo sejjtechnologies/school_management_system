@@ -1,0 +1,7 @@
+FIRST POST:
+  Status: 400
+  Body: {'message': 'Marks for this pupil for the selected exam/term/year already exist. Use edit if you want to update.', 'success': False}
+
+SECOND POST (duplicate):
+  Status: 400
+  Body: {'message': 'Marks for this pupil for the selected exam/term/year already exist. Use edit if you want to update.', 'success': False}

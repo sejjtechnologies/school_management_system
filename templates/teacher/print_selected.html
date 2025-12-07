@@ -181,6 +181,28 @@
       {% endif %}
     </div>
 
+    <!-- Term Header (if both Midterm and End_term for same term) -->
+    {% set term_groups = {} %}
+    {% for ex in exams %}
+      {% set term_key = ex.term %}
+      {% if term_key not in term_groups %}
+        {% set _ = term_groups.update({term_key: []}) %}
+      {% endif %}
+      {% set _ = term_groups[term_key].append(ex) %}
+    {% endfor %}
+
+    {% for term_num, term_exams in term_groups.items() | sort %}
+      {% set has_midterm = term_exams | selectattr('name', 'in', ['Midterm', 'midterm']) | list | length > 0 %}
+      {% set has_endterm = term_exams | selectattr('name', 'in', ['End_term', 'End Term', 'End_Term', 'EndTerm']) | list | length > 0 %}
+
+      {% if has_midterm and has_endterm %}
+      <div class="card p-3 mb-3" style="background:#b3e5fc; border: 2px solid #01579b;">
+        <h5 style="color:#01579b;">TERM {{ term_num }} COMBINED REPORT</h5>
+        <p class="text-muted small">Showing both Midterm and End_term assessments</p>
+      </div>
+      {% endif %}
+    {% endfor %}
+
     {% for ex in exams %}
     <div class="report-card">
       <h5 class="term-title">{{ ex.name }} - Term {{ ex.term }}/{{ ex.year }}</h5>

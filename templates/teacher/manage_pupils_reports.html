@@ -57,16 +57,44 @@
       left: 0;
       right: 0;
       z-index: 1001;
+      background: linear-gradient(135deg, #e8f5e9 0%, #f1f8f6 100%);
+      padding: 10px 12px;
+      box-shadow: 0 2px 8px rgba(76, 175, 80, 0.15);
+      border-bottom: 2px solid #4caf50;
+    }
+    .search-fixed .input-group {
       background: white;
-      padding: 8px 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-      border-bottom: 1px solid #e9ecef;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(76, 175, 80, 0.1);
+      border: 1px solid #81c784;
+    }
+    .search-fixed .form-control {
+      border: none;
+      font-size: 0.85rem;
+      color: #2e7d32;
+    }
+    .search-fixed .form-control::placeholder {
+      color: #a5d6a7;
+    }
+    .search-fixed .form-control:focus {
+      box-shadow: none;
+      background-color: #f1f8f6;
+      color: #1b5e20;
+    }
+    .search-fixed .btn-outline-secondary {
+      border: none;
+      color: #4caf50;
+      background-color: transparent;
+    }
+    .search-fixed .btn-outline-secondary:hover {
+      background-color: #e8f5e9;
+      color: #2e7d32;
     }
     main {
       flex: 1;
       overflow-y: auto;
       overflow-x: hidden;
-      margin-top: 70px;
+      margin-top: 120px;
       padding: 12px;
       -webkit-overflow-scrolling: touch;
       padding-bottom: 80px;
@@ -109,24 +137,62 @@
     }
     .filter-row {
       display: flex;
-      gap: 8px;
+      gap: 10px;
       flex-wrap: wrap;
       align-items: flex-end;
       margin-bottom: 12px;
+      background: linear-gradient(135deg, #c8e6c9 0%, #e8f5e9 100%);
+      padding: 12px 14px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(76, 175, 80, 0.2);
+      border-left: 4px solid #4caf50;
     }
     .filter-group {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 4px;
     }
     .filter-group label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #666;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #1b5e20;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     .filter-group select {
-      font-size: 0.8rem;
-      padding: 4px 6px;
+      font-size: 0.85rem;
+      padding: 6px 8px;
+      border: 1.5px solid #81c784;
+      border-radius: 6px;
+      background-color: white;
+      color: #2e7d32;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .filter-group select:hover {
+      border-color: #4caf50;
+      box-shadow: 0 2px 4px rgba(76, 175, 80, 0.15);
+    }
+    .filter-group select:focus {
+      outline: none;
+      border-color: #4caf50;
+      box-shadow: 0 0 6px rgba(76, 175, 80, 0.3);
+      background-color: #f1f8f6;
+    }
+    #applyFilters {
+      background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+      border: none;
+      color: white;
+      font-weight: 600;
+      border-radius: 6px;
+      padding: 6px 14px;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+    }
+    #applyFilters:hover {
+      background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
+      box-shadow: 0 4px 8px rgba(76, 175, 80, 0.4);
+      transform: translateY(-1px);
     }
     footer {
       margin-top: auto;
@@ -229,9 +295,7 @@
                 <tr>
                   <td>{{ loop.index }}</td>
                   <td>
-                    <a href="{{ url_for('teacher_manage_reports.view_pupil_report', pupil_id=pupil.id) }}">
-                      {{ pupil.first_name }} {{ pupil.last_name }}
-                    </a>
+                    {{ pupil.first_name }} {{ pupil.last_name }}
                   </td>
                   <td>
                     <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('teacher_manage_reports.prepare_print', pupil_id=pupil.id) }}?year={{ selected_year }}&term={{ selected_term or 'all' }}&types={{ selected_types }}" target="_blank">Print</a>

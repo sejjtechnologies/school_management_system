@@ -9,13 +9,25 @@
 <body>
   <div class="container py-4">
     <h4>Prepare print for {{ pupil.first_name }} {{ pupil.last_name }}</h4>
-    <p class="text-muted">Select the term snapshots you want to include in the printout.</p>
+    <p class="text-muted">Select the term or exams you want to include in the printout.</p>
 
     {% if available_exams %}
+      <!-- Term Quick Select -->
+      <div class="card p-3 mb-4" style="background: #e3f2fd;">
+        <h6>Quick Select by Term</h6>
+        <p class="text-muted small">Click a term to automatically select both Midterm and End_term for that term</p>
+        <div class="btn-group" role="group">
+          <button type="button" class="btn btn-outline-primary" onclick="selectTermExams(1)">Term 1</button>
+          <button type="button" class="btn btn-outline-primary" onclick="selectTermExams(2)">Term 2</button>
+          <button type="button" class="btn btn-outline-primary" onclick="selectTermExams(3)">Term 3</button>
+        </div>
+      </div>
+
       <form id="printForm" method="get" action="{{ url_for('teacher_manage_reports.print_selected', pupil_id=pupil.id) }}">
         <input type="hidden" name="year" value="{{ selected_year }}">
         <input type="hidden" name="term" value="{{ selected_term or 'all' }}">
         <input type="hidden" name="types" value="{{ selected_types }}">
+        <h6 class="mb-3">Or manually select exams:</h6>
         <div class="list-group mb-3">
           {% for ex in available_exams %}
             <label class="list-group-item">
@@ -30,6 +42,27 @@
       </form>
 
       <script>
+        // Build list of exams by term for quick reference
+        const examsByTerm = {};
+        {% for ex in available_exams %}
+          if (!examsByTerm[{{ ex.term }}]) examsByTerm[{{ ex.term }}] = [];
+          examsByTerm[{{ ex.term }}].push({{ ex.id }});
+        {% endfor %}
+
+        function selectTermExams(termNum) {
+          // Get exam IDs for this term
+          const termExamIds = examsByTerm[termNum] || [];
+          if (termExamIds.length === 0) { 
+            alert('No exams found for Term ' + termNum); 
+            return; 
+          }
+          
+          // Navigate directly to print_selected with those exam IDs
+          const base = '{{ url_for("teacher_manage_reports.print_selected", pupil_id=pupil.id) }}';
+          const url = base + '?exam_ids=' + encodeURIComponent(termExamIds.join(','));
+          window.open(url, '_blank');
+        }
+
         document.getElementById('printForm').addEventListener('submit', function(e){
           // collect checked exam_ids and redirect with comma-separated list
           e.preventDefault();
@@ -37,11 +70,6 @@
           if (checks.length === 0) { alert('Please select at least one exam snapshot to print.'); return; }
           var ids = checks.map(function(c){ return c.value; }).join(',');
           var base = this.action + '?exam_ids=' + encodeURIComponent(ids);
-          // preserve year/term/types in query too
-          var year = document.querySelector('input[name="year"]').value;
-          var term = document.querySelector('input[name="term"]').value;
-          var types = document.querySelector('input[name="types"]').value;
-          base += '&year=' + encodeURIComponent(year) + '&term=' + encodeURIComponent(term) + '&types=' + encodeURIComponent(types);
           window.open(base, '_blank');
         });
       </script>

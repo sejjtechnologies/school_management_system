@@ -63,6 +63,11 @@ class Report(db.Model):
     grade = db.Column(db.String(5), nullable=False)
     remarks = db.Column(db.String(255))
 
+    # ✅ Combined stats (for Midterm + End Term combined results)
+    combined_total = db.Column(db.Float)      # Combined score across multiple exams
+    combined_average = db.Column(db.Float)    # Combined average
+    combined_grade = db.Column(db.String(5))  # Combined grade
+
     # ✅ New columns for positions
     stream_position = db.Column(db.Integer)   # Rank within stream
     class_position = db.Column(db.Integer)    # Rank within class

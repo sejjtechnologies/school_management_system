@@ -103,6 +103,15 @@ def register_pupil():
 # POST: Handle registration
 @secretary_routes.route("/register-pupil", methods=["POST"])
 def submit_pupil():
+    # Validate required fields
+    if not request.form.get("class") or not request.form.get("class").strip():
+        flash("Class is required", "error")
+        return redirect(url_for("secretary_routes.register_pupil"))
+    
+    if not request.form.get("stream") or not request.form.get("stream").strip():
+        flash("Stream is required", "error")
+        return redirect(url_for("secretary_routes.register_pupil"))
+    
     admission_date = datetime.strptime(request.form["admission_date"], "%Y-%m-%d").date()
     admission_number = generate_admission_number()
     receipt_number = generate_receipt_number()
@@ -130,8 +139,8 @@ def submit_pupil():
         guardian_occupation=request.form.get("guardian_occupation"),
         guardian_phone=request.form["guardian_phone"],
         guardian_address=request.form.get("guardian_address"),
-        class_id=request.form["class"],
-        stream_id=request.form.get("stream"),
+        class_id=int(request.form["class"]),
+        stream_id=int(request.form["stream"]),
         previous_school=request.form.get("previous_school"),
         roll_number=roll_number,
         photo=photo_path,
@@ -174,6 +183,15 @@ def edit_pupil(pupil_id):
 @secretary_routes.route("/edit-pupil/<int:pupil_id>", methods=["POST"])
 def update_pupil(pupil_id):
     pupil = Pupil.query.get_or_404(pupil_id)
+    
+    # Validate required fields
+    if not request.form.get("class_id") or not request.form.get("class_id").strip():
+        flash("Class is required", "error")
+        return redirect(url_for("secretary_routes.edit_pupil", pupil_id=pupil_id))
+    
+    if not request.form.get("stream_id") or not request.form.get("stream_id").strip():
+        flash("Stream is required", "error")
+        return redirect(url_for("secretary_routes.edit_pupil", pupil_id=pupil_id))
 
     pupil.receipt_number = request.form.get("receipt_number")
     pupil.admission_date = datetime.strptime(request.form["admission_date"], "%Y-%m-%d").date()
@@ -194,8 +212,8 @@ def update_pupil(pupil_id):
     pupil.guardian_occupation = request.form.get("guardian_occupation")
     pupil.guardian_phone = request.form["guardian_phone"]
     pupil.guardian_address = request.form.get("guardian_address")
-    pupil.class_id = request.form["class_id"]
-    pupil.stream_id = request.form["stream_id"]
+    pupil.class_id = int(request.form["class_id"])
+    pupil.stream_id = int(request.form["stream_id"])
     pupil.previous_school = request.form.get("previous_school")
     pupil.enrollment_status = request.form["enrollment_status"]
 

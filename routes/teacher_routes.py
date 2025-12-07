@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, session, flash, redirect, url_for, request
+from flask import Blueprint, render_template, session, flash, redirect, url_for, request, jsonify
 from models.user_models import User, Role, db
 from models.class_model import Class
 from models.stream_model import Stream
@@ -12,6 +12,7 @@ from models.period_confirmation import PeriodConfirmation
 import csv
 import io
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy import func
 from datetime import datetime, timedelta
 import json
 
@@ -174,8 +175,72 @@ def manage_marks():
         year = int(request.form.get("year", 0))
         exam_name = request.form.get("exam_name", "").strip().replace(" ", "_")
 
-        exam = Exam.query.filter_by(name=exam_name, term=term, year=year).first()
-        if not exam:
+        # Look up exam first (case-insensitive). If it exists and this pupil already has marks for it,
+        # reject to prevent duplicate entry for the same pupil/year/term/exam.
+        # Use a case-insensitive comparison to avoid accidental duplicates due to casing.
+        exam = (
+            Exam.query
+            .filter(func.lower(Exam.name) == exam_name.lower(), Exam.term == term, Exam.year == year)
+            .first()
+        )
+        if exam:
+            # Robust duplicate check: look for any marks or reports for this pupil
+            # associated with this exam id. If found, block the POST.
+            existing_mark_check = Mark.query.filter_by(pupil_id=pupil_id, exam_id=exam.id).first()
+            existing_report_check = Report.query.filter_by(pupil_id=pupil_id, exam_id=exam.id).first()
+            if existing_mark_check or existing_report_check:
+                message = (
+                    "Marks for this pupil for the selected exam/term/year already exist. "
+                    "Use edit if you want to update."
+                )
+                # DEBUG: write details to a debug log to help trace why duplicates are detected
+                try:
+                    with open('duplicate_debug.log', 'a') as dbg:
+                        dbg.write(f"DUPLICATE BLOCK: pupil_id={pupil_id} exam_id={exam.id} ")
+                        dbg.write(f"existing_mark={bool(existing_mark_check)} existing_report={bool(existing_report_check)}\n")
+                except Exception:
+                    pass
+                # If request expects JSON (AJAX), return JSON error with 400.
+                wants_json = (
+                    request.headers.get('X-Requested-With') == 'XMLHttpRequest' or
+                    'application/json' in request.headers.get('Accept', '')
+                )
+                if wants_json:
+                    return jsonify({"success": False, "message": message}), 400
+                # Otherwise render the template with an error message flashed/returned
+                flash(message, 'danger')
+                # Re-render the page with the form and error message
+                assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
+                records = []
+                for assignment in assignments:
+                    pupils = Pupil.query.filter_by(
+                        class_id=assignment.class_id,
+                        stream_id=assignment.stream_id
+                    ).all()
+                    records.extend(pupils)
+
+                pupils = records
+                subjects = Subject.query.all()
+                streams = Stream.query.all()
+                classes = Class.query.all()
+
+                years = [2025, 2026, 2027]
+                terms = [1, 2, 3]
+                exam_types = ["Midterm", "End_Term"]
+
+                return render_template(
+                    "teacher/manage_pupils_marks.html",
+                    pupils=pupils,
+                    subjects=subjects,
+                    streams=streams,
+                    classes=classes,
+                    years=years,
+                    terms=terms,
+                    exam_types=exam_types,
+                    success_message=None,
+                )
+        else:
+            # Create exam using the normalized name (spaces -> underscores preserved from exam_name)
             exam = Exam(name=exam_name, term=term, year=year)
             db.session.add(exam)
             db.session.commit()
@@ -208,8 +273,38 @@ def manage_marks():
 
         db.session.commit()
 
-        # ✅ Redirect to correct endpoint in teacher_manage_reports blueprint
-        return redirect(url_for("teacher_manage_reports.manage_pupils_reports"))
+        # ✅ AUTO-CREATE REPORT immediately after marks are saved
+        # This ensures manage_reports always has fresh data when clicked
+        marks = Mark.query.filter_by(pupil_id=pupil_id, exam_id=exam.id).all()
+        if marks:
+            total_score = sum(m.score for m in marks)
+            average_score = total_score / len(marks) if marks else 0
+            grade = calculate_grade(average_score)
+
+            # Create or update report
+            report = Report.query.filter_by(pupil_id=pupil_id, exam_id=exam.id).first()
+            if not report:
+                report = Report(
+                    pupil_id=pupil_id,
+                    exam_id=exam.id,
+                    total_score=total_score,
+                    average_score=average_score,
+                    grade=grade,
+                    remarks="Keep working hard!"
+                )
+                db.session.add(report)
+            else:
+                report.total_score = total_score
+                report.average_score = average_score
+                report.grade = grade
+
+            db.session.commit()
+
+        # ✅ Return JSON success message instead of redirecting
+        return jsonify({
+            "success": True,
+            "message": "✅ Marks saved successfully!"
+        })
 
     assignments = TeacherAssignment.query.filter_by(teacher_id=teacher.id).all()
     records = []
@@ -254,6 +349,37 @@ def generate_report(pupil_id, term, year, exam_name):
             stream_id=assignment.stream_id
         ).all()
         allowed_pupil_ids.extend([p.id for p in pupils])
+
+
+@teacher_routes.route('/marks_status')
+def marks_status():
+    """Return JSON of saved exam names for a given pupil/year/term.
+    Client uses this to disable already-saved exam options.
+    """
+    teacher, redirect_resp = _require_teacher()
+    if redirect_resp:
+        return redirect_resp
+
+    try:
+        pupil_id = int(request.args.get('pupil_id') or 0)
+        year = int(request.args.get('year') or 0)
+        term = int(request.args.get('term') or 0)
+    except ValueError:
+        return jsonify({'saved_exams': []})
+
+    if not (pupil_id and year and term):
+        return jsonify({'saved_exams': []})
+
+    saved = []
+    # Find exams for that year/term where marks or reports exist for this pupil
+    exams = Exam.query.filter_by(year=year, term=term).all()
+    for ex in exams:
+        mark_exists = Mark.query.filter_by(pupil_id=pupil_id, exam_id=ex.id).first() is not None
+        report_exists = Report.query.filter_by(pupil_id=pupil_id, exam_id=ex.id).first() is not None
+        if mark_exists or report_exists:
+            saved.append(ex.name)
+
+    return jsonify({'saved_exams': saved})
 
     if pupil_id not in allowed_pupil_ids:
         flash("Access denied. This pupil is not assigned to you.", "danger")
@@ -365,13 +491,32 @@ def generate_report(pupil_id, term, year, exam_name):
     stream_ranked = sorted([pid for pid in stream_pupils if pid in combined_totals], key=lambda pid: combined_totals[pid]['combined_average'], reverse=True)
     stream_positions = {pid: idx+1 for idx, pid in enumerate(stream_ranked)}
 
+    # ✅ Save combined stats back to all reports in this term
+    for pid, stats in combined_totals.items():
+        combined_grade = calculate_grade(stats['combined_average'])
+        general_remark = calculate_general_remark(stats['combined_average'])
+        class_pos = class_positions.get(pid)
+        stream_pos = stream_positions.get(pid)
+
+        # Update all reports for this pupil in this term
+        term_reports = Report.query.filter(Report.pupil_id == pid, Report.exam_id.in_(exam_ids_in_term)).all()
+        for rep in term_reports:
+            rep.combined_total = stats['combined_total']
+            rep.combined_average = stats['combined_average']
+            rep.combined_grade = combined_grade
+            rep.general_remark = general_remark
+            rep.combined_position = class_pos
+
+        stats['class_combined_position'] = class_pos
+        stats['stream_combined_position'] = stream_pos
+        stats['combined_grade'] = combined_grade
+        stats['general_remark'] = general_remark
+
+    db.session.commit()
+
     # Attach combined stats into a dict for the template
     combined_stats = {}
     for pid, stats in combined_totals.items():
-        stats['class_combined_position'] = class_positions.get(pid)
-        stats['stream_combined_position'] = stream_positions.get(pid)
-        stats['combined_grade'] = calculate_grade(stats['combined_average'])
-        stats['general_remark'] = calculate_general_remark(stats['combined_average'])
         combined_stats[pid] = stats
 
     # counts

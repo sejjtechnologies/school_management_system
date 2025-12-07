@@ -119,9 +119,26 @@
       display: block;
       width: 100%;
       margin-top: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
     }
-    .submit-btn:hover {
+    .submit-btn:hover:not(:disabled) {
       background-color: #218838;
+    }
+    .submit-btn:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    .submit-btn.saving {
+      background-color: #ffc107;
+      color: #000;
+    }
+    .submit-btn.success {
+      background-color: #28a745;
+    }
+    .submit-btn.error {
+      background-color: #dc3545;
     }
 
     @media (max-width: 576px) {
@@ -148,7 +165,33 @@
   <!-- Main Content -->
   <main>
     <div class="form-section">
-      <form method="POST" action="{{ url_for('teacher_routes.manage_marks') }}">
+      <!-- Success Alert -->
+      <div id="successAlert" class="alert alert-success d-none alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        <strong>Success!</strong> <span id="successMessage"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+
+      <!-- Error Alert -->
+      <div id="errorAlert" class="alert alert-danger d-none alert-dismissible fade show" role="alert">
+        <i class="bi bi-x-circle-fill me-2"></i>
+        <strong>Error!</strong> <span id="errorMessage"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+
+      <!-- Server-side flashed messages (for non-AJAX flows) -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, msg in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'danger' else ( 'success' if category == 'success' else category ) }} alert-dismissible fade show" role="alert">
+              {{ msg }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form id="marksForm" method="POST" action="{{ url_for('teacher_routes.manage_marks') }}">
 
         <!-- Select Pupil -->
         <div class="mb-3">
@@ -227,11 +270,197 @@
 
   <!-- Script to auto-fill class and stream -->
   <script>
+    // savedExams will be fetched from server for the selected pupil/year/term
+    let savedExams = [];
+
     function updatePupilInfo(select) {
       const selectedOption = select.options[select.selectedIndex];
       document.getElementById('class_name').value = selectedOption.getAttribute('data-class') || '';
       document.getElementById('stream_name').value = selectedOption.getAttribute('data-stream') || '';
+      
+      // Update disabled exams when pupil changes
+      updateDisabledExams();
     }
+
+    async function updateDisabledExams() {
+      const pupilId = document.getElementById('pupil_id').value;
+      const year = document.getElementById('year').value;
+      const term = document.getElementById('term').value;
+      const examSelect = document.getElementById('exam_name');
+
+      // Clear any existing disabled state first
+      for (let option of examSelect.options) {
+        option.disabled = false;
+        if (option.textContent.includes(' (Already Saved)')) {
+          option.textContent = option.value;
+        }
+      }
+
+      if (!pupilId || !year || !term) {
+        return;
+      }
+
+      try {
+        const q = new URLSearchParams({ pupil_id: pupilId, year: year, term: term });
+        const resp = await fetch(`${location.origin}{{ url_for('teacher_routes.marks_status') }}?` + q.toString());
+        if (!resp.ok) {
+          // nothing to do, keep options enabled
+          return;
+        }
+        const json = await resp.json();
+        savedExams = json.saved_exams || [];
+
+        // Update option disabled states based on savedExams
+        for (let option of examSelect.options) {
+          if (option.value && savedExams.includes(option.value)) {
+            // Mark option as saved but keep it selectable so the teacher can view existing marks
+            option.disabled = false;
+            option.dataset.saved = 'true';
+            option.textContent = option.value + ' (Already Saved)';
+          } else {
+            option.dataset.saved = 'false';
+            // Ensure original label restored if previously modified
+            if (option.textContent.endsWith(' (Already Saved)')) {
+              option.textContent = option.value;
+            }
+          }
+        }
+        // If the currently selected exam is already saved, disable mark inputs and save button
+        if (examSelect.value && savedExams.includes(examSelect.value)) {
+          setFormDisabled(true);
+        } else {
+          setFormDisabled(false);
+        }
+      } catch (err) {
+        console.error('Failed to fetch saved exams:', err);
+      }
+    }
+
+    // Update disabled exams when year or term changes
+    document.getElementById('year').addEventListener('change', updateDisabledExams);
+    document.getElementById('term').addEventListener('change', updateDisabledExams);
+    document.getElementById('pupil_id').addEventListener('change', updateDisabledExams);
+
+    // Handle form submission via AJAX
+    document.getElementById('marksForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const submitBtn = document.querySelector('.submit-btn');
+      const pupilId = document.getElementById('pupil_id').value;
+      const year = document.getElementById('year').value;
+      const term = document.getElementById('term').value;
+      const examName = document.getElementById('exam_name').value;
+
+      const formData = new FormData(this);
+
+      try {
+        // Change button state to "Saving..."
+        submitBtn.disabled = true;
+        submitBtn.classList.add('saving');
+        submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Saving...';
+
+        const response = await fetch('{{ url_for("teacher_routes.manage_marks") }}', {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          },
+          body: formData
+        });
+
+        if (!response.ok) {
+          const errBody = await response.json().catch(() => ({}));
+          throw new Error(errBody.message || 'Server rejected request');
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Refresh disabled exams from server so the saved exam becomes disabled
+          await updateDisabledExams();
+
+          // Show success alert
+          document.getElementById('successMessage').textContent = data.message;
+          const successAlert = document.getElementById('successAlert');
+          successAlert.classList.remove('d-none');
+
+          // Change button to success state
+          submitBtn.classList.remove('saving');
+          submitBtn.classList.add('success');
+          submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i> Saved!';
+
+          // Hide error alert if visible
+          document.getElementById('errorAlert').classList.add('d-none');
+
+          // Reset form after 2 seconds
+          setTimeout(() => {
+            this.reset();
+            document.getElementById('class_name').value = '';
+            document.getElementById('stream_name').value = '';
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('success');
+            submitBtn.innerHTML = 'Save Marks';
+            updateDisabledExams();
+          }, 2000);
+
+          // Hide success alert after 5 seconds
+          setTimeout(() => {
+            successAlert.classList.add('d-none');
+          }, 5000);
+        } else {
+          throw new Error(data.message || 'Unknown error');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        
+        // Show error alert
+        document.getElementById('errorMessage').textContent = error.message || 'Failed to save marks. Please try again.';
+        const errorAlert = document.getElementById('errorAlert');
+        errorAlert.classList.remove('d-none');
+
+        // Change button to error state
+        submitBtn.classList.remove('saving');
+        submitBtn.classList.add('error');
+        submitBtn.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i> Error';
+
+        // Restore button after 3 seconds
+        setTimeout(() => {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('error');
+          submitBtn.innerHTML = 'Save Marks';
+        }, 3000);
+      }
+    });
+
+    // Disable or enable form inputs when a saved exam is selected
+    function setFormDisabled(disabled) {
+      const submitBtn = document.querySelector('.submit-btn');
+      // Disable score inputs
+      const scoreInputs = document.querySelectorAll('input[id^="score_"]');
+      scoreInputs.forEach(inp => {
+        inp.disabled = disabled;
+      });
+      // Disable submit button but keep exam and pupil selectors enabled so teacher can switch
+      submitBtn.disabled = disabled;
+      if (disabled) {
+        submitBtn.classList.add('error');
+        submitBtn.innerHTML = '<i class="bi bi-lock-fill me-2"></i> Already Saved';
+      } else {
+        submitBtn.classList.remove('error');
+        submitBtn.innerHTML = 'Save Marks';
+      }
+    }
+
+    // When teacher changes the selected exam, check if it's already saved
+    document.getElementById('exam_name').addEventListener('change', function() {
+      const examSelect = this;
+      const selected = examSelect.options[examSelect.selectedIndex];
+      const isSaved = selected && selected.dataset && selected.dataset.saved === 'true';
+      setFormDisabled(!!isSaved);
+    });
+
+    // Initialize disabled exams on page load if needed
+    updateDisabledExams();
   </script>
 </body>
 </html>
