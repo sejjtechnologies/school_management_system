@@ -19,9 +19,7 @@
           <tr>
             <td>{{ loop.index }}</td>
             <td>
-              <a href="{{ url_for('teacher_manage_reports.view_pupil_report', pupil_id=pupil.id) }}">
-                {{ pupil.first_name }} {{ pupil.last_name }}
-              </a>
+              {{ pupil.first_name }} {{ pupil.last_name }}
             </td>
             <td>
               <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('teacher_manage_reports.prepare_print', pupil_id=pupil.id) }}?year={{ selected_year }}&term={{ selected_term or 'all' }}&types={{ selected_types }}" target="_blank">Print</a>
