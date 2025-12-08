@@ -165,6 +165,7 @@
           <table class="table roster-table mb-0">
             <thead>
               <tr>
+                <th style="width:40px;"></th>
                 <th>Name</th>
                 <th>Stream</th>
                 <th class="text-center">Present</th>
@@ -283,12 +284,13 @@
 
     function renderTable() {
       const visible = getVisiblePupils();
-      const html = visible.map(p => {
+      const html = visible.map(function(p, idx) {
         const status = currentAttendance[p.id] || '';
         const alreadySaved = attendanceMapFromBackend[p.id] !== undefined;
         const inputDisabled = alreadySaved ? 'disabled' : '';
         return `\
           <tr id="pupil_row_${p.id}">\
+            <td>${idx + 1}</td>\
             <td class="pupil-name">${p.first_name} ${p.last_name}</td>\
             <td> ${p.stream_name || ('Stream ' + (p.stream_id||''))} </td>\
             <td class="checkbox-cell text-center">\
