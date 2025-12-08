@@ -1,6 +1,7 @@
 from flask import Blueprint, request, redirect, render_template, flash, session, url_for, Response
 from werkzeug.security import check_password_hash
 from models.user_models import db, User, Role, AdminSession
+from models.salary_models import RoleSalary
 from models.teacher_assignment_models import TeacherAssignment
 from models.register_pupils import Pupil   # ✅ Import pupil model
 import csv
@@ -482,7 +483,20 @@ def secretary_dashboard():
 
 @user_routes.route("/headteacher/dashboard")
 def headteacher_dashboard():
-    return render_template("headteacher/dashboard.html")
+    # Provide role salary defaults to the template so the staff table can show role-based salaries
+    role_salaries = []
+    try:
+        rs_rows = RoleSalary.query.join(Role, RoleSalary.role_id == Role.id).all()
+        for r in rs_rows:
+            role_salaries.append({
+                'id': r.id,
+                'role_id': r.role_id,
+                'role_name': getattr(r.role, 'role_name', None),
+                'amount': str(r.amount) if getattr(r, 'amount', None) is not None else None,
+            })
+    except Exception:
+        role_salaries = []
+    return render_template("headteacher/dashboard.html", role_salaries=role_salaries)
 
 @user_routes.route("/parent/dashboard")
 def parent_dashboard():

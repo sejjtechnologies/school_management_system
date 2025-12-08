@@ -30,12 +30,23 @@
     .toast.success .toast-body { color: #155724; font-weight: 600; }
     .toast.error .toast-body { color: #721c24; font-weight: 600; }
     /* attendance info display */
-    .attendance-info { display: flex; gap: 12px; align-items: center; padding: 6px 0; margin-bottom: 10px; border-bottom: 1px solid rgba(0,0,0,0.1); font-size: 0.78rem; }
-    .attendance-info-item { display: flex; gap: 4px; align-items: center; }
-    .attendance-info-label { font-weight: 600; color: #495057; }
-    .attendance-info-value { color: #1b5e20; font-weight: 500; }
+    .attendance-info { display: flex; flex-wrap:wrap; gap: 8px; align-items: center; padding: 4px 0 0 0; margin-top:6px; font-size: 0.72rem; }
+    .attendance-info-item { display: inline-flex; gap: 6px; align-items: center; white-space:nowrap; }
+    .attendance-info-label { font-weight: 700; color: #495057; font-size:0.68rem; }
+    .attendance-info-value { color: #1b5e20; font-weight: 600; font-size:0.72rem; }
+    /* make KPI card content compact so icon stays inside card */
+    .kpi-card .card-body { padding: .65rem .9rem; }
+    .kpi-card h6 { font-size: 0.8rem; }
+    .kpi-card h3 { font-size: 1.4rem; margin: 0.15rem 0; }
+    .kpi-card .display-6 { font-size: 1.6rem; }
+    .kpi-card .kpi-left { flex: 1 1 auto; min-width:0; }
+    .kpi-card .kpi-icon { flex: 0 0 auto; margin-left: 10px; }
     /* smaller saved timestamp to avoid increasing card height */
     .attendance-info-saved { font-size: 0.72rem; color: #495057; font-weight: 500; opacity: 0.95; }
+    /* Compact staff table to reduce row height and column padding */
+    .table-compact { font-size: 0.88rem; }
+    .table-compact th, .table-compact td { padding: 0.32rem 0.5rem; }
+    .table-compact td { line-height: 1.05; }
   </style>
 </head>
 <body>
@@ -58,7 +69,7 @@
         <div class="card kpi-card shadow-sm">
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-center">
-              <div>
+              <div class="kpi-left">
                 <h6 class="mb-0">Total Staff</h6>
                 <h3 id="totalStaff">--</h3>
                 <div class="small-muted">All active employees</div>
@@ -107,8 +118,27 @@
                 <h6 class="mb-0">Attendance (Today)</h6>
                 <h3 id="attendanceToday">--</h3>
                 <div class="small-muted">Staff present</div>
+                <!-- moved attendance info (date, saved, term, year) here to keep dashboard compact -->
+                <div class="attendance-info mt-2">
+                  <div class="attendance-info-item">
+                    <span class="attendance-info-label">Date:</span>
+                    <span class="attendance-info-value" id="attendanceInfoDate">--</span>
+                  </div>
+                  <div class="attendance-info-item">
+                    <span class="attendance-info-label">Saved:</span>
+                    <span class="attendance-info-value attendance-info-saved" id="attendanceInfoSaved">--</span>
+                  </div>
+                  <div class="attendance-info-item">
+                    <span class="attendance-info-label">Term:</span>
+                    <span class="attendance-info-value" id="attendanceInfoTerm">--</span>
+                  </div>
+                  <div class="attendance-info-item">
+                    <span class="attendance-info-label">Year:</span>
+                    <span class="attendance-info-value" id="attendanceInfoYear">--</span>
+                  </div>
+                </div>
               </div>
-              <div class="display-6 text-info"><i class="bi bi-calendar-check-fill"></i></div>
+              <div class="kpi-icon display-6 text-info"><i class="bi bi-calendar-check-fill"></i></div>
             </div>
           </div>
         </div>
@@ -126,14 +156,13 @@
           </div>
           <div class="card-body p-0">
             <div class="table-responsive">
-              <table class="table table-striped table-hover mb-0">
+              <table class="table table-striped table-hover mb-0 table-compact">
                 <thead class="table-light">
                   <tr>
                     <th>Name</th>
                     <th>Role</th>
-                    <th>Salary</th>
-                    <th>Last Paid</th>
-                    <th class="text-end">Actions</th>
+                    <th style="width:140px">Salary</th>
+                    <th style="max-width:110px">Last Paid</th>
                   </tr>
                 </thead>
                 <tbody id="staffTableBody">
@@ -159,25 +188,7 @@
             <small class="small-muted">Mark present/absent</small>
           </div>
           <div class="card-body p-2">
-            <!-- Attendance info display (date, saved time, term, year) -->
-            <div class="attendance-info">
-              <div class="attendance-info-item">
-                <span class="attendance-info-label">Date:</span>
-                <span class="attendance-info-value" id="attendanceInfoDate">--</span>
-              </div>
-              <div class="attendance-info-item">
-                <span class="attendance-info-label">Saved:</span>
-                <span class="attendance-info-value attendance-info-saved" id="attendanceInfoSaved">--</span>
-              </div>
-              <div class="attendance-info-item">
-                <span class="attendance-info-label">Term:</span>
-                <span class="attendance-info-value" id="attendanceInfoTerm">--</span>
-              </div>
-              <div class="attendance-info-item">
-                <span class="attendance-info-label">Year:</span>
-                <span class="attendance-info-value" id="attendanceInfoYear">--</span>
-              </div>
-            </div>
+            <!-- moved attendance info to the Attendance KPI card at the top -->
 
             <div class="attendance-controls mb-2">
               <label class="small-muted mb-0">Date</label>
@@ -241,6 +252,26 @@
     </div>
     <!-- Toast container for notifications -->
     <div class="toast-container-fixed" id="toastContainer"></div>
+    
+    <!-- Role salaries management card -->
+    <div class="card shadow-sm mt-3" id="roleSalaryCard">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>Manage Role Salaries</strong>
+        <small class="small-muted">Edit salary defaults per role (excl. Parent)</small>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead class="table-light">
+              <tr><th>Role</th><th style="width:200px">Salary</th><th style="width:90px"></th></tr>
+            </thead>
+            <tbody id="roleSalaryTableBody">
+              <tr><td colspan="3" class="small-muted">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -301,6 +332,113 @@
 
     let staffCache = [];
     let saveDisabled = false;
+    let roleSalaryMap = {}; // maps role name -> amount (number)
+
+    // Fetch role salaries via API and populate roleSalaryMap. Render editable table.
+    async function loadRoleSalaries(){
+      try{
+        const res = await fetch('/headteacher/api/role_salaries');
+        if (!res.ok) throw new Error('Failed to load role salaries');
+        const body = await res.json();
+        const list = Array.isArray(body.role_salaries) ? body.role_salaries : (Array.isArray(body) ? body : []);
+        // clear map
+        roleSalaryMap = {};
+        list.forEach(r => {
+          if (r && r.role_name && r.role_name.toLowerCase() !== 'parent'){
+            roleSalaryMap[r.role_name] = (r.amount !== null && r.amount !== undefined) ? Number(r.amount) : 0;
+          }
+        });
+        renderRoleSalariesTable(list.filter(r=> r && r.role_name && r.role_name.toLowerCase() !== 'parent'));
+      }catch(e){ console.warn('Could not load role salaries', e); renderRoleSalariesTable([]); }
+    }
+
+    function renderRoleSalariesTable(list){
+      const tbody = document.getElementById('roleSalaryTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      list.forEach(r => {
+        const tr = document.createElement('tr');
+        const amountVal = (r && r.amount) ? Number(r.amount) : 0;
+        const roleName = r.role_name || '';
+        tr.innerHTML = `
+          <td class="align-middle">${roleName}</td>
+          <td><input type="number" min="0" class="form-control form-control-sm role-salary-input" data-role-id="${r.role_id || ''}" data-id="${r.id || ''}" data-role-name="${roleName}" value="${amountVal}" /></td>
+          <td class="text-end align-middle"><button class="btn btn-sm btn-primary role-salary-save">Save</button></td>
+        `;
+        tbody.appendChild(tr);
+        const btn = tr.querySelector('.role-salary-save');
+        const input = tr.querySelector('.role-salary-input');
+        // remember original value for blur auto-save
+        input.dataset.original = String(amountVal);
+
+        // click handler for explicit save
+        btn.addEventListener('click', async ()=>{
+          const val = Number(input.value || 0);
+          const rsId = input.dataset.id ? Number(input.dataset.id) : null;
+          const roleId = input.dataset.roleId ? Number(input.dataset.roleId) : null;
+          await saveRoleSalary(rsId, roleId, val, input, btn);
+        });
+
+        // press Enter to save
+        input.addEventListener('keydown', async (ev)=>{
+          if (ev.key === 'Enter'){
+            ev.preventDefault();
+            btn.click();
+          }
+        });
+
+        // blur: auto-save if changed
+        input.addEventListener('blur', async ()=>{
+          if (input.dataset.original !== undefined && String(input.value) !== input.dataset.original){
+            btn.click();
+          }
+        });
+      });
+    }
+
+    async function saveRoleSalary(rsId, roleId, amount, inputEl, btnEl){
+      try{
+        btnEl.disabled = true;
+        btnEl.textContent = 'Saving...';
+        let res;
+        if (rsId){
+          // update
+          res = await fetch('/headteacher/api/role_salaries', {
+            method: 'PUT', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id: rsId, amount: String(amount) })
+          });
+        } else {
+          // create
+          res = await fetch('/headteacher/api/role_salaries', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ role_id: roleId, amount: String(amount) })
+          });
+        }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Save failed');
+        showToast('Role salary saved', 'success', 1200);
+        // refresh list and staff display
+        await loadRoleSalaries();
+        // update staff salaries display quickly
+        try{ loadStaff(); loadSummary(); }catch(e){}
+      }catch(e){ showToast('Could not save role salary: '+e.message, 'error', 1500); }
+      finally{ btnEl.disabled = false; btnEl.textContent = 'Save'; }
+    }
+
+
+    // Format timestamp (ISO) to East African 12-hour format with AM/PM
+    function formatEastAfricanTime(isoStr){
+      if (!isoStr) return '-';
+      try{
+        const d = new Date(isoStr);
+        // Use local timezone (assumes server times are UTC or already localized)
+        let h = d.getHours();
+        const m = d.getMinutes();
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        return `${h}:${String(m).padStart(2,'0')} ${ampm}`;
+      }catch(e){ return '-'; }
+    }
     async function loadStaff(){
       try{
         const res = await fetch('/headteacher/api/staff');
@@ -309,10 +447,12 @@
         // API returns an array of staff objects
         staffCache = (Array.isArray(data) ? data : [] ).map(u => {
           const name = `${u.first_name || ''} ${u.last_name || ''}`.trim();
-          // salary_override may be string; convert to cents
+          // salary_override may be string; convert to cents. If missing, use roleSalaryMap
           let salary_cents = null;
           if (u.salary_override !== null && u.salary_override !== undefined){
             salary_cents = Math.round(Number(u.salary_override) * 100);
+          } else if (u.role && roleSalaryMap[u.role] !== undefined){
+            salary_cents = Math.round(Number(roleSalaryMap[u.role]) * 100);
           }
           const last_paid = u.latest_payment ? (u.latest_payment.date || null) : null;
           return {
@@ -340,15 +480,18 @@
           const arr = await attRes.json();
           if (Array.isArray(arr)){
             attendanceArr = arr;
-            arr.forEach(r=> { 
+            arr.forEach(r=> {
               attendanceMap[String(r.staff_id)] = r.status;
               // prefer updated_at timestamp; fallback to created_at
               if (r.updated_at || r.created_at){
                 const ts = new Date(r.updated_at || r.created_at);
-                if (!latestSavedDate || ts > latestSavedDate) latestSavedDate = ts;
+                if (!latestSavedDate || ts > latestSavedDate) {
+                  latestSavedDate = ts;
+                  // capture the term/year from the record that has the latest timestamp
+                  savedTerm = r.term || savedTerm;
+                  savedYear = (r.year || r.year === 0) ? r.year : savedYear;
+                }
               }
-              if (!savedTerm && r.term) savedTerm = r.term;
-              if (!savedYear && (r.year || r.year === 0)) savedYear = r.year;
             });
           }
         }
@@ -356,6 +499,11 @@
         renderStaffTable(staffCache);
         renderAttendanceList(staffCache, attendanceMap);
         updateAttendanceCounts();
+          // Update KPI attendance count to reflect the selected date's attendance
+          try{
+            const presentCount = Object.values(attendanceMap).filter(s => s === 'present').length;
+            document.getElementById('attendanceToday').textContent = presentCount;
+          }catch(e){ /* ignore */ }
         // update attendance info display: show saved timestamp and saved term/year if available
         if (latestSavedDate){
           updateAttendanceInfoWithSaved(latestSavedDate, savedTerm, savedYear);
@@ -374,14 +522,12 @@
       tbody.innerHTML = '';
       list.forEach(s => {
         const tr = document.createElement('tr');
+        const lastPaidDisplay = s.last_paid ? formatEastAfricanTime(s.last_paid) : '-';
         tr.innerHTML = `
           <td>${s.name}</td>
           <td>${s.role}</td>
-          <td class="salaryCell d-none d-md-table-cell">${formatCurrency((s.salary_cents||0)/100)}</td>
-          <td class="d-none d-md-table-cell">${s.last_paid || '-'}</td>
-          <td class="text-end">
-            <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditModal(${s.id})">Edit</button>
-          </td>`;
+          <td>${formatCurrency((s.salary_cents||0)/100)}</td>
+          <td style="font-size:0.85rem;">${lastPaidDisplay}</td>`;
         tbody.appendChild(tr);
       });
     }
@@ -708,7 +854,7 @@
       window.scrollToLastCard = scrollToLastCard;
     }
 
-    (function(){ loadSummary(); loadStaff(); setupScrollBehavior(); updateAttendanceInfo(); })();
+    (function(){ loadSummary(); loadStaff(); loadRoleSalaries(); setupScrollBehavior(); updateAttendanceInfo(); })();
   </script>
   {% include 'footer.html' %}
 </body>
