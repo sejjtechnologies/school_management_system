@@ -257,7 +257,7 @@
   </div>
 
   <!-- ✅ Main Content (scrollable) -->
-  <main>
+  <main class="main-scroll">
     <div class="table-section">
       <h5 class="mb-3" style="font-size: 0.95rem;">Pupils Assigned to You</h5>
 
@@ -497,6 +497,47 @@
       }
 
       cacheRows();
+
+      // Ensure the table scroll area leaves space above the fixed footer so the
+      // last visible row is not covered on small/mobile screens. The site
+      // footer is fixed at the bottom; compute its height and apply padding to
+      // the scrollable table wrapper. Recalculate on resize, footer resize,
+      // and when rows change.
+      function adjustTableBottomGap() {
+        try {
+          var tableWrap = document.querySelector('.table-responsive-sm');
+          var footer = document.querySelector('.site-footer') || document.querySelector('footer');
+          if (!tableWrap || !footer) return;
+          var footerHeight = footer.offsetHeight || 0;
+          // Keep an extra 20px gap as requested
+          var desired = footerHeight + 20;
+          // Only increase padding if it's smaller than desired to avoid shrinking
+          tableWrap.style.paddingBottom = desired + 'px';
+        } catch (e) {
+          // ignore errors
+          console.error('adjustTableBottomGap error', e);
+        }
+      }
+
+      // Run immediately and when layout changes
+      adjustTableBottomGap();
+      window.addEventListener('resize', adjustTableBottomGap);
+      if (window.visualViewport) {
+        visualViewport.addEventListener('resize', adjustTableBottomGap);
+      }
+      // Observe footer size changes if supported
+      var f = document.querySelector('.site-footer') || document.querySelector('footer');
+      if (f && window.ResizeObserver) {
+        try { new ResizeObserver(adjustTableBottomGap).observe(f); } catch(e) {}
+      }
+      // Observe mutations to the table body (rows added/removed)
+      var tb = document.querySelector('#pupilTable tbody');
+      if (tb && window.MutationObserver) {
+        try {
+          var mo = new MutationObserver(function(){ setTimeout(adjustTableBottomGap, 30); });
+          mo.observe(tb, { childList: true, subtree: true });
+        } catch(e) {}
+      }
 
       function applyFilter() {
         var filter = (input.value || '').trim().toLowerCase();
