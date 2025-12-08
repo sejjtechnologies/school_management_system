@@ -239,12 +239,22 @@
     }
 
     function getVisiblePupils() {
-      return pupils.filter(p => {
+      const filtered = pupils.filter(p => {
         if (selectedStream && p.stream_id != selectedStream) return false;
         if (!searchTerm) return true;
         const q = searchTerm.toLowerCase();
         return (p.first_name && p.first_name.toLowerCase().includes(q)) || (p.last_name && p.last_name.toLowerCase().includes(q));
       });
+      // Sort alphabetically by last name, then first name for stable ordering on the client
+      filtered.sort(function(a, b) {
+        const aLast = (a.last_name || '').toLowerCase();
+        const bLast = (b.last_name || '').toLowerCase();
+        if (aLast !== bLast) return aLast.localeCompare(bLast);
+        const aFirst = (a.first_name || '').toLowerCase();
+        const bFirst = (b.first_name || '').toLowerCase();
+        return aFirst.localeCompare(bFirst);
+      });
+      return filtered;
     }
 
     function checkIfDayAlreadySaved() {

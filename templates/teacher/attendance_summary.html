@@ -559,6 +559,32 @@
             computeSummaryHeight();
             window.addEventListener('resize', computeSummaryHeight);
 
+            // Sort summary rows alphabetically by pupil name (client-side) and
+            // renumber the leading index. This keeps the display ordered even
+            // if the server sent rows in a different order.
+            function sortAndRenumberSummary() {
+                const tbody = document.getElementById('summaryTableBody');
+                if (!tbody) return;
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                // sort by .pupil-name text (case-insensitive)
+                rows.sort(function(a, b) {
+                    const aName = (a.querySelector('.pupil-name')?.textContent || '').trim().toLowerCase();
+                    const bName = (b.querySelector('.pupil-name')?.textContent || '').trim().toLowerCase();
+                    return aName.localeCompare(bName);
+                });
+                // re-append in sorted order
+                rows.forEach(r => tbody.appendChild(r));
+                // renumber visible rows only
+                let idx = 1;
+                rows.forEach(r => {
+                    if (r.style.display === 'none') return;
+                    const firstTd = r.querySelector('td');
+                    if (firstTd) firstTd.textContent = String(idx++);
+                });
+            }
+
+            // Run initial sort after initial filters applied below
+
             // simple client-side search filter
             const searchBox = document.getElementById('searchBox');
             searchBox && searchBox.addEventListener('input', function(e){
@@ -574,6 +600,8 @@
                     }
                     r.style.display = visible ? '' : 'none';
                 });
+                // After filtering, renumber the visible rows to keep numbering sequential
+                sortAndRenumberSummary();
             });
 
             // apply initial stream filter (if any) even before typing into search
@@ -585,6 +613,8 @@
                     r.style.display = keep ? '' : 'none';
                 });
             }
+            // Finally, ensure rows are sorted and numbered on initial load
+            sortAndRenumberSummary();
         });
     </script>
 </body>
