@@ -226,6 +226,8 @@ def api_attendance():
                 'status': r.status,
                 'recorded_by': r.recorded_by,
                 'notes': r.notes,
+                'term': getattr(r, 'term', None),
+                'year': getattr(r, 'year', None),
             })
         return jsonify(out)
 
@@ -243,12 +245,17 @@ def api_attendance():
         qdate = datetime.strptime(d, '%Y-%m-%d').date()
     except Exception:
         return jsonify({'error': 'invalid_date_format'}), 400
+    # optional term/year
+    term = payload.get('term')
+    year = payload.get('year')
 
     rec = StaffAttendance.query.filter_by(staff_id=staff_id, date=qdate).first()
     if rec:
         rec.status = status
         rec.recorded_by = recorded_by or rec.recorded_by
         rec.notes = notes or rec.notes
+        if term is not None: rec.term = term
+        if year is not None: rec.year = year
         rec.updated_at = datetime.utcnow()
     else:
         rec = StaffAttendance(
@@ -257,8 +264,72 @@ def api_attendance():
             status=status,
             recorded_by=recorded_by,
             notes=notes,
+            term=term,
+            year=year,
         )
         db.session.add(rec)
 
     db.session.commit()
     return jsonify({'status': 'ok', 'id': rec.id})
+
+
+# Batch attendance endpoint: accept an array of attendance records and upsert them in a transaction
+@headteacher_routes.route('/headteacher/api/attendance/batch', methods=['POST'])
+def api_attendance_batch():
+    payload = request.json or []
+    if not isinstance(payload, list):
+        return jsonify({'error': 'expected_array'}), 400
+
+    results = []
+    errors = []
+    for idx, item in enumerate(payload):
+        staff_id = item.get('staff_id')
+        d = item.get('date')
+        status = item.get('status')
+        recorded_by = item.get('recorded_by')
+        notes = item.get('notes')
+        term = item.get('term')
+        year = item.get('year')
+
+        if not staff_id or not d or not status:
+            errors.append({'index': idx, 'error': 'missing_required'})
+            continue
+        try:
+            qdate = datetime.strptime(d, '%Y-%m-%d').date()
+        except Exception:
+            errors.append({'index': idx, 'error': 'invalid_date_format'})
+            continue
+
+        try:
+            rec = StaffAttendance.query.filter_by(staff_id=staff_id, date=qdate).first()
+            if rec:
+                rec.status = status
+                rec.recorded_by = recorded_by or rec.recorded_by
+                rec.notes = notes or rec.notes
+                if term is not None: rec.term = term
+                if year is not None: rec.year = year
+                rec.updated_at = datetime.utcnow()
+            else:
+                rec = StaffAttendance(
+                    staff_id=staff_id,
+                    date=qdate,
+                    status=status,
+                    recorded_by=recorded_by,
+                    notes=notes,
+                    term=term,
+                    year=year,
+                )
+                db.session.add(rec)
+            db.session.flush()
+            results.append({'index': idx, 'id': rec.id})
+        except Exception as e:
+            db.session.rollback()
+            errors.append({'index': idx, 'error': str(e)})
+    # commit once after processing all
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'commit_failed', 'detail': str(e)}), 500
+
+    return jsonify({'results': results, 'errors': errors}), 200

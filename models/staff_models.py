@@ -9,6 +9,8 @@ class StaffAttendance(db.Model):
     staff_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
     date = db.Column(db.Date, nullable=False, index=True)
     status = db.Column(db.String(20), nullable=False)  # present|absent|leave
+    term = db.Column(db.String(50), nullable=True)
+    year = db.Column(db.Integer, nullable=True, index=True)
     recorded_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

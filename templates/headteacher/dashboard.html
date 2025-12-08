@@ -15,6 +15,13 @@
     .kpi-card { border-left: 6px solid #1b5e20; }
     .small-muted { font-size: .85rem; color: #6c757d; }
     .table-responsive { max-height: 55vh; overflow:auto; }
+    /* attendance UI helpers */
+    .attendance-controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    .attendance-controls .form-control, .attendance-controls .form-select { min-width:0; }
+    #attendanceList .att-row { display:flex; align-items:center; justify-content:space-between; padding:.375rem 0; border-bottom:1px solid rgba(0,0,0,0.05); }
+    .att-icon { margin-right:8px; display:inline-flex; align-items:center; }
+    .att-name { flex:1 1 auto; min-width:0; }
+    .att-actions { flex:0 0 auto; margin-left:8px; }
   </style>
 </head>
 <body>
@@ -138,17 +145,17 @@
             <small class="small-muted">Mark present/absent</small>
           </div>
           <div class="card-body p-2">
-            <div class="d-flex gap-2 mb-2 align-items-center">
+            <div class="attendance-controls mb-2">
               <label class="small-muted mb-0">Date</label>
-              <input type="date" id="attendanceDate" class="form-control form-control-sm" style="width:150px;" />
+              <input type="date" id="attendanceDate" class="form-control form-control-sm" />
               <label class="small-muted mb-0">Term</label>
-              <select id="attendanceTerm" class="form-select form-select-sm" style="width:120px;">
+              <select id="attendanceTerm" class="form-select form-select-sm">
                 <option>Term 1</option>
                 <option>Term 2</option>
                 <option>Term 3</option>
               </select>
               <label class="small-muted mb-0">Year</label>
-              <select id="attendanceYear" class="form-select form-select-sm" style="width:100px;"></select>
+              <select id="attendanceYear" class="form-select form-select-sm"></select>
             </div>
 
             <div class="d-flex gap-2 mb-2">
@@ -315,20 +322,32 @@
       document.getElementById('attendanceCounts').textContent = `Present: ${present} / ${total}`;
     }
 
+    function setAttendanceIcon(cb){
+      const iconSpan = cb.closest('.att-row').querySelector('.att-icon');
+      if (!iconSpan) return;
+      if (cb.checked){
+        iconSpan.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i>';
+      } else {
+        iconSpan.innerHTML = '<i class="bi bi-x-circle-fill text-danger"></i>';
+      }
+    }
+
     function renderAttendanceList(list, attendanceMap={}){
       const wrap = document.getElementById('attendanceList');
       wrap.innerHTML = '';
       list.forEach(s => {
         const id = 'att-'+s.id;
         const status = attendanceMap[String(s.id)] || 'absent';
-        const checked = status === 'present' ? 'checked' : '';
-        const div = document.createElement('div');
-        div.className = 'd-flex align-items-center justify-content-between py-1 border-bottom';
-        div.innerHTML = `<div>${s.name} <div class="small-muted">${s.role}</div></div><div><input type="checkbox" id="${id}" data-staff="${s.id}" ${checked} /></div>`;
-        wrap.appendChild(div);
-        // attach change handler to update counts
-        const cb = div.querySelector('input[type=checkbox]');
-        if (cb){ cb.addEventListener('change', updateAttendanceCounts); }
+        const checked = status === 'present';
+        const row = document.createElement('div');
+        row.className = 'att-row';
+        row.innerHTML = `
+          <div class="att-name"><span class="att-icon">${checked?'<i class="bi bi-check-circle-fill text-success"></i>':'<i class="bi bi-x-circle-fill text-danger"></i>'}</span><strong>${s.name}</strong><div class="small-muted">${s.role}</div></div>
+          <div class="att-actions"><input type="checkbox" id="${id}" data-staff="${s.id}" ${checked? 'checked' : ''} /></div>`;
+        wrap.appendChild(row);
+        // attach change handler to update counts and icon
+        const cb = row.querySelector('input[type=checkbox]');
+        if (cb){ cb.addEventListener('change', function(){ setAttendanceIcon(cb); updateAttendanceCounts(); }); }
       });
     }
 
@@ -377,18 +396,31 @@
       // prevent saving if already saved for this date
       if (saveDisabled) { alert('Attendance already saved for this date'); return; }
       const checks = Array.from(document.querySelectorAll('#attendanceList input[type=checkbox]'));
-      const today = document.getElementById('attendanceDate').value || new Date().toISOString().slice(0,10);
+      const dateVal = document.getElementById('attendanceDate').value || new Date().toISOString().slice(0,10);
+      const term = document.getElementById('attendanceTerm').value || null;
+      const year = document.getElementById('attendanceYear').value ? Number(document.getElementById('attendanceYear').value) : null;
+      const payload = checks.map(cb => ({
+        staff_id: Number(cb.dataset.staff),
+        date: dateVal,
+        status: cb.checked ? 'present' : 'absent',
+        recorded_by: null,
+        term: term,
+        year: year
+      }));
+
       try{
-        // send each attendance record individually
-        await Promise.all(checks.map(cb => {
-          const staffId = Number(cb.dataset.staff);
-          const status = cb.checked ? 'present' : 'absent';
-          return fetch('/headteacher/api/attendance', {
-            method: 'POST', headers: {'Content-Type':'application/json','X-CSRFToken': csrfToken},
-            body: JSON.stringify({staff_id: staffId, date: today, status, recorded_by: null})
-          }).then(r=>{ if (!r.ok) throw new Error('One save failed'); return r.json(); });
-        }));
-        alert('Attendance saved');
+        const res = await fetch('/headteacher/api/attendance/batch', {
+          method: 'POST', headers: {'Content-Type':'application/json','X-CSRFToken': csrfToken},
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Batch save failed');
+        if (data.errors && data.errors.length){
+          console.warn('Some attendance rows failed', data.errors);
+          alert('Attendance saved with some errors, check console');
+        } else {
+          alert('Attendance saved');
+        }
         // disable save after successful save
         saveDisabled = true;
         document.getElementById('saveAttendance').disabled = true;
@@ -399,11 +431,11 @@
 
     // mark all controls
     document.getElementById('markAllPresent').addEventListener('click', function(){
-      document.querySelectorAll('#attendanceList input[type=checkbox]').forEach(cb=> cb.checked = true);
+      document.querySelectorAll('#attendanceList input[type=checkbox]').forEach(cb=>{ cb.checked = true; setAttendanceIcon(cb); });
       updateAttendanceCounts();
     });
     document.getElementById('markAllAbsent').addEventListener('click', function(){
-      document.querySelectorAll('#attendanceList input[type=checkbox]').forEach(cb=> cb.checked = false);
+      document.querySelectorAll('#attendanceList input[type=checkbox]').forEach(cb=>{ cb.checked = false; setAttendanceIcon(cb); });
       updateAttendanceCounts();
     });
 
