@@ -229,7 +229,7 @@
       currentEditRecordId = null;
     }
 
-    // Save all edited fields via AJAX and update the row in-place (no reload)
+    // Save all edited fields via AJAX and refresh page
     function saveEditModal() {
       const amount = parseFloat(document.getElementById('editAmount').value);
       const quantity = document.getElementById('editQuantity').value ? parseInt(document.getElementById('editQuantity').value) : null;
@@ -258,77 +258,19 @@
           .then(r => r.json())
           .then(data => {
             if (data.success) {
-              // Update the corresponding list-row in-place
-              const row = document.querySelector(`.list-row[data-id="${currentEditRecordId}"]`);
-              if (row) {
-                // update dataset attributes
-                row.dataset.amount = data.data.amount;
-                row.dataset.quantity = data.data.quantity || '';
-                row.dataset.date = data.data.date || '';
-                row.dataset.term = data.data.term || '';
-                row.dataset.year = data.data.year || '';
-
-                // update amount display (assumes view contains a span for amount)
-                const amountSpan = row.querySelector('.view > div span');
-                if (amountSpan) {
-                  const formatted = Number(data.data.amount).toLocaleString(undefined, { maximumFractionDigits: 0 });
-                  amountSpan.textContent = `UGX ${formatted}`;
-                }
-
-                // update small metadata line (date, spent_by, qty, term/year)
-                  // rebuild the view content robustly so changes reflect immediately
-                  const strong = row.querySelector('.view strong');
-                  const itemName = strong ? strong.textContent : (row.dataset.description || 'Item');
-                  const small = row.querySelector('.view small');
-                  // determine spent_by from existing small if present
-                  let spentBy = 'N/A';
-                  if (small) {
-                    const parts = small.textContent.split('•').map(s => s.trim());
-                    if (parts.length > 1 && parts[1].includes('👤')) {
-                      spentBy = parts[1].replace('👤', '').trim();
-                    }
-                  }
-
-                  const d = data.data.date || '';
-                  const dateDisplay = d ? `📅 ${formatDateForDisplay(d)}` : '📅 -';
-                  const qtyDisplay = data.data.quantity ? ` • 📦 Qty: ${data.data.quantity}` : '';
-                  const termDisplay = ` • 📋 ${data.data.term || '-'} / ${data.data.year || '-'} `;
-
-                  // Reconstruct innerHTML for .view to ensure consistent formatting
-                  const view = row.querySelector('.view');
-                  if (view) {
-                    view.innerHTML = `
-                      <div style="display:flex; justify-content:space-between; margin-bottom:6px; align-items:baseline;">
-                        <strong style="flex:1; word-break:break-word;">${escapeHtml(itemName)}</strong>
-                        <span style="text-align:right; font-weight:600; white-space:nowrap; margin-left:8px;">UGX ${Number(data.data.amount).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                      </div>
-                      <small style="color:#666;">${dateDisplay} • 👤 ${escapeHtml(spentBy)}${qtyDisplay}${termDisplay}</small>
-                    `;
-                  }
-
-                // small visual cue: highlight briefly
-                row.style.transition = 'background 0.35s';
-                const prevBg = row.style.background;
-                row.style.background = '#e8f5e9';
-                setTimeout(() => { row.style.background = ''; }, 700);
-              }
-
-              // update totals displayed on the page
-              try { recomputeTotals(); } catch (e) { /* ignore */ }
-
-              // recompute footer/scroll layout by triggering resize handler
-              try { window.dispatchEvent(new Event('resize')); } catch (e) { /* ignore */ }
-
+              // Close modal and refresh page to show updated data
+              closeEditModal();
+              setTimeout(() => {
+                location.reload();
+              }, 500);
             } else {
-              showAlert('Error: ' + (data.error || 'Unknown'));
+              showAlert('Error: ' + (data.error || 'Unknown'), 'Update Failed');
             }
           })
           .catch(err => {
             console.error(err);
-            showAlert('Error updating record');
+            showAlert('Error updating record', 'Error');
           });
-        // close modal after save attempt (success path will have already updated)
-        closeEditModal();
       }
 
       // Ask user to confirm save
@@ -339,7 +281,7 @@
         });
     }
 
-    // Delete the current record via AJAX (uses confirmation modal)
+    // Delete the current record via AJAX and refresh page
     function deleteCurrentRecord() {
       if (!currentEditRecordId) return;
 
@@ -355,32 +297,21 @@
           .then(r => r.json())
           .then(data => {
             if (data && data.success) {
-              // remove row from DOM
-              const row = document.querySelector(`.list-row[data-id="${currentEditRecordId}"]`);
-              if (row) {
-                // smooth collapse
-                row.style.transition = 'opacity 0.25s, height 0.25s, margin 0.25s';
-                row.style.opacity = '0';
-                row.style.height = '0px';
-                row.style.margin = '0px';
-                setTimeout(() => { row.remove(); }, 300);
-              }
-              try { window.dispatchEvent(new Event('resize')); } catch (e) { }
-              try { recomputeTotals(); } catch (e) { }
+              // Close modal and refresh page to show updated data
+              closeEditModal();
+              setTimeout(() => {
+                location.reload();
+              }, 500);
             } else {
-              showAlert('Error deleting record: ' + (data && data.error ? data.error : 'Unknown'));
+              showAlert('Error deleting record: ' + (data && data.error ? data.error : 'Unknown'), 'Delete Failed');
             }
           })
           .catch(err => {
             console.error(err);
-            showAlert('Error deleting record');
+            showAlert('Error deleting record', 'Error');
           });
-
-          closeEditModal();
         });
-    }
-
-    // Close modal on outside click
+    }    // Close modal on outside click
     document.addEventListener('DOMContentLoaded', function() {
       // Close modal on outside click
       const modal = document.getElementById('editModal');

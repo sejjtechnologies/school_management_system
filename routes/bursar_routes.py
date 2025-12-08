@@ -875,7 +875,26 @@ def delete_expense(expense_id):
         rec = ExpenseRecord.query.get_or_404(expense_id)
         db.session.delete(rec)
         db.session.commit()
-        return jsonify({'success': True, 'message': 'Expense deleted', 'id': expense_id}), 200
+
+        # Calculate updated totals for client to display
+        try:
+            total_spent = float(db.session.query(func.coalesce(func.sum(ExpenseRecord.amount), 0)).scalar() or 0)
+        except Exception:
+            total_spent = float(sum(r.amount for r in ExpenseRecord.query.all()))
+        try:
+            total_count = db.session.query(func.count(ExpenseRecord.id)).scalar() or 0
+        except Exception:
+            total_count = len(ExpenseRecord.query.all())
+
+        return jsonify({
+            'success': True,
+            'message': 'Expense deleted',
+            'id': expense_id,
+            'totals': {
+                'total_spent': total_spent,
+                'total_count': int(total_count)
+            }
+        }), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500

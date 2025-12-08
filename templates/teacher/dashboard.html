@@ -45,6 +45,7 @@
       height: 44px;       /* consistent height */
       padding: 0 12px;    /* horizontal padding */
       margin: 8px;
+      white-space: nowrap;
     }
     .main-btn i { margin-right: 6px; }
 
@@ -77,9 +78,56 @@
       color: #283593;
     }
 
-    /* Mobile adjustments: slightly smaller buttons and fonts on narrow screens */
+    /* Buttons container */
+    .buttons-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 12px;
+    }
+
+    /* Mobile adjustments: stack vertically with horizontal scrolling */
+    @media (max-width: 768px) {
+      .buttons-container {
+        flex-direction: column;
+        max-height: calc(100vh - 150px);
+        overflow-y: auto;
+        padding: 0 16px;
+        align-items: stretch;
+      }
+      .main-btn {
+        flex: 1 1 auto;
+        width: 100%;
+        height: 48px;
+        font-size: 0.85rem;
+        margin: 6px 0;
+        min-width: 180px;
+      }
+      .buttons-container::-webkit-scrollbar {
+        width: 6px;
+      }
+      .buttons-container::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 3px;
+      }
+      .buttons-container::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 0, 0, 0.5);
+      }
+    }
+
+    /* Tablet: slightly wider buttons in rows */
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .main-btn { flex: 0 1 180px; height: 46px; }
+      .buttons-container {
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+    }
+
+    /* Mobile adjustments: very small screens */
     @media (max-width: 420px) {
-      .main-btn { flex: 0 1 140px; height: 38px; font-size: 0.82rem; }
+      .main-btn { font-size: 0.8rem; height: 46px; }
       .welcome-message { font-size: 1.0rem; }
       .navbar-brand { font-size: 0.95rem; }
       .logout-btn { padding: 5px 10px; font-size: 0.78rem; }
@@ -108,7 +156,7 @@
     <h3 class="mb-4 welcome-message">Welcome, {{ teacher.first_name }} {{ teacher.last_name }}</h3>
 
     <!-- Buttons Section -->
-    <div class="d-flex flex-wrap justify-content-center">
+    <div class="buttons-container">
       <a href="{{ url_for('user_routes.pupils_details') }}" class="main-btn btn-pupils">
         <i class="bi bi-people-fill"></i> View Pupils Details
       </a>
@@ -141,7 +189,7 @@
         <i class="bi bi-table"></i> View Time Table
       </a>
     </div>
-  </main>git sta
+  </main>
 
   {% include 'footer.html' %}
 </body>

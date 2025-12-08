@@ -57,19 +57,59 @@
       left: 0;
       right: 0;
       z-index: 1001;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      padding: 12px 15px;
+      box-shadow: none;
+      border-bottom: none;
+    }
+    .search-fixed .input-group {
+      display: flex;
+      gap: 6px;
+    }
+    .search-fixed .form-control {
+      border: 2px solid #dc3545;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.9rem;
       background: white;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 6px rgba(220, 53, 69, 0.1);
+    }
+    .search-fixed .form-control:focus {
+      border-color: #b71c1c;
+      box-shadow: 0 4px 12px rgba(220, 53, 69, 0.25);
+      outline: none;
+      background: #fff;
+    }
+    .search-fixed .form-control::placeholder {
+      color: #999;
+      font-weight: 500;
+    }
+    .search-fixed .btn-outline-secondary {
+      border: 2px solid #dc3545;
+      color: #dc3545;
+      background: white;
+      border-radius: 8px;
       padding: 8px 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-      border-bottom: 1px solid #e9ecef;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .search-fixed .btn-outline-secondary:hover {
+      background: #dc3545;
+      color: white;
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
     }
     main {
       flex: 1;
       overflow-y: auto;
       overflow-x: hidden;
-      margin-top: 70px;
-      padding: 12px;
+      margin-top: 75px;
+      padding: 5px 12px 80px 12px;
       -webkit-overflow-scrolling: touch;
-      padding-bottom: 80px;
     }
     main::-webkit-scrollbar {
       width: 6px;
@@ -114,7 +154,7 @@
       border-radius: 6px;
       text-align: center;
       font-size: 0.85rem;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
     .summary-card h6 { margin: 0; font-size: 0.7rem; }
     .summary-card p { margin: 4px 0 0 0; font-size: 1.2rem; font-weight: bold; }
@@ -164,39 +204,40 @@
   </div>
 
   <!-- ✅ Main Content -->
-  <main class="container my-4 main-scroll">
+  <main class="container main-scroll">
     <h3 class="mb-3">All Pupils Records</h3>
 
     <!-- ✅ Summary Cards -->
-    <div class="row mb-3">
-      <div class="col-6 mb-2">
+    <div class="row mb-2">
+      <div class="col-6 mb-1">
         <div class="summary-card bg-total">
           <h6>Total Students</h6>
           <p>{{ records|length }}</p>
         </div>
       </div>
-      <div class="col-6 mb-2">
+      <div class="col-6 mb-1">
         <div class="summary-card bg-stream">
           <h6>Stream</h6>
           <p>{% if records and records[0].stream %}{{ records[0].stream.name }}{% else %}-{% endif %}</p>
         </div>
       </div>
-      <div class="col-6 mb-2">
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-6 mb-1">
         <div class="summary-card bg-class">
           <h6>Class</h6>
           <p>{% if records and records[0].class_ %}{{ records[0].class_.name }}{% else %}-{% endif %}</p>
         </div>
       </div>
-      <div class="col-6 mb-2">
+      <div class="col-6 mb-1">
         <div class="summary-card bg-year">
           <h6>Academic Year</h6>
           <!-- ✅ Hardcoded year -->
           <p>2025/26</p>
         </div>
       </div>
-    </div>
-
-    <div class="card mb-4 shadow-sm">
+    </div>    <div class="card mb-4 shadow-sm">
       <div class="card-header d-flex justify-content-between align-items-center">
         <span><i class="bi bi-people-fill me-2"></i>Pupils List</span>
         <div>
