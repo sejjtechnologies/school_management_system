@@ -268,7 +268,7 @@
     </div>
     <!-- Toast container for notifications -->
     <div class="toast-container-fixed" id="toastContainer"></div>
-    
+
     <!-- Role salaries management card -->
     <div class="card shadow-sm mt-3" id="roleSalaryCard">
       <div class="card-header d-flex justify-content-between align-items-center">
@@ -843,25 +843,40 @@
         });
       }
 
-      // smooth scroll helper to ensure the bottom of the last card is reachable with exact 20px gap
+      // Smooth-scroll helpers with a single coordinated flow and a re-entrancy guard
+      let isAutoScrolling = false;
+      let autoScrollTimer = null;
+
+      // Scroll so the bottom of the last card is exactly `gap` pixels above the footer.
+      // This performs one smooth scroll per invocation and sets a short guard so
+      // programmatic scrolling doesn't re-trigger the handler.
       function scrollToLastCard(){
         try{
+          if (isAutoScrolling) return;
           const footerTop = footer ? footer.getBoundingClientRect().top : window.innerHeight;
           const lastCardBottom = lastCard.getBoundingClientRect().bottom;
           const gap = 20; // exact gap in pixels
           const currentDistance = footerTop - lastCardBottom;
 
-          // if card bottom is too high (more than gap from footer), scroll down to make gap exact
-          if (currentDistance > gap) {
-            const scrollNeeded = currentDistance - gap;
-            window.scrollBy({ top: scrollNeeded, behavior: 'smooth' });
-          }
+          if (Math.abs(currentDistance - gap) <= 2) return; // already close enough
+
+          // compute target scrollTop to make bottom align to desired gap
+          const scrollNeeded = currentDistance - gap;
+          const target = Math.max(0, Math.round(window.scrollY + scrollNeeded));
+
+          isAutoScrolling = true;
+          window.scrollTo({ top: target, behavior: 'smooth' });
+          if (autoScrollTimer) clearTimeout(autoScrollTimer);
+          // keep guard for duration of the smooth scroll + safety margin
+          autoScrollTimer = setTimeout(()=>{ isAutoScrolling = false; }, 750);
         }catch(e){ /* ignore */ }
       }
 
-      // Force last card fully into view on mobile and leave a 20px gap from the footer and nav
+      // Ensure last card is fully visible on mobile: compute a single final target that
+      // accounts for both bottom gap above footer and avoiding the navbar at the top.
       function scrollLastCardIntoViewWithGaps(){
         try{
+          if (isAutoScrolling) return;
           const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
           if (!isMobile) return;
 
@@ -871,26 +886,31 @@
           const bottomGap = 20; // gap above footer
           const topGap = navHeight + 20; // gap below navbar
 
-          // compute where the bottom of last card should be in viewport
           const lastRect = lastCard.getBoundingClientRect();
           const desiredBottom = window.innerHeight - footerHeight - bottomGap;
-          const delta = lastRect.bottom - desiredBottom;
+          const bottomDelta = lastRect.bottom - desiredBottom;
 
-          if (delta > 1){
-            // scroll down so bottom aligns to desiredBottom
-            window.scrollBy({ top: Math.ceil(delta + 6), behavior: 'smooth' });
+          // If bottom is below desired, we need to scroll down; if it's above, scroll up.
+          // We'll compute the final scrollTop in document coordinates that satisfies both
+          // bottom and top constraints as much as possible and perform a single smooth scroll.
+          let targetY = window.scrollY + Math.ceil(bottomDelta > 0 ? bottomDelta + 6 : bottomDelta - 6);
+
+          // After applying targetY, ensure the top of the last card will be at least topGap.
+          // Compute where lastRect.top would be after the scroll and correct targetY accordingly.
+          const projectedTop = lastRect.top - (targetY - window.scrollY);
+          if (projectedTop < topGap){
+            // need to scroll up a bit so top sits below the navbar
+            targetY = Math.max(0, window.scrollY + Math.floor(projectedTop - topGap - 6));
           }
 
-          // after scrolling down, ensure the top of the last card is not hidden behind the navbar
-          setTimeout(()=>{
-            const newRect = lastCard.getBoundingClientRect();
-            const topDelta = newRect.top - topGap;
-            if (topDelta < 0){
-              // scroll up so top is at least topGap from viewport top
-              window.scrollBy({ top: Math.floor(topDelta - 6), behavior: 'smooth' });
-            }
-          }, 350);
-        }catch(e){ /* ignore */ }
+          // If the change is negligible, avoid scrolling
+          if (Math.abs(targetY - window.scrollY) <= 2) return;
+
+          isAutoScrolling = true;
+          window.scrollTo({ top: Math.max(0, Math.round(targetY)), behavior: 'smooth' });
+          if (autoScrollTimer) clearTimeout(autoScrollTimer);
+          autoScrollTimer = setTimeout(()=>{ isAutoScrolling = false; }, 800);
+        }catch(e){ isAutoScrolling = false; /* ignore */ }
       }
 
       // initial setup
@@ -906,19 +926,18 @@
       let scrollEndTimer = null;
       window.addEventListener('scroll', ()=>{
         checkNearFooter();
+        if (isAutoScrolling) return; // ignore programmatic scrolling
         if (scrollEndTimer) clearTimeout(scrollEndTimer);
         scrollEndTimer = setTimeout(()=>{
-          // on scroll end, if near footer, nudge into view
+          // on scroll end, if near footer, perform a single guarded alignment
           const footerRect = footer ? footer.getBoundingClientRect() : { top: window.innerHeight };
           const lastRect = lastCard.getBoundingClientRect();
           const distance = footerRect.top - lastRect.bottom;
           const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
           if (isMobile && distance > 0){
-            // always attempt to nudge fully into view when there's any overlap
-            scrollToLastCard();
             scrollLastCardIntoViewWithGaps();
           }
-        }, 150);
+        }, 240);
       }, { passive: true });
 
       // expose for debugging/use
