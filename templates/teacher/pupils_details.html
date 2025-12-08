@@ -107,7 +107,7 @@
       flex: 1;
       overflow-y: auto;
       overflow-x: hidden;
-      margin-top: 75px;
+      margin-top: 95px;
       padding: 5px 12px 80px 12px;
       -webkit-overflow-scrolling: touch;
     }
@@ -186,7 +186,7 @@
       <i class="bi bi-people-fill me-2"></i> Pupils Details
     </span>
     <a href="{{ url_for('user_routes.teacher_dashboard') }}" class="back-btn-small">
-      <i class="bi bi-arrow-left"></i> Back
+      <i class="bi bi-box-arrow-left"></i> Back
     </a>
   </nav>
 
@@ -301,23 +301,50 @@
         var clearBtn = document.getElementById('clearSearch');
         var searchBtn = document.getElementById('searchBtn');
 
-        // columns to consider (0-based td indices) in this table
-        var searchCols = [0,1,2,3,6,7,8,9];
+        // Sort pupils table alphabetically by Last Name, then First Name, and renumber
+        function sortPupilsTable() {
+          var table = document.getElementById('pupilsTable');
+          if (!table) return;
+          var tbody = table.tBodies[0];
+          if (!tbody) return;
+          var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+          rows.sort(function(a, b) {
+            var aFirst = (a.querySelectorAll('td')[2] && a.querySelectorAll('td')[2].textContent || '').trim().toLowerCase();
+            var aLast = (a.querySelectorAll('td')[4] && a.querySelectorAll('td')[4].textContent || '').trim().toLowerCase();
+            var bFirst = (b.querySelectorAll('td')[2] && b.querySelectorAll('td')[2].textContent || '').trim().toLowerCase();
+            var bLast = (b.querySelectorAll('td')[4] && b.querySelectorAll('td')[4].textContent || '').trim().toLowerCase();
+            // Compare by last name first, then first name
+            var cmp = aLast.localeCompare(bLast);
+            if (cmp !== 0) return cmp;
+            return aFirst.localeCompare(bFirst);
+          });
+          // Re-append in sorted order and renumber the first cell
+          rows.forEach(function(row, idx){
+            tbody.appendChild(row);
+            var firstTd = row.querySelectorAll('td')[0];
+            if (firstTd) firstTd.textContent = String(idx + 1);
+          });
+        }
 
+        // Run initial sort so table is alphabetical on load
+        sortPupilsTable();
+
+        // Search across ALL columns for comprehensive filtering
         function rowMatches(row, query) {
           if (!query) return true;
-          var tds = row.querySelectorAll('td');
-          var pieces = [];
-          searchCols.forEach(function(i){ if (tds[i]) pieces.push(tds[i].textContent.trim().toLowerCase()); });
-          var hay = pieces.join(' ').trim();
-          if (!hay) hay = row.textContent.trim().toLowerCase();
-          return hay.indexOf(query) !== -1;
+          // Get all cell content from the row
+          var rowText = row.textContent.trim().toLowerCase();
+          // Search using indexOf for any occurrence anywhere in the row
+          return rowText.indexOf(query) !== -1;
         }
 
         function applyFilter() {
           var q = input ? input.value.trim().toLowerCase() : '';
           var rows = document.querySelectorAll('#pupilsTable tbody tr');
-          rows.forEach(function(row){ if (!row.querySelectorAll('td').length) return; row.style.display = rowMatches(row, q) ? '' : 'none'; });
+          rows.forEach(function(row){
+            if (!row.querySelectorAll('td').length) return;
+            row.style.display = rowMatches(row, q) ? '' : 'none';
+          });
         }
 
         window.applyPupilFilter = applyFilter;

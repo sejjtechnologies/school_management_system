@@ -116,17 +116,15 @@
       box-shadow: 0 2px 4px rgba(0,0,0,0.08);
       margin-bottom: 20px;
     }
-    table th {
+    .table-sm th, .table-sm td {
+      padding: 6px 4px;
+      font-size: 0.75rem;
+      border: 1px solid #e9ecef;
+    }
+    .table-sm th {
       background-color: #dc3545;
       color: white;
-      font-size: 0.8rem;
       font-weight: 600;
-      padding: 6px 4px;
-    }
-    table td {
-      font-size: 0.8rem;
-      padding: 6px 4px;
-      border: 1px solid #e9ecef;
     }
     table tbody tr:hover {
       background-color: #f8f9fa;
@@ -180,18 +178,19 @@
       background-color: #f1f8f6;
     }
     #applyFilters {
-      background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+      /* Make the Apply button red with white text as requested */
+      background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
       border: none;
       color: white;
       font-weight: 600;
       border-radius: 6px;
       padding: 6px 14px;
       transition: all 0.3s ease;
-      box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+      box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
     }
     #applyFilters:hover {
-      background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
-      box-shadow: 0 4px 8px rgba(76, 175, 80, 0.4);
+      background: linear-gradient(135deg, #c82333 0%, #b21f2d 100%);
+      box-shadow: 0 4px 8px rgba(220, 53, 69, 0.45);
       transform: translateY(-1px);
     }
     footer {
@@ -209,6 +208,21 @@
       .filter-row { gap: 6px; }
       .filter-group label { font-size: 0.65rem; }
       .filter-group select { font-size: 0.7rem; padding: 3px 4px; }
+      /* Reduce table column sizes and truncate overflowing text on small screens */
+      .table-sm th,
+      .table-sm td {
+        font-size: 0.62rem;
+        padding: 3px 6px;
+        max-width: 110px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      /* Make action buttons more compact */
+      .table-responsive-sm .btn {
+        padding: 3px 6px;
+        font-size: 0.65rem;
+      }
     }
   </style>
 </head>
@@ -265,7 +279,7 @@
             <option value="end" {% if selected_types == 'end' %}selected{% endif %}>End-term</option>
           </select>
         </div>
-        <button id="applyFilters" type="button" class="btn btn-sm btn-primary">Apply</button>
+        <button id="applyFilters" type="button" class="btn btn-sm text-white">Apply</button>
             </div>
           </form>
         </div>
@@ -274,11 +288,12 @@
       <!-- Search is provided by the fixed bar above -->
 
       {% if pupils %}
-        <div class="table-responsive" style="overflow-x:auto; white-space:nowrap;">
-          <table class="table table-striped table-bordered align-middle" id="pupilTable">
+        <div class="table-responsive-sm" style="overflow-x:auto; white-space:nowrap;">
+          <table class="table table-sm table-striped table-bordered align-middle" id="pupilTable">
             <thead>
               <tr>
                 <th>#</th>
+                <th>Admission No.</th>
                 <th>Pupil Name</th>
                   <th>Actions</th>
                 <th>Class</th>
@@ -294,6 +309,7 @@
               {% for pupil in pupils %}
                 <tr data-pupil-id="{{ pupil.id }}">
                   <td>{{ loop.index }}</td>
+                  <td>{{ pupil.admission_number }}</td>
                   <td>
                     {{ pupil.first_name }} {{ pupil.last_name }}
                   </td>
@@ -375,6 +391,8 @@
       // cache rows and their lower-cased searchable text to avoid recomputing on each keystroke
       var rows = [];
       function cacheRows(){
+        // Before caching, sort rows alphabetically by pupil name so the list is ordered client-side
+        sortRowsByName();
         rows = Array.prototype.slice.call(document.querySelectorAll('#pupilTable tbody tr'));
         rows.forEach(function(row){
           var tds = row.querySelectorAll('td');
@@ -383,6 +401,28 @@
         });
         // After caching rows, fetch per-pupil stats for visible rows
         populateStatsForVisibleRows();
+      }
+
+      // Sort the table rows alphabetically by the pupil name (assumes name is in the 3rd td after admission number)
+      function sortRowsByName() {
+        var table = document.getElementById('pupilTable');
+        if (!table) return;
+        var tbody = table.tBodies[0];
+        if (!tbody) return;
+        var rowArray = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+        rowArray.sort(function(a, b) {
+          var aTd = a.querySelectorAll('td')[2];
+          var bTd = b.querySelectorAll('td')[2];
+          var aText = aTd ? aTd.textContent.trim().toLowerCase() : '';
+          var bText = bTd ? bTd.textContent.trim().toLowerCase() : '';
+          return aText.localeCompare(bText);
+        });
+        // Re-append rows in sorted order and renumber first column
+        rowArray.forEach(function(row, idx) {
+          tbody.appendChild(row);
+          var firstTd = row.querySelectorAll('td')[0];
+          if (firstTd) firstTd.textContent = String(idx + 1);
+        });
       }
 
       function populateStatsForVisibleRows() {
