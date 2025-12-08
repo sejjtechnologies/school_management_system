@@ -133,6 +133,15 @@
       max-height: none;
       overflow-x: auto;
     }
+    /* Make the table card scroll vertically while leaving a 20px gap above the footer.
+       We subtract the fixed header (navbar + search bar ~120px) and footer (min-height 50px)
+       plus the requested 20px gap => total 190px. Adjust if your header/footer sizes change. */
+    .table-responsive-sm {
+      max-height: calc(100vh - 190px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 20px; /* ensure last row isn't flush with footer when scrolling */
+    }
     .filter-row {
       display: flex;
       gap: 10px;
