@@ -9,6 +9,40 @@ from models.timetable_model import TimeTableSlot
 from werkzeug.security import generate_password_hash
 from datetime import datetime, timedelta
 
+
+# Helper: check whether a teacher has an overlapping slot
+def teacher_has_overlap(teacher_id, day_of_week, start_time, end_time,
+                        exclude_slot_id=None, exclude_class_id=None, exclude_stream_id=None):
+    """Return True if the teacher has any timetable slot on the given day that overlaps
+    the interval [start_time, end_time). Times are 'HH:MM' strings.
+
+    Optional excludes:
+      - exclude_slot_id: ignore a specific slot (useful during updates).
+      - exclude_class_id / exclude_stream_id: ignore all slots belonging to a
+        particular class+stream (useful during generation when we are replacing
+        slots for the same class/stream).
+    """
+    query = TimeTableSlot.query.filter(
+        TimeTableSlot.teacher_id == teacher_id,
+        TimeTableSlot.day_of_week == day_of_week,
+    )
+
+    if exclude_slot_id:
+        query = query.filter(TimeTableSlot.id != exclude_slot_id)
+
+    if exclude_class_id is not None and exclude_stream_id is not None:
+        # Exclude slots that belong to the same class+stream (we are about to
+        # regenerate them and they shouldn't block availability checks)
+        query = query.filter(~((TimeTableSlot.class_id == exclude_class_id) & (TimeTableSlot.stream_id == exclude_stream_id)))
+
+    # Overlap condition: existing.start_time < end_time AND existing.end_time > start_time
+    conflict = query.filter(
+        TimeTableSlot.start_time < end_time,
+        TimeTableSlot.end_time > start_time
+    ).first()
+
+    return conflict is not None
+
 admin_routes = Blueprint("admin_routes", __name__)
 
 # Utility function to convert 24-hour time to 12-hour AM/PM format
@@ -357,11 +391,11 @@ def _generate_timetable_core(class_id, stream_id):
     if not teacher_role:
         return False, 'Teacher role not found in database'
 
-    # Get ALL real teachers (exclude auto-created: emails ending with @example.local or first_name starting with "Teacher")
+    # Get ALL teachers (use the entire teachers table; do not limit to those
+    # assigned to this class/stream). This ensures the generator can distribute
+    # work across the whole teacher pool.
     all_teachers = User.query.join(Role).filter(
-        Role.role_name.ilike('teacher'),
-        ~User.email.ilike('%@example.local'),  # exclude placeholder auto teachers
-        ~User.first_name.ilike('teacher%')     # exclude names starting with "Teacher"
+        Role.role_name.ilike('teacher')
     ).order_by(User.first_name.asc(), User.last_name.asc()).all()
     if not all_teachers:
         return False, 'No real teachers found (only auto-created placeholders exist)'
@@ -371,11 +405,10 @@ def _generate_timetable_core(class_id, stream_id):
     if class_teacher_assignment.teacher_id not in all_teacher_ids:
         all_teachers.insert(0, class_teacher_assignment.teacher)
 
-    # Clear existing slots for this class/stream
-    TimeTableSlot.query.filter_by(
-        class_id=class_id,
-        stream_id=stream_id
-    ).delete()
+    # NOTE: do not delete existing slots here. We'll generate the new set in-memory
+    # and only remove & replace the old slots as an atomic persistence step after
+    # successful generation. This prevents leaving an empty timetable if generation
+    # fails part-way through.
 
     # Get all subjects
     subjects = Subject.query.all()
@@ -428,7 +461,30 @@ def _generate_timetable_core(class_id, stream_id):
             duration = time_obj['duration']
 
             # Get next teacher (round-robin distribution from ALL available teachers)
-            teacher = all_teachers[teacher_idx % len(all_teachers)]
+            # Attempt to find a teacher who is NOT already booked at this time (across any stream).
+            teacher = None
+            attempts = 0
+            start_idx = teacher_idx % len(all_teachers)
+            idx = start_idx
+            while attempts < len(all_teachers):
+                candidate = all_teachers[idx]
+                # check for overlap for this candidate teacher
+                # When checking availability for generation we should ignore any
+                # existing slots that belong to the same class+stream since those
+                # are the ones we're about to replace.
+                if not teacher_has_overlap(candidate.id, day, time_str, (datetime.strptime(time_str, '%H:%M') + timedelta(minutes=duration)).strftime('%H:%M'),
+                                            exclude_class_id=class_id, exclude_stream_id=stream_id):
+                    teacher = candidate
+                    # set teacher_idx so next iteration continues after this one
+                    teacher_idx = idx + 1
+                    break
+                # move to next candidate
+                attempts += 1
+                idx = (idx + 1) % len(all_teachers)
+
+            if teacher is None:
+                # No available teacher found for this slot/time - fail with a clear message
+                return False, f'No available teacher found for {day} at {time_str} (all teachers are already booked)'
 
             # Get subject (cycle through available subjects)
             subject = subjects[subject_idx % len(subjects)]
@@ -455,13 +511,35 @@ def _generate_timetable_core(class_id, stream_id):
             teacher_idx += 1
             subject_idx += 1
 
-    # persist
+    # persist: delete old slots for this class/stream and insert the newly
+    # generated slots inside a transaction so we never leave the DB in an
+    # empty state if something goes wrong.
     try:
         if slots_to_save:
+            # Ensure any prior transaction state is cleared
+            try:
+                db.session.rollback()
+            except Exception:
+                # ignore rollback errors; we'll proceed to do the replace
+                pass
+
+            # Remove existing slots and insert new ones, then commit.
+            # Use explicit commit/rollback to avoid nested-transaction errors
+            TimeTableSlot.query.filter_by(
+                class_id=class_id,
+                stream_id=stream_id
+            ).delete(synchronize_session=False)
             db.session.bulk_save_objects(slots_to_save)
             db.session.commit()
+        else:
+            # Nothing to save (shouldn't happen) -- treat as failure
+            return False, 'No slots generated'
     except Exception as e:
-        db.session.rollback()
+        # Ensure session is rolled back so subsequent calls can proceed
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
         return False, f'Database error while saving slots: {str(e)}'
 
     return True, {
@@ -481,17 +559,9 @@ def edit_timetable_slot(slot_id):
     teacher_id = data.get('teacher_id')
     subject_id = data.get('subject_id')
 
-    # ✅ Check teacher double-booking for SAME STREAM at SAME TIME (excluding current slot)
-    teacher_conflict = TimeTableSlot.query.filter(
-        TimeTableSlot.id != slot_id,
-        TimeTableSlot.teacher_id == teacher_id,
-        TimeTableSlot.stream_id == slot.stream_id,
-        TimeTableSlot.day_of_week == slot.day_of_week,
-        TimeTableSlot.start_time == slot.start_time
-    ).first()
-
-    if teacher_conflict:
-        return jsonify({'error': f'Teacher is already assigned to this stream at {slot.start_time} on {slot.day_of_week}'}), 409
+    # ✅ Check teacher double-booking across ANY stream for overlapping times (excluding current slot)
+    if teacher_has_overlap(teacher_id, slot.day_of_week, slot.start_time, slot.end_time, exclude_slot_id=slot_id):
+        return jsonify({'error': f'Teacher is already assigned to another stream at {slot.start_time} on {slot.day_of_week}'}), 409
 
     try:
         slot.teacher_id = teacher_id

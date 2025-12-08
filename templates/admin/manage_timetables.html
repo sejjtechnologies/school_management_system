@@ -747,6 +747,15 @@
         return;
       }
 
+      // button loading state
+      const loadBtn = document.querySelector('.btn-load');
+      if (loadBtn && !loadBtn.dataset.orig) loadBtn.dataset.orig = loadBtn.innerHTML;
+      if (loadBtn) {
+        loadBtn.disabled = true;
+        loadBtn.setAttribute('aria-busy', 'true');
+        loadBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Loading...';
+      }
+
       await loadAssignedTeachers();
 
       try {
@@ -756,6 +765,13 @@
         renderTimetable();
       } catch (error) {
         showAlert('Error loading timetable: ' + error.message, 'error');
+      }
+      finally {
+        if (loadBtn) {
+          loadBtn.disabled = false;
+          loadBtn.removeAttribute('aria-busy');
+          loadBtn.innerHTML = loadBtn.dataset.orig || 'Load Timetable';
+        }
       }
     }
 

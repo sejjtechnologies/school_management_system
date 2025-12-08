@@ -1,0 +1,17 @@
+# Virtual environment
+/venv/
+venv/
+
+# Python caches
+__pycache__/
+*.pyc
+
+# Scripts artifacts
+/scripts/generate_all_report.json
+/scripts/__pycache__/
+
+# VS Code workspace
+.vscode/
+
+# Environment files
+.env
