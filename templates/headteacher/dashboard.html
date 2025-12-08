@@ -535,6 +535,8 @@
         saveDisabled = Array.isArray(attendanceMap) ? attendanceMap.length>0 : Object.keys(attendanceMap).length>0;
         document.getElementById('saveAttendance').disabled = saveDisabled;
         if (saveDisabled) document.getElementById('viewAttendanceSummary').classList.remove('d-none');
+        // notify that dashboard content (staff/attendance) has been rendered
+        try{ document.dispatchEvent(new Event('dashboardContentReady')); }catch(e){}
       }catch(e){ console.warn('Staff load failed', e); }
     }
 
@@ -923,28 +925,25 @@
       window.addEventListener('resize', ()=>{ updatePadding(); checkNearFooter(); });
       window.addEventListener('orientationchange', ()=>{ setTimeout(()=>{ updatePadding(); checkNearFooter(); }, 200); });
       // scroll handling: check during scroll, and on scroll end nudge last card into view if needed
-      let scrollEndTimer = null;
-      window.addEventListener('scroll', ()=>{
-        checkNearFooter();
-        if (isAutoScrolling) return; // ignore programmatic scrolling
-        if (scrollEndTimer) clearTimeout(scrollEndTimer);
-        scrollEndTimer = setTimeout(()=>{
-          // on scroll end, if near footer, perform a single guarded alignment
-          const footerRect = footer ? footer.getBoundingClientRect() : { top: window.innerHeight };
-          const lastRect = lastCard.getBoundingClientRect();
-          const distance = footerRect.top - lastRect.bottom;
-          const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
-          if (isMobile && distance > 0){
-            scrollLastCardIntoViewWithGaps();
-          }
-        }, 240);
-      }, { passive: true });
+      // On user scroll we only update the near-footer detection. We avoid performing
+      // automatic alignment here to prevent reacting to the page's own smooth-scroll
+      // animations or user-initiated scrolls which were causing oscillation.
+      window.addEventListener('scroll', ()=>{ checkNearFooter(); }, { passive: true });
+
+      // Listen for a custom event from content loaders (e.g. loadStaff) so we can
+      // align after dynamic content has rendered. This prevents repeated alignment
+      // during user scrolling and ensures we only auto-align after content changes.
+      document.addEventListener('dashboardContentReady', ()=>{
+        // small delay to allow layout to finish
+        setTimeout(()=>{ scrollLastCardIntoViewWithGaps(); }, 300);
+      });
 
       // expose for debugging/use
       window.scrollToLastCard = scrollToLastCard;
+      window.scrollLastCardIntoViewWithGaps = scrollLastCardIntoViewWithGaps;
     }
 
-    (function(){ loadSummary(); loadStaff(); loadRoleSalaries(); setupScrollBehavior(); updateAttendanceInfo(); })();
+    (function(){ setupScrollBehavior(); loadSummary(); loadRoleSalaries(); loadStaff(); updateAttendanceInfo(); })();
   </script>
   {% include 'footer.html' %}
 </body>
