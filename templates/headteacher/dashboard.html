@@ -250,6 +250,22 @@
         </div>
       </div>
     </div>
+    <!-- Attendance Summary Modal (replaces browser alert) -->
+    <div class="modal fade" id="attendanceSummaryModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Attendance Summary</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="attendanceSummaryBody">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- Toast container for notifications -->
     <div class="toast-container-fixed" id="toastContainer"></div>
     
@@ -292,6 +308,11 @@
         toastEl.remove();
       }, duration);
     }
+
+    // Override native alert() to use Bootstrap toasts for consistent UX
+    window.alert = function(msg){
+      try{ showToast(String(msg), 'info', 2500); }catch(e){ console.log('alert:', msg); }
+    };
 
     function formatCurrency(n){
       if (n == null) return 'UGX 0';
@@ -769,8 +790,20 @@
         }
         results.push({ label: r.label, presentCount, dayCount });
       }
-      // show brief modal with results
-      alert(results.map(x=> `${x.label}: present entries ${x.presentCount}, days with records ${x.dayCount}`).join('\n'));
+      // show brief modal with results (use Bootstrap modal instead of alert)
+      const body = document.getElementById('attendanceSummaryBody');
+      if (body){
+        let html = '<ul class="list-unstyled mb-0">';
+        results.forEach(x => { html += `<li><strong>${x.label}:</strong> present entries ${x.presentCount}, days with records ${x.dayCount}</li>`; });
+        html += '</ul>';
+        body.innerHTML = html;
+        const modalEl = document.getElementById('attendanceSummaryModal');
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+      } else {
+        // fallback to toast
+        showToast(results.map(x=> `${x.label}: ${x.presentCount}/${x.dayCount}`).join(' | '), 'success', 2500);
+      }
     });
 
     // initial load
@@ -783,8 +816,8 @@
       // apply padding-bottom so last card can scroll above footer
       function updatePadding(){
         const footerHeight = footer ? footer.getBoundingClientRect().height : 0;
-        // add a little extra spacing
-        document.body.style.paddingBottom = (footerHeight + 20) + 'px';
+        // add extra spacing to ensure last card can be scrolled above footer
+        document.body.style.paddingBottom = (footerHeight + 40) + 'px';
       }
 
       // detect when the distance from bottom of last card to top of footer is <= 20px (mobile)
@@ -826,9 +859,45 @@
         }catch(e){ /* ignore */ }
       }
 
+      // Force last card fully into view on mobile and leave a 20px gap from the footer and nav
+      function scrollLastCardIntoViewWithGaps(){
+        try{
+          const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
+          if (!isMobile) return;
+
+          const nav = document.querySelector('.navbar');
+          const navHeight = nav ? nav.getBoundingClientRect().height : 70;
+          const footerHeight = footer ? footer.getBoundingClientRect().height : 0;
+          const bottomGap = 20; // gap above footer
+          const topGap = navHeight + 20; // gap below navbar
+
+          // compute where the bottom of last card should be in viewport
+          const lastRect = lastCard.getBoundingClientRect();
+          const desiredBottom = window.innerHeight - footerHeight - bottomGap;
+          const delta = lastRect.bottom - desiredBottom;
+
+          if (delta > 1){
+            // scroll down so bottom aligns to desiredBottom
+            window.scrollBy({ top: Math.ceil(delta + 6), behavior: 'smooth' });
+          }
+
+          // after scrolling down, ensure the top of the last card is not hidden behind the navbar
+          setTimeout(()=>{
+            const newRect = lastCard.getBoundingClientRect();
+            const topDelta = newRect.top - topGap;
+            if (topDelta < 0){
+              // scroll up so top is at least topGap from viewport top
+              window.scrollBy({ top: Math.floor(topDelta - 6), behavior: 'smooth' });
+            }
+          }, 350);
+        }catch(e){ /* ignore */ }
+      }
+
       // initial setup
       updatePadding();
       checkNearFooter();
+      // ensure last card is fully visible on mobile after initial layout
+      setTimeout(()=>{ scrollLastCardIntoViewWithGaps(); }, 400);
 
       // event listeners
       window.addEventListener('resize', ()=>{ updatePadding(); checkNearFooter(); });
@@ -844,8 +913,10 @@
           const lastRect = lastCard.getBoundingClientRect();
           const distance = footerRect.top - lastRect.bottom;
           const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
-          if (isMobile && distance > 0 && distance <= 40){
+          if (isMobile && distance > 0){
+            // always attempt to nudge fully into view when there's any overlap
             scrollToLastCard();
+            scrollLastCardIntoViewWithGaps();
           }
         }, 150);
       }, { passive: true });
