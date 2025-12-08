@@ -138,9 +138,29 @@
             <small class="small-muted">Mark present/absent</small>
           </div>
           <div class="card-body p-2">
+            <div class="d-flex gap-2 mb-2 align-items-center">
+              <label class="small-muted mb-0">Date</label>
+              <input type="date" id="attendanceDate" class="form-control form-control-sm" style="width:150px;" />
+              <label class="small-muted mb-0">Term</label>
+              <select id="attendanceTerm" class="form-select form-select-sm" style="width:120px;">
+                <option>Term 1</option>
+                <option>Term 2</option>
+                <option>Term 3</option>
+              </select>
+              <label class="small-muted mb-0">Year</label>
+              <select id="attendanceYear" class="form-select form-select-sm" style="width:100px;"></select>
+            </div>
+
+            <div class="d-flex gap-2 mb-2">
+              <button id="markAllPresent" class="btn btn-sm btn-outline-success">Mark all present</button>
+              <button id="markAllAbsent" class="btn btn-sm btn-outline-secondary">Mark all absent</button>
+              <div class="ms-auto small-muted align-self-center" id="attendanceCounts">Present: 0 / 0</div>
+            </div>
+
             <div id="attendanceList" style="max-height:40vh; overflow:auto;"></div>
             <div class="mt-2 text-end">
               <button id="saveAttendance" class="btn btn-sm btn-success">Save Attendance</button>
+              <button id="viewAttendanceSummary" class="btn btn-sm btn-info d-none">View Summary</button>
             </div>
           </div>
         </div>
@@ -221,6 +241,7 @@
     }
 
     let staffCache = [];
+    let saveDisabled = false;
     async function loadStaff(){
       try{
         const res = await fetch('/headteacher/api/staff');
@@ -244,8 +265,12 @@
           };
         });
 
-        // fetch today's attendance to mark checkboxes
-        const today = new Date().toISOString().slice(0,10);
+        // ensure attendance date control is set
+        const dateInput = document.getElementById('attendanceDate');
+        if (!dateInput.value) dateInput.value = new Date().toISOString().slice(0,10);
+
+        // fetch attendance for the selected date to mark checkboxes
+        const today = dateInput.value || new Date().toISOString().slice(0,10);
         const attRes = await fetch(`/headteacher/api/attendance?date=${today}`);
         let attendanceMap = {};
         if (attRes.ok){
@@ -257,6 +282,11 @@
 
         renderStaffTable(staffCache);
         renderAttendanceList(staffCache, attendanceMap);
+        updateAttendanceCounts();
+        // disable saving if attendance already exists for this date
+        saveDisabled = Array.isArray(attendanceMap) ? attendanceMap.length>0 : Object.keys(attendanceMap).length>0;
+        document.getElementById('saveAttendance').disabled = saveDisabled;
+        if (saveDisabled) document.getElementById('viewAttendanceSummary').classList.remove('d-none');
       }catch(e){ console.warn('Staff load failed', e); }
     }
 
@@ -268,13 +298,21 @@
         tr.innerHTML = `
           <td>${s.name}</td>
           <td>${s.role}</td>
-          <td class="salaryCell">${formatCurrency((s.salary_cents||0)/100)}</td>
-          <td>${s.last_paid || '-'}</td>
+          <td class="salaryCell d-none d-md-table-cell">${formatCurrency((s.salary_cents||0)/100)}</td>
+          <td class="d-none d-md-table-cell">${s.last_paid || '-'}</td>
           <td class="text-end">
             <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditModal(${s.id})">Edit</button>
           </td>`;
         tbody.appendChild(tr);
       });
+    }
+
+    // update present/total counts in attendance panel
+    function updateAttendanceCounts(){
+      const checks = Array.from(document.querySelectorAll('#attendanceList input[type=checkbox]'));
+      const total = checks.length;
+      const present = checks.filter(cb=> cb.checked).length;
+      document.getElementById('attendanceCounts').textContent = `Present: ${present} / ${total}`;
     }
 
     function renderAttendanceList(list, attendanceMap={}){
@@ -288,6 +326,9 @@
         div.className = 'd-flex align-items-center justify-content-between py-1 border-bottom';
         div.innerHTML = `<div>${s.name} <div class="small-muted">${s.role}</div></div><div><input type="checkbox" id="${id}" data-staff="${s.id}" ${checked} /></div>`;
         wrap.appendChild(div);
+        // attach change handler to update counts
+        const cb = div.querySelector('input[type=checkbox]');
+        if (cb){ cb.addEventListener('change', updateAttendanceCounts); }
       });
     }
 
@@ -333,8 +374,10 @@
     });
 
     document.getElementById('saveAttendance').addEventListener('click', async function(){
+      // prevent saving if already saved for this date
+      if (saveDisabled) { alert('Attendance already saved for this date'); return; }
       const checks = Array.from(document.querySelectorAll('#attendanceList input[type=checkbox]'));
-      const today = new Date().toISOString().slice(0,10);
+      const today = document.getElementById('attendanceDate').value || new Date().toISOString().slice(0,10);
       try{
         // send each attendance record individually
         await Promise.all(checks.map(cb => {
@@ -342,12 +385,76 @@
           const status = cb.checked ? 'present' : 'absent';
           return fetch('/headteacher/api/attendance', {
             method: 'POST', headers: {'Content-Type':'application/json','X-CSRFToken': csrfToken},
-            body: JSON.stringify({staff_id: staffId, date: today, status})
+            body: JSON.stringify({staff_id: staffId, date: today, status, recorded_by: null})
           }).then(r=>{ if (!r.ok) throw new Error('One save failed'); return r.json(); });
         }));
         alert('Attendance saved');
+        // disable save after successful save
+        saveDisabled = true;
+        document.getElementById('saveAttendance').disabled = true;
+        document.getElementById('viewAttendanceSummary').classList.remove('d-none');
         await loadSummary();
       }catch(e){ alert('Could not save attendance: '+e.message); }
+    });
+
+    // mark all controls
+    document.getElementById('markAllPresent').addEventListener('click', function(){
+      document.querySelectorAll('#attendanceList input[type=checkbox]').forEach(cb=> cb.checked = true);
+      updateAttendanceCounts();
+    });
+    document.getElementById('markAllAbsent').addEventListener('click', function(){
+      document.querySelectorAll('#attendanceList input[type=checkbox]').forEach(cb=> cb.checked = false);
+      updateAttendanceCounts();
+    });
+
+    // handle attendance date change
+    document.getElementById('attendanceDate').addEventListener('change', async function(){
+      // reload staff attendance for the selected date
+      await loadStaff();
+    });
+
+    // populate year selector
+    (function populateYears(){
+      const sel = document.getElementById('attendanceYear');
+      const now = new Date();
+      const year = now.getFullYear();
+      for (let y = year-1; y <= year+1; y++){
+        const opt = document.createElement('option'); opt.value = y; opt.textContent = y; if (y===year) opt.selected = true; sel.appendChild(opt);
+      }
+    })();
+
+    // view attendance summary (weekly/monthly/termly)
+    document.getElementById('viewAttendanceSummary').addEventListener('click', async function(){
+      const today = new Date(document.getElementById('attendanceDate').value || new Date().toISOString().slice(0,10));
+      // compute ranges
+      const ranges = [
+        { label: 'Weekly', days: 7 },
+        { label: 'Monthly', days: 30 },
+        { label: 'Termly (3.5 months)', days: 105 }
+      ];
+      const results = [];
+      for (const r of ranges){
+        const start = new Date(today);
+        start.setDate(today.getDate() - (r.days-1));
+        // fetch attendance for each day in range
+        let presentCount = 0;
+        let dayCount = 0;
+        for (let d = new Date(start); d <= today; d.setDate(d.getDate()+1)){
+          const ds = d.toISOString().slice(0,10);
+          try{
+            const resp = await fetch(`/headteacher/api/attendance?date=${ds}`);
+            if (!resp.ok) continue;
+            const arr = await resp.json();
+            if (Array.isArray(arr)){
+              dayCount += arr.length ? 1 : 0; // count days with records
+              presentCount += arr.filter(x=> x.status === 'present').length;
+            }
+          }catch(e){ /* ignore */ }
+        }
+        results.push({ label: r.label, presentCount, dayCount });
+      }
+      // show brief modal with results
+      alert(results.map(x=> `${x.label}: present entries ${x.presentCount}, days with records ${x.dayCount}`).join('\n'));
     });
 
     // initial load
@@ -401,7 +508,22 @@
       // event listeners
       window.addEventListener('resize', ()=>{ updatePadding(); checkNearFooter(); });
       window.addEventListener('orientationchange', ()=>{ setTimeout(()=>{ updatePadding(); checkNearFooter(); }, 200); });
-      window.addEventListener('scroll', checkNearFooter, { passive: true });
+      // scroll handling: check during scroll, and on scroll end nudge last card into view if needed
+      let scrollEndTimer = null;
+      window.addEventListener('scroll', ()=>{
+        checkNearFooter();
+        if (scrollEndTimer) clearTimeout(scrollEndTimer);
+        scrollEndTimer = setTimeout(()=>{
+          // on scroll end, if near footer, nudge into view
+          const footerRect = footer ? footer.getBoundingClientRect() : { top: window.innerHeight };
+          const lastRect = lastCard.getBoundingClientRect();
+          const distance = footerRect.top - lastRect.bottom;
+          const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
+          if (isMobile && distance > 0 && distance <= 40){
+            scrollToLastCard();
+          }
+        }, 150);
+      }, { passive: true });
 
       // expose for debugging/use
       window.scrollToLastCard = scrollToLastCard;
