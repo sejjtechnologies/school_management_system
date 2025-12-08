@@ -8,7 +8,7 @@ from models.user_models import User, Role
 from models.register_pupils import Pupil
 from models.class_model import Class
 from models.stream_model import Stream
-from models.salary_models import SalaryPayment
+from models.salary_models import SalaryPayment, RoleSalary
 from models.staff_models import StaffAttendance, StaffProfile, SalaryHistory
 
 
@@ -17,7 +17,24 @@ headteacher_routes = Blueprint("headteacher_routes", __name__)
 
 @headteacher_routes.route("/headteacher/dashboard")
 def dashboard():
-    return render_template("headteacher/dashboard.html")
+    # Fetch role salary defaults to display and allow editing from the dashboard
+    role_salaries = []
+    try:
+        rs_rows = RoleSalary.query.join(Role, RoleSalary.role_id == Role.id).all()
+        for r in rs_rows:
+            role_salaries.append({
+                'id': r.id,
+                'role_id': r.role_id,
+                'role_name': getattr(r.role, 'role_name', None),
+                'amount': str(r.amount) if getattr(r, 'amount', None) is not None else None,
+                'min_amount': str(r.min_amount) if getattr(r, 'min_amount', None) is not None else None,
+                'max_amount': str(r.max_amount) if getattr(r, 'max_amount', None) is not None else None,
+            })
+    except Exception:
+        # silently ignore DB issues here; template can handle empty list
+        role_salaries = []
+
+    return render_template("headteacher/dashboard.html", role_salaries=role_salaries)
 
 
 @headteacher_routes.route('/headteacher/api/summary')
@@ -26,9 +43,14 @@ def api_summary():
     total_pupils = db.session.query(func.count(Pupil.id)).scalar() or 0
 
     # Total staff (users excluding the 'Pupil' role if present)
+    # exclude roles that are not staff (Pupil, Parent) from staff counts
+    excluded_roles = []
     pupil_role = Role.query.filter_by(role_name='Pupil').first()
-    if pupil_role:
-        total_staff = db.session.query(func.count(User.id)).filter(User.role_id != pupil_role.id).scalar() or 0
+    if pupil_role: excluded_roles.append(pupil_role.id)
+    parent_role = Role.query.filter_by(role_name='Parent').first()
+    if parent_role: excluded_roles.append(parent_role.id)
+    if excluded_roles:
+        total_staff = db.session.query(func.count(User.id)).filter(~User.role_id.in_(excluded_roles)).scalar() or 0
     else:
         total_staff = db.session.query(func.count(User.id)).scalar() or 0
 
@@ -72,10 +94,15 @@ def api_summary():
 def api_staff():
     # Return all users with role name and staff profile (if any)
     # Return only staff users (exclude pupils if the Pupil role exists)
+    # Exclude non-staff roles from the staff listing (Pupil and Parent)
     pupil_role = Role.query.filter_by(role_name='Pupil').first()
+    parent_role = Role.query.filter_by(role_name='Parent').first()
+    excluded = []
+    if pupil_role: excluded.append(pupil_role.id)
+    if parent_role: excluded.append(parent_role.id)
     users_q = db.session.query(User, Role).outerjoin(Role, User.role_id == Role.id)
-    if pupil_role:
-        users_q = users_q.filter(User.role_id != pupil_role.id)
+    if excluded:
+        users_q = users_q.filter(~User.role_id.in_(excluded))
     users = users_q.all()
 
     out = []
@@ -228,6 +255,8 @@ def api_attendance():
                 'notes': r.notes,
                 'term': getattr(r, 'term', None),
                 'year': getattr(r, 'year', None),
+                'created_at': r.created_at.isoformat() if getattr(r, 'created_at', None) else None,
+                'updated_at': r.updated_at.isoformat() if getattr(r, 'updated_at', None) else None,
             })
         return jsonify(out)
 
@@ -333,3 +362,99 @@ def api_attendance_batch():
         return jsonify({'error': 'commit_failed', 'detail': str(e)}), 500
 
     return jsonify({'results': results, 'errors': errors}), 200
+
+
+# API endpoint to fetch all role salaries for display/editing
+@headteacher_routes.route('/headteacher/api/role_salaries', methods=['GET', 'POST', 'PUT'])
+def api_role_salaries():
+    if request.method == 'GET':
+        # Return all role salaries with role info
+        role_salaries = []
+        try:
+            rs_rows = RoleSalary.query.join(Role, RoleSalary.role_id == Role.id).all()
+            for r in rs_rows:
+                role_salaries.append({
+                    'id': r.id,
+                    'role_id': r.role_id,
+                    'role_name': getattr(r.role, 'role_name', None),
+                    'amount': str(r.amount) if getattr(r, 'amount', None) is not None else None,
+                    'min_amount': str(r.min_amount) if getattr(r, 'min_amount', None) is not None else None,
+                    'max_amount': str(r.max_amount) if getattr(r, 'max_amount', None) is not None else None,
+                    'created_at': r.created_at.isoformat() if getattr(r, 'created_at', None) else None,
+                    'updated_at': r.updated_at.isoformat() if getattr(r, 'updated_at', None) else None,
+                })
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+        return jsonify({'role_salaries': role_salaries}), 200
+
+    # POST - create new role salary
+    if request.method == 'POST':
+        data = request.json or {}
+        role_id = data.get('role_id')
+        amount = data.get('amount')
+        if not role_id or amount is None:
+            return jsonify({'error': 'role_id_and_amount_required'}), 400
+        
+        # Check if role exists
+        role = Role.query.get(role_id)
+        if not role:
+            return jsonify({'error': 'role_not_found'}), 404
+        
+        # Check if already exists
+        existing = RoleSalary.query.filter_by(role_id=role_id).first()
+        if existing:
+            return jsonify({'error': 'role_salary_already_exists'}), 400
+        
+        try:
+            amt = Decimal(str(amount))
+            rs = RoleSalary(
+                role_id=role_id,
+                amount=amt,
+                min_amount=Decimal(str(data.get('min_amount', 0))) if data.get('min_amount') else None,
+                max_amount=Decimal(str(data.get('max_amount', 0))) if data.get('max_amount') else None,
+            )
+            db.session.add(rs)
+            db.session.commit()
+            return jsonify({
+                'id': rs.id,
+                'role_id': rs.role_id,
+                'amount': str(rs.amount),
+                'min_amount': str(rs.min_amount) if rs.min_amount else None,
+                'max_amount': str(rs.max_amount) if rs.max_amount else None,
+            }), 201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+
+    # PUT - update role salary by id
+    if request.method == 'PUT':
+        data = request.json or {}
+        role_salary_id = data.get('id')
+        if not role_salary_id:
+            return jsonify({'error': 'id_required'}), 400
+        
+        rs = RoleSalary.query.get(role_salary_id)
+        if not rs:
+            return jsonify({'error': 'role_salary_not_found'}), 404
+        
+        try:
+            if 'amount' in data and data['amount'] is not None:
+                rs.amount = Decimal(str(data['amount']))
+            if 'min_amount' in data and data['min_amount'] is not None:
+                rs.min_amount = Decimal(str(data['min_amount']))
+            if 'max_amount' in data and data['max_amount'] is not None:
+                rs.max_amount = Decimal(str(data['max_amount']))
+            
+            rs.updated_at = datetime.utcnow()
+            db.session.commit()
+            return jsonify({
+                'id': rs.id,
+                'role_id': rs.role_id,
+                'amount': str(rs.amount),
+                'min_amount': str(rs.min_amount) if rs.min_amount else None,
+                'max_amount': str(rs.max_amount) if rs.max_amount else None,
+                'updated_at': rs.updated_at.isoformat(),
+            }), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500

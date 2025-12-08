@@ -22,6 +22,20 @@
     .att-icon { margin-right:8px; display:inline-flex; align-items:center; }
     .att-name { flex:1 1 auto; min-width:0; }
     .att-actions { flex:0 0 auto; margin-left:8px; }
+    /* toast notification styles */
+    .toast-container-fixed { position: fixed; top: 80px; right: 20px; z-index: 9999; }
+    .toast { min-width: 300px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .toast.success { background-color: #d4edda; border-left: 4px solid #28a745; }
+    .toast.error { background-color: #f8d7da; border-left: 4px solid #dc3545; }
+    .toast.success .toast-body { color: #155724; font-weight: 600; }
+    .toast.error .toast-body { color: #721c24; font-weight: 600; }
+    /* attendance info display */
+    .attendance-info { display: flex; gap: 12px; align-items: center; padding: 6px 0; margin-bottom: 10px; border-bottom: 1px solid rgba(0,0,0,0.1); font-size: 0.78rem; }
+    .attendance-info-item { display: flex; gap: 4px; align-items: center; }
+    .attendance-info-label { font-weight: 600; color: #495057; }
+    .attendance-info-value { color: #1b5e20; font-weight: 500; }
+    /* smaller saved timestamp to avoid increasing card height */
+    .attendance-info-saved { font-size: 0.72rem; color: #495057; font-weight: 500; opacity: 0.95; }
   </style>
 </head>
 <body>
@@ -145,6 +159,26 @@
             <small class="small-muted">Mark present/absent</small>
           </div>
           <div class="card-body p-2">
+            <!-- Attendance info display (date, saved time, term, year) -->
+            <div class="attendance-info">
+              <div class="attendance-info-item">
+                <span class="attendance-info-label">Date:</span>
+                <span class="attendance-info-value" id="attendanceInfoDate">--</span>
+              </div>
+              <div class="attendance-info-item">
+                <span class="attendance-info-label">Saved:</span>
+                <span class="attendance-info-value attendance-info-saved" id="attendanceInfoSaved">--</span>
+              </div>
+              <div class="attendance-info-item">
+                <span class="attendance-info-label">Term:</span>
+                <span class="attendance-info-value" id="attendanceInfoTerm">--</span>
+              </div>
+              <div class="attendance-info-item">
+                <span class="attendance-info-label">Year:</span>
+                <span class="attendance-info-value" id="attendanceInfoYear">--</span>
+              </div>
+            </div>
+
             <div class="attendance-controls mb-2">
               <label class="small-muted mb-0">Date</label>
               <input type="date" id="attendanceDate" class="form-control form-control-sm" />
@@ -205,10 +239,28 @@
         </div>
       </div>
     </div>
+    <!-- Toast container for notifications -->
+    <div class="toast-container-fixed" id="toastContainer"></div>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    // Toast notification helper
+    function showToast(message, type='success', duration=1000){
+      const container = document.getElementById('toastContainer');
+      const toastEl = document.createElement('div');
+      toastEl.className = `toast ${type} show`;
+      toastEl.setAttribute('role', 'alert');
+      toastEl.innerHTML = `<div class="toast-body">${message}</div>`;
+      container.appendChild(toastEl);
+
+      // auto-remove after duration
+      setTimeout(()=>{
+        toastEl.remove();
+      }, duration);
+    }
 
     function formatCurrency(n){
       if (n == null) return 'UGX 0';
@@ -276,20 +328,40 @@
         const dateInput = document.getElementById('attendanceDate');
         if (!dateInput.value) dateInput.value = new Date().toISOString().slice(0,10);
 
-        // fetch attendance for the selected date to mark checkboxes
+        // fetch attendance for the selected date to mark checkboxes and obtain saved metadata
         const today = dateInput.value || new Date().toISOString().slice(0,10);
         const attRes = await fetch(`/headteacher/api/attendance?date=${today}`);
         let attendanceMap = {};
+        let attendanceArr = [];
+        let latestSavedDate = null;
+        let savedTerm = null;
+        let savedYear = null;
         if (attRes.ok){
           const arr = await attRes.json();
           if (Array.isArray(arr)){
-            arr.forEach(r=> { attendanceMap[String(r.staff_id)] = r.status; });
+            attendanceArr = arr;
+            arr.forEach(r=> { 
+              attendanceMap[String(r.staff_id)] = r.status;
+              // prefer updated_at timestamp; fallback to created_at
+              if (r.updated_at || r.created_at){
+                const ts = new Date(r.updated_at || r.created_at);
+                if (!latestSavedDate || ts > latestSavedDate) latestSavedDate = ts;
+              }
+              if (!savedTerm && r.term) savedTerm = r.term;
+              if (!savedYear && (r.year || r.year === 0)) savedYear = r.year;
+            });
           }
         }
 
         renderStaffTable(staffCache);
         renderAttendanceList(staffCache, attendanceMap);
         updateAttendanceCounts();
+        // update attendance info display: show saved timestamp and saved term/year if available
+        if (latestSavedDate){
+          updateAttendanceInfoWithSaved(latestSavedDate, savedTerm, savedYear);
+        } else {
+          updateAttendanceInfo();
+        }
         // disable saving if attendance already exists for this date
         saveDisabled = Array.isArray(attendanceMap) ? attendanceMap.length>0 : Object.keys(attendanceMap).length>0;
         document.getElementById('saveAttendance').disabled = saveDisabled;
@@ -381,8 +453,8 @@
         // update cache and UI: don't assume salary_cents stored; just refresh staff
         await loadStaff();
         bootstrap.Modal.getInstance(modalEl).hide();
-        alert('Salary payment recorded');
-      }catch(e){ alert('Could not save salary: '+e.message); }
+        showToast('Salary payment recorded', 'success', 1000);
+      }catch(e){ showToast('Could not save salary: '+e.message, 'error', 1000); }
     });
 
     document.getElementById('staffSearch').addEventListener('input', function(){
@@ -394,7 +466,7 @@
 
     document.getElementById('saveAttendance').addEventListener('click', async function(){
       // prevent saving if already saved for this date
-      if (saveDisabled) { alert('Attendance already saved for this date'); return; }
+      if (saveDisabled) { showToast('Attendance already saved for this date', 'error', 1000); return; }
       const checks = Array.from(document.querySelectorAll('#attendanceList input[type=checkbox]'));
       const dateVal = document.getElementById('attendanceDate').value || new Date().toISOString().slice(0,10);
       const term = document.getElementById('attendanceTerm').value || null;
@@ -408,7 +480,16 @@
         year: year
       }));
 
+      const saveBtn = document.getElementById('saveAttendance');
+      const originalText = saveBtn.textContent;
+      const originalClass = saveBtn.className;
+
       try{
+        // Change button to saving state
+        saveBtn.textContent = 'Saving...';
+        saveBtn.className = 'btn btn-sm btn-danger';
+        saveBtn.disabled = true;
+
         const res = await fetch('/headteacher/api/attendance/batch', {
           method: 'POST', headers: {'Content-Type':'application/json','X-CSRFToken': csrfToken},
           body: JSON.stringify(payload)
@@ -417,16 +498,31 @@
         if (!res.ok) throw new Error(data.error || 'Batch save failed');
         if (data.errors && data.errors.length){
           console.warn('Some attendance rows failed', data.errors);
-          alert('Attendance saved with some errors, check console');
+          showToast('Attendance saved with some errors, check console', 'error', 1000);
         } else {
-          alert('Attendance saved');
+          showToast('Attendance saved successfully', 'success', 1000);
         }
+        // Immediately refresh attendance UI from server so counts reflect saved state
+        try{
+          await loadStaff();
+          await loadSummary();
+        }catch(e){ console.warn('Refresh after save failed', e); }
         // disable save after successful save
         saveDisabled = true;
-        document.getElementById('saveAttendance').disabled = true;
         document.getElementById('viewAttendanceSummary').classList.remove('d-none');
-        await loadSummary();
-      }catch(e){ alert('Could not save attendance: '+e.message); }
+        // restore button to original state but keep disabled to prevent double saves
+        saveBtn.textContent = originalText;
+        saveBtn.className = originalClass;
+        saveBtn.disabled = true;
+        // also schedule a full reload after a short delay as a fallback
+        setTimeout(()=>{ location.reload(); }, 3000);
+      }catch(e){
+        // restore button on error
+        saveBtn.textContent = originalText;
+        saveBtn.className = originalClass;
+        saveBtn.disabled = false;
+        showToast('Could not save attendance: '+e.message, 'error', 1000);
+      }
     });
 
     // mark all controls
@@ -454,6 +550,48 @@
         const opt = document.createElement('option'); opt.value = y; opt.textContent = y; if (y===year) opt.selected = true; sel.appendChild(opt);
       }
     })();
+
+    // update attendance info display (date, term, year)
+    function updateAttendanceInfo(){
+      const dateVal = document.getElementById('attendanceDate').value || '--';
+      const termVal = document.getElementById('attendanceTerm').value || '--';
+      const yearVal = document.getElementById('attendanceYear').value || '--';
+      document.getElementById('attendanceInfoDate').textContent = dateVal;
+      document.getElementById('attendanceInfoTerm').textContent = termVal;
+      document.getElementById('attendanceInfoYear').textContent = yearVal;
+    }
+
+    // Format Date object to 12-hour time (e.g. 3:05 PM)
+    function format12Hour(d){
+      if (!d || !(d instanceof Date)) return '';
+      let hours = d.getHours();
+      const minutes = d.getMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // 0 -> 12
+      return `${hours}:${minutes.toString().padStart(2,'0')} ${ampm}`;
+    }
+
+    // Update attendance info display with saved timestamp and optional term/year
+    function updateAttendanceInfoWithSaved(savedDateObj, term, year){
+      try{
+        if (savedDateObj){
+          const dateStr = savedDateObj.toISOString().slice(0,10);
+          const timeStr = format12Hour(savedDateObj);
+          document.getElementById('attendanceInfoSaved').textContent = `${dateStr} ${timeStr}`;
+        } else {
+          document.getElementById('attendanceInfoSaved').textContent = '--';
+        }
+        // prefer saved term/year when available, otherwise keep selector values
+        if (term) document.getElementById('attendanceInfoTerm').textContent = term;
+        if (year || year === 0) document.getElementById('attendanceInfoYear').textContent = year;
+      }catch(e){ console.warn('updateAttendanceInfoWithSaved failed', e); }
+    }
+
+    // listen for changes to date, term, year selectors
+    document.getElementById('attendanceDate').addEventListener('change', ()=>{ updateAttendanceInfo(); loadStaff(); });
+    document.getElementById('attendanceTerm').addEventListener('change', ()=>{ updateAttendanceInfo(); });
+    document.getElementById('attendanceYear').addEventListener('change', ()=>{ updateAttendanceInfo(); });
 
     // view attendance summary (weekly/monthly/termly)
     document.getElementById('viewAttendanceSummary').addEventListener('click', async function(){
@@ -526,10 +664,19 @@
         });
       }
 
-      // smooth scroll helper to ensure the bottom of the last card is reachable
+      // smooth scroll helper to ensure the bottom of the last card is reachable with exact 20px gap
       function scrollToLastCard(){
         try{
-          lastCard.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          const footerTop = footer ? footer.getBoundingClientRect().top : window.innerHeight;
+          const lastCardBottom = lastCard.getBoundingClientRect().bottom;
+          const gap = 20; // exact gap in pixels
+          const currentDistance = footerTop - lastCardBottom;
+
+          // if card bottom is too high (more than gap from footer), scroll down to make gap exact
+          if (currentDistance > gap) {
+            const scrollNeeded = currentDistance - gap;
+            window.scrollBy({ top: scrollNeeded, behavior: 'smooth' });
+          }
         }catch(e){ /* ignore */ }
       }
 
@@ -561,7 +708,7 @@
       window.scrollToLastCard = scrollToLastCard;
     }
 
-    (function(){ loadSummary(); loadStaff(); setupScrollBehavior(); })();
+    (function(){ loadSummary(); loadStaff(); setupScrollBehavior(); updateAttendanceInfo(); })();
   </script>
   {% include 'footer.html' %}
 </body>
