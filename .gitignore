@@ -10,6 +10,10 @@ __pycache__/
 /scripts/generate_all_report.json
 /scripts/__pycache__/
 
+# Database backups
+db_backup_*/
+*.dump
+
 # VS Code workspace
 .vscode/
 
