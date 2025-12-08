@@ -7,10 +7,16 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
   <style>
-    body { padding-top: 70px; background-color: #f1f8e9; font-family: 'Segoe UI', sans-serif; }
-    .navbar { background-color: #1b5e20; }
+    /* reduced top nav height and spacing */
+    body { padding-top: 60px; background-color: #f1f8e9; font-family: 'Segoe UI', sans-serif; }
+    .navbar { background-color: #1b5e20; height: 60px; }
+    .navbar .container-fluid { height: 60px; align-items: center; }
     .navbar-brand, .nav-link { color: #fff !important; }
-    .logout-btn { background-color: #d32f2f; color: #fff; border: none; }
+    .navbar-brand { font-size: 0.98rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .navbar-brand i { font-size: 1.05rem; }
+    /* smaller, flatter logout/back button */
+    .logout-btn { background-color: #d32f2f; color: #fff; border: none; padding: .25rem .5rem; font-size: .85rem; height: 34px; line-height: 1.1; border-radius: 6px; }
+    .logout-btn i { font-size: 0.95rem; margin-right: 6px; }
     .logout-btn:hover { background-color: #b71c1c; }
     .kpi-card { border-left: 6px solid #1b5e20; }
     .small-muted { font-size: .85rem; color: #6c757d; }
@@ -62,7 +68,7 @@
       </div>
     </div>
   </nav>
-  <main class="container my-4">
+  <main class="container my-4 main-scroll">
     <div class="row g-3">
       <!-- KPI cards -->
       <div class="col-12 col-md-6 col-lg-3">
@@ -909,9 +915,24 @@
           if (Math.abs(targetY - window.scrollY) <= 2) return;
 
           isAutoScrolling = true;
-          window.scrollTo({ top: Math.max(0, Math.round(targetY)), behavior: 'smooth' });
+          const finalTargetY = Math.max(0, Math.round(targetY));
+          window.scrollTo({ top: finalTargetY, behavior: 'smooth' });
           if (autoScrollTimer) clearTimeout(autoScrollTimer);
-          autoScrollTimer = setTimeout(()=>{ isAutoScrolling = false; }, 800);
+          // After smooth scroll completes, verify final position and snap if still off by a few pixels.
+          autoScrollTimer = setTimeout(()=>{
+            try{
+              const newRect = lastCard.getBoundingClientRect();
+              const footerH = footer ? footer.getBoundingClientRect().height : 0;
+              const desiredBottom2 = window.innerHeight - footerH - bottomGap;
+              const remaining = newRect.bottom - desiredBottom2;
+              if (Math.abs(remaining) > 3){
+                // Snap instantly to exact target to ensure the card reaches the bottom gap
+                const snapTarget = Math.max(0, Math.round(window.scrollY + remaining));
+                window.scrollTo({ top: snapTarget, behavior: 'auto' });
+              }
+            }catch(e){ /* ignore */ }
+            isAutoScrolling = false;
+          }, 900);
         }catch(e){ isAutoScrolling = false; /* ignore */ }
       }
 
