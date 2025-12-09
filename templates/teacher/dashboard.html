@@ -137,9 +137,9 @@
 <body>
   <!-- Navbar -->
   <nav class="navbar fixed-top navbar-expand-lg">
-    <div class="container-fluid px-3">
-      <a class="navbar-brand fw-bold" href="#" style="display:flex; align-items:center; gap:10px;">
-        <img src="/static/logo.png" alt="Logo" style="height:40px; width:auto;"><span>Teacher Dashboard</span>
+    <div class="container-fluid px-3" style="display:flex; align-items:center; height:100%;">
+      <a class="navbar-brand fw-bold" href="#" style="display:flex; align-items:center; gap:10px; height:100%;">
+        <img src="/static/logo.png" alt="Logo" style="height:36px; width:auto; display:block;"><span>Teacher Dashboard</span>
       </a>
       <div class="ms-auto">
         <form action="{{ url_for('user_routes.logout') }}" method="get" class="d-inline">
