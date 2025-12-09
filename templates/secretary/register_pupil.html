@@ -151,7 +151,10 @@
 <body>
     <!-- ✅ Top Navigation with Back Button -->
     <div class="navbar">
-        <span>Register Pupil</span>
+        <div class="d-flex align-items-center" style="gap:10px;">
+            <img src="/static/logo.png" alt="Logo" style="height:36px;" />
+            <span>Register Pupil</span>
+        </div>
         <a href="{{ url_for('secretary_routes.dashboard') }}" class="back-btn">
             <i class="bi bi-box-arrow-left"></i> Back
         </a>

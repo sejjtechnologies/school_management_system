@@ -42,8 +42,11 @@
 </head>
 <body>
   <div class="top-nav">
-    <div class="nav-title">Add Expense</div>
-    <div class="nav-actions">
+    <div style="display:flex; align-items:center; gap:10px; flex:1;">
+      <img src="/static/logo.png" alt="Logo" style="height:36px; width:auto;" />
+      <div class="nav-title">Add Expense</div>
+    </div>
+    <div class="nav-actions" style="flex-shrink:0;">
       <a class="btn-back" href="{{ url_for('bursar_routes.dashboard') }}" title="Back to dashboard">
         <!-- logout / sign-out icon (box with arrow) -->
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">

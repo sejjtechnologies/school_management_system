@@ -460,7 +460,10 @@
 <body data-current-month="{{ current_month }}" data-current-year="{{ current_year }}">
   <!-- Top Nav -->
   <div class="top-nav">
-    <div class="nav-title">📊 Manage Staff Salaries</div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <img src="/static/logo.png" alt="Logo" style="height:36px; width:auto;" />
+      <div class="nav-title">Manage Staff Salaries</div>
+    </div>
     <div style="display: flex; gap: 8px;">
       <a href="{{ url_for('bursar_routes.dashboard') }}" class="btn-back" aria-label="Back to dashboard">
         <i class="bi bi-box-arrow-right" style="color:#b71c1c; font-size:14px; line-height:1"></i>

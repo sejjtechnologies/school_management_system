@@ -588,7 +588,10 @@
   <nav class="navbar-fixed">
     <div class="nav-container">
       <!-- Academic Reports title on the left -->
-      <h5><i class="bi bi-file-text me-2"></i>Academic Reports</h5>
+      <div style="display:flex; align-items:center; gap:10px; flex:1;">
+        <img src="/static/logo.png" alt="Logo" style="height:36px; width:auto;">
+        <h5 style="color:#fff; margin:0;"><i class="bi bi-file-text me-2"></i>Academic Reports</h5>
+      </div>
       <!-- Back button on the right -->
       <a href="{{ url_for('parent_routes.pupil_dashboard', pupil_id=pupil.id) }}" class="btn-back" title="Back" aria-label="Back">
         <i class="bi bi-box-arrow-left"></i>

@@ -531,8 +531,8 @@
   <!-- ✅ Fixed Navbar -->
   <nav class="navbar fixed-top navbar-expand-lg">
     <div class="container-fluid px-3">
-      <a class="navbar-brand fw-bold" href="{{ url_for('admin_routes.dashboard') }}">
-        <i class="bi bi-calendar-check me-2"></i>Timetable Management
+      <a class="navbar-brand fw-bold" href="{{ url_for('admin_routes.dashboard') }}" style="display:flex; align-items:center; gap:8px;">
+        <img src="/static/logo.png" alt="Logo" style="height:36px; width:auto;"><span>Timetable Management</span>
       </a>
       <div class="ms-auto">
         <a href="{{ url_for('admin_routes.dashboard') }}" class="btn logout-btn" title="Back to Dashboard">

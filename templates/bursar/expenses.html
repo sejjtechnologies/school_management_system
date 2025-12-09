@@ -67,7 +67,10 @@
 <body>
   <!-- Fixed top nav -->
   <div class="top-nav">
-    <div class="nav-title">Expenses & Disbursements</div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <img src="/static/logo.png" alt="Logo" style="height:36px; width:auto;" />
+      <div class="nav-title">Expenses & Disbursements</div>
+    </div>
     <div class="nav-actions">
       <a class="btn-back" href="{{ url_for('bursar_routes.dashboard') }}" title="Back to dashboard" aria-label="Back to dashboard">
         <!-- logout / sign-out icon (box with arrow) - same as add_expense.html -->
