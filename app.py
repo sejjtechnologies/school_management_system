@@ -1,7 +1,7 @@
 import os
 import logging
-from datetime import datetime
-from flask import Flask, render_template, session, redirect, url_for, flash, request
+from datetime import datetime, timedelta
+from flask import Flask, render_template, session, redirect, url_for, flash, request, send_from_directory
 from models.user_models import db, AdminSession
 from models import marks_model   # ✅ Import marks_model to include new tables
 from routes.user_routes import user_routes
@@ -30,6 +30,12 @@ logger = logging.getLogger(__name__)
 
 # ✅ Secret key from environment
 app.secret_key = os.getenv("SECRET_KEY", "default_secret")
+
+# Remember-me session lifetime (in days). When `session.permanent = True` is set
+# for a user (e.g., the "Remember me" checkbox), Flask will set the session cookie
+# to expire after this duration. You can override via REMEMBER_DAYS environment var.
+remember_days = int(os.getenv('REMEMBER_DAYS', '30'))
+app.permanent_session_lifetime = timedelta(days=remember_days)
 
 # ✅ Database configuration from environment
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
@@ -123,6 +129,18 @@ def validate_admin_session():
 def index():
     logger.info("Index route accessed")
     return render_template("index.html")
+
+
+# Serve service worker at the root so it can control the entire scope
+@app.route('/sw.js')
+def service_worker():
+    return send_from_directory('static', 'sw.js')
+
+
+# Serve offline fallback at root path for the service worker
+@app.route('/offline.html')
+def offline_page():
+    return send_from_directory('static', 'offline.html')
 
 # ✅ Developer page route
 @app.route("/developer")
