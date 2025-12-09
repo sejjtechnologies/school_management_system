@@ -1,10 +1,9 @@
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 const CACHE_NAME = `hf-sms-v${CACHE_VERSION}`;
 const APP_SHELL = [
   '/',
   '/static/manifest.json',
-  '/static/icons/icon-192.svg',
-  '/static/icons/icon-512.svg',
+  '/static/logo.png',
   '/static/offline.html'
 ];
 
@@ -23,7 +22,7 @@ self.addEventListener('activate', event => {
     ))
   );
   self.clients.claim();
-  
+
   // Notify all clients about the new service worker
   self.clients.matchAll().then(clients => {
     clients.forEach(client => {
