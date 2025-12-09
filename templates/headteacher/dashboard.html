@@ -123,7 +123,10 @@
               <div>
                 <h6 class="mb-0">Attendance (Today)</h6>
                 <h3 id="attendanceToday">--</h3>
-                <div class="small-muted">Staff present</div>
+                <div class="d-flex gap-2 align-items-baseline">
+                  <div class="small-muted">Staff present</div>
+                  <div class="small-muted">Absent: <span id="attendanceAbsent" class="text-danger">--</span></div>
+                </div>
                 <!-- moved attendance info (date, saved, term, year) here to keep dashboard compact -->
                 <div class="attendance-info mt-2">
                   <div class="attendance-info-item">
@@ -524,7 +527,9 @@
         }
 
         renderStaffTable(staffCache);
-        renderAttendanceList(staffCache, attendanceMap);
+        // If attendance records exist for this date, disable editing
+        const hasSavedAttendance = Array.isArray(attendanceArr) && attendanceArr.length > 0;
+        renderAttendanceList(staffCache, attendanceMap, hasSavedAttendance);
         updateAttendanceCounts();
           // Update KPI attendance count to reflect the selected date's attendance
           try{
@@ -537,9 +542,14 @@
         } else {
           updateAttendanceInfo();
         }
-        // disable saving if attendance already exists for this date
-        saveDisabled = Array.isArray(attendanceMap) ? attendanceMap.length>0 : Object.keys(attendanceMap).length>0;
+        // disable saving and editing if attendance already exists for this date
+        saveDisabled = hasSavedAttendance;
         document.getElementById('saveAttendance').disabled = saveDisabled;
+        // also disable mark all buttons when saved
+        const markAllPresentBtn = document.getElementById('markAllPresent');
+        const markAllAbsentBtn = document.getElementById('markAllAbsent');
+        if (markAllPresentBtn) markAllPresentBtn.disabled = saveDisabled;
+        if (markAllAbsentBtn) markAllAbsentBtn.disabled = saveDisabled;
         if (saveDisabled) document.getElementById('viewAttendanceSummary').classList.remove('d-none');
         // notify that dashboard content (staff/attendance) has been rendered
         try{ document.dispatchEvent(new Event('dashboardContentReady')); }catch(e){}
@@ -566,7 +576,13 @@
       const checks = Array.from(document.querySelectorAll('#attendanceList input[type=checkbox]'));
       const total = checks.length;
       const present = checks.filter(cb=> cb.checked).length;
+      const absent = Math.max(0, total - present);
       document.getElementById('attendanceCounts').textContent = `Present: ${present} / ${total}`;
+      // keep KPI and small panel values in sync
+      const attTodayEl = document.getElementById('attendanceToday');
+      if (attTodayEl) attTodayEl.textContent = present;
+      const attAbsentEl = document.getElementById('attendanceAbsent');
+      if (attAbsentEl) attAbsentEl.textContent = absent;
     }
 
     function setAttendanceIcon(cb){
@@ -579,7 +595,7 @@
       }
     }
 
-    function renderAttendanceList(list, attendanceMap={}){
+    function renderAttendanceList(list, attendanceMap={}, disableEditing=false){
       const wrap = document.getElementById('attendanceList');
       wrap.innerHTML = '';
       list.forEach(s => {
@@ -590,11 +606,11 @@
         row.className = 'att-row';
         row.innerHTML = `
           <div class="att-name"><span class="att-icon">${checked?'<i class="bi bi-check-circle-fill text-success"></i>':'<i class="bi bi-x-circle-fill text-danger"></i>'}</span><strong>${s.name}</strong><div class="small-muted">${s.role}</div></div>
-          <div class="att-actions"><input type="checkbox" id="${id}" data-staff="${s.id}" ${checked? 'checked' : ''} /></div>`;
+          <div class="att-actions"><input type="checkbox" id="${id}" data-staff="${s.id}" ${checked? 'checked' : ''} ${disableEditing ? 'disabled' : ''} /></div>`;
         wrap.appendChild(row);
         // attach change handler to update counts and icon
         const cb = row.querySelector('input[type=checkbox]');
-        if (cb){ cb.addEventListener('change', function(){ setAttendanceIcon(cb); updateAttendanceCounts(); }); }
+        if (cb && !disableEditing){ cb.addEventListener('change', function(){ setAttendanceIcon(cb); updateAttendanceCounts(); }); }
       });
     }
 

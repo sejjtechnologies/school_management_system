@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>School Management System — System Overview</title>
+  <style>
+    :root{
+      --bg:#0f1720; --card-1:#083344; --card-2:#1f6f8b; --card-3:#3a8f6f; --card-4:#8b5cf6; --accent:#ffd166; --muted:#94a3b8; --paper:#f8fafc; --maxw:1100px;
+      --radius:12px; --gap:16px; --mono: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+    html,body{height:100%; margin:0; font-family:var(--mono); background: linear-gradient(180deg,#071226 0%, #0b1a2a 60%); color:var(--paper);} 
+    .wrap{max-width:var(--maxw); margin:28px auto; padding:24px;}
+    header{display:flex; gap:16px; align-items:center; margin-bottom:18px}
+    .logo{width:56px; height:56px; border-radius:10px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,var(--card-4),#5b21b6); box-shadow:0 6px 18px rgba(11,12,20,.5)}
+    .logo svg{width:36px;height:36px}
+    h1{margin:0; font-size:1.6rem}
+    p.lead{color:var(--muted); margin:4px 0 0}
+
+    .grid{display:grid; grid-template-columns:1fr 360px; gap:18px; align-items:start}
+
+    .card{background:rgba(255,255,255,0.03); border-radius:var(--radius); padding:16px; box-shadow: 0 8px 30px rgba(2,6,23,0.6);}
+    .card h3{margin:0 0 8px}
+    .muted{color:var(--muted); font-size:0.95rem}
+
+    .section-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:12px}
+    .pill{display:inline-flex; gap:8px; align-items:center; padding:8px 10px; border-radius:999px; font-weight:700; background:rgba(255,255,255,0.03); color:var(--paper);}
+
+    /* colorful cards */
+    .card.accent{background:linear-gradient(180deg, var(--card-1), #052c3a);}
+    .card.blue{background:linear-gradient(180deg,var(--card-2), #155f70)}
+    .card.green{background:linear-gradient(180deg,var(--card-3), #2f8d6e)}
+    .card.purple{background:linear-gradient(180deg,var(--card-4), #6d28d9)}
+
+    .meta{display:flex; gap:10px; flex-wrap:wrap}
+    .meta .item{background:rgba(255,255,255,0.04); padding:8px 12px; border-radius:8px}
+
+    aside.right{position:sticky; top:20px}
+    .right .card{padding:12px}
+    .list{margin:12px 0 0; padding:0; list-style:none}
+    .list li{display:flex; gap:10px; align-items:flex-start; margin-bottom:8px}
+    .icon{width:36px;height:36px;border-radius:8px;display:inline-grid;place-items:center;color:#071226;font-weight:800}
+    .icon.yellow{background:var(--accent); color:#071226}
+    .icon.pink{background:#ff9bd6; color:#071226}
+    .small{font-size:0.9rem; color:var(--muted)}
+
+    footer{margin-top:18px; color:var(--muted); font-size:0.9rem; text-align:center}
+
+    /* responsive */
+    @media (max-width:980px){ .grid{grid-template-columns:1fr}; aside.right{position:relative} }
+    @media (max-width:420px){ .section-grid{grid-template-columns:1fr}; .logo{width:48px;height:48px} h1{font-size:1.2rem} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo" aria-hidden>
+        <!-- simple shield + book icon -->
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2l7 3v5c0 5-4 9-7 11-3-2-7-6-7-11V5l7-3z" fill="#fff" opacity="0.08"/>
+          <path d="M8 8h8M8 11h8M8 14h8" stroke="white" stroke-opacity="0.9" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+      <div>
+        <h1>School Management System — Design & Overview</h1>
+        <p class="lead">A concise guide explaining the system, design choices, architecture, how it starts, weaknesses, and future directions.</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <main>
+        <div class="card accent">
+          <h3>What this page explains</h3>
+          <p class="muted">This document describes the full application: the architecture (Flask + SQLAlchemy + Bootstrap), who designed it, why it exists, how the runtime starts, weaknesses discovered during development, and recommended future trends. Use this page as an internal guide for maintainers and reviewers.</p>
+          <div style="height:12px"></div>
+          <div class="meta">
+            <div class="item"><strong>Project:</strong> School Management System</div>
+            <div class="item"><strong>Stack:</strong> Python, Flask, SQLAlchemy, PostgreSQL, HTML/CSS/Vanilla JS</div>
+            <div class="item"><strong>UI:</strong> Bootstrap 5, Inline JavaScript helpers</div>
+          </div>
+        </div>
+
+        <div style="height:14px"></div>
+
+        <section class="card blue">
+          <h3>Who designed it</h3>
+          <p class="muted">Primary development by the in-house team at Sejj Technologies (lead developer and contributors). Design decisions prioritized pragmatic maintainability: simple architecture, explicit routing, and minimal external dependencies so it can run on constrained hosting and be audited easily.</p>
+          <div class="section-grid" style="margin-top:12px">
+            <div class="card" style="background:rgba(255,255,255,0.02); padding:12px">
+              <h4 style="margin:0 0 8px">Roles</h4>
+              <ul class="small">
+                <li>Architect: system structure and DB schema</li>
+                <li>Backend devs: Flask APIs, migrations, DB integrations</li>
+                <li>Frontend devs: Bootstrap templates, JS UX helpers</li>
+                <li>QA & Ops: migrations, deploy guides, testing</li>
+              </ul>
+            </div>
+            <div class="card" style="background:rgba(255,255,255,0.02); padding:12px">
+              <h4 style="margin:0 0 8px">Design goals</h4>
+              <ul class="small">
+                <li>Reliability: explicit DB transactions and migrations</li>
+                <li>Simplicity: Vanilla JS where possible, avoid heavy clients</li>
+                <li>Auditability: clear routes, migration history, readable code</li>
+                <li>Mobile-first UX: small footprint, responsive cards</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <div style="height:14px"></div>
+
+        <section class="card green">
+          <h3>Techniques and key components</h3>
+          <p class="muted">The system uses proven components and techniques to balance development speed and operational stability:</p>
+          <ul class="small" style="margin-top:8px">
+            <li><strong>Flask</strong> for routing and templating — simple blueprint-based structure for each role (admin, headteacher, teacher, parent).</li>
+            <li><strong>SQLAlchemy</strong> for ORM and Alembic for schema migrations — explicit migration files are tracked.</li>
+            <li><strong>Bootstrap 5</strong> for responsive UI; small inline JS helpers manage UX bits (toasts, smooth-scrolling, data refresh).</li>
+            <li><strong>APIs</strong> follow straightforward REST endpoints for summary, staff, attendance (including batch saves), and role salaries.</li>
+            <li><strong>Server-side validation</strong> and CSRF tokens for form/API actions.</li>
+          </ul>
+
+          <h4 style="margin-top:12px">Startup flow (how the app starts)</h4>
+          <ol class="small">
+            <li>Environment variables loaded (.env) — DB URL, secret keys.</li>
+            <li>Flask app initialized; SQLAlchemy bound to app context.</li>
+            <li>Blueprints registered (user_routes, headteacher_routes, etc.).</li>
+            <li>Optional table creation or migrations applied separately (Alembic).</li>
+            <li>App runs (development mode or WSGI host in production).</li>
+          </ol>
+        </section>
+
+        <div style="height:14px"></div>
+
+        <section class="card purple">
+          <h3>Why this design (reason & choices)</h3>
+          <p class="muted">The team chose this design to:</p>
+          <ul class="small">
+            <li>Keep server logic centralized for access control and audit logs.</li>
+            <li>Allow HTML templates to be server-driven so pages degrade gracefully.</li>
+            <li>Make it easy to maintain for small teams without a heavy frontend build step.</li>
+          </ul>
+
+          <h4 style="margin-top:12px">When to choose a different approach</h4>
+          <p class="small muted">If you need offline mode, complex client-side state, or real-time collaboration at scale, consider adopting a SPA framework and real-time backend (WebSockets) in a future iteration.</p>
+        </section>
+
+        <div style="height:14px"></div>
+
+        <section class="card" style="background:rgba(255,255,255,0.02);">
+          <h3>Weaknesses found & recommendations</h3>
+          <ul class="small">
+            <li><strong>Scroll/UX race conditions:</strong> inline JS helpers initially conflicted and produced oscillation — resolved by guarded auto-scroll and content-ready triggers. Recommendation: centralize scrolling helpers and document expected sequences.</li>
+            <li><strong>Mobile viewport quirks:</strong> varied behavior between browsers — fix by using visualViewport when available and by measuring footer height dynamically.</li>
+            <li><strong>Testing gaps:</strong> need more device coverage and automated UI tests for critical flows. Recommendation: add end-to-end tests (Cypress/Playwright) covering attendance and payroll flows.</li>
+            <li><strong>Scaling:</strong> single-process Flask can be vertically scaled, but consider splitting read-heavy APIs behind caches and moving long-running jobs to background workers.</li>
+          </ul>
+        </section>
+
+      </main>
+
+      <aside class="right">
+        <div class="card">
+          <h3>Quick facts</h3>
+          <p class="small muted">Handy reference for maintainers</p>
+          <ul class="list">
+            <li><span class="icon yellow">API</span><div><strong>REST endpoints</strong><div class="small muted">/headteacher/api/summary, /staff, /attendance, /role_salaries</div></div></li>
+            <li><span class="icon pink">DB</span><div><strong>Postgres</strong><div class="small muted">SQLAlchemy models + Alembic</div></div></li>
+            <li><span class="icon" style="background:#ffd7a8;color:#071226">UX</span><div><strong>Toasts & Modals</strong><div class="small muted">Bootstrap-driven</div></div></li>
+          </ul>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <h3>Startup commands</h3>
+          <pre style="background:rgba(255,255,255,0.02); padding:10px; border-radius:8px; color:var(--paper); font-size:0.95rem;"># set env & run (local dev)
+set SECRET_KEY=your_secret_here
+set DATABASE_URL=postgres://... 
+python app.py
+
+# or use flask CLI
+set FLASK_APP=app.py
+flask run
+</pre>
+        </div>
+
+        <div class="card" style="margin-top:12px;background:rgba(255,255,255,0.02);">
+          <h3>Future trends & next steps</h3>
+          <ul class="small">
+            <li>Introduce E2E tests and CI for migrations.</li>
+            <li>Progressively migrate heavy UI sections to a small client framework if needed.</li>
+            <li>Move long-running tasks to background workers and add observability (metrics/tracing).</li>
+            <li>Consider multi-tenant architecture for other schools and SaaS packaging.</li>
+          </ul>
+        </div>
+
+      </aside>
+    </div>
+
+    <footer>
+      <div class="card" style="display:inline-block; padding:12px; background:rgba(255,255,255,0.02); border-radius:10px">Created as an internal overview • Keep in project root for live-server preview</div>
+    </footer>
+  </div>
+</body>
+</html>
