@@ -485,5 +485,106 @@
     }
   </script>
 
+  <script>
+    // PWA Install Prompt Handler
+    let deferredPrompt;
+
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault();
+      deferredPrompt = event;
+      showInstallPrompt();
+    });
+
+    function showInstallPrompt() {
+      const installBanner = document.createElement('div');
+      installBanner.id = 'pwa-install-banner';
+      installBanner.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, #2196F3, #1976D2);
+        color: white;
+        padding: 16px 20px;
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        flex-wrap: wrap;
+      `;
+      installBanner.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 200px;">
+          <i class="bi bi-download" style="font-size: 1.3rem;"></i>
+          <div>
+            <strong style="display: block; font-size: 1rem;">Install App</strong>
+            <small style="display: block; opacity: 0.9;">Get instant access on your home screen</small>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button id="install-btn" style="
+            background: white;
+            color: #2196F3;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+          ">Install</button>
+          <button id="dismiss-btn" style="
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+          ">Dismiss</button>
+        </div>
+      `;
+
+      document.body.insertBefore(installBanner, document.body.firstChild);
+
+      // Install button handler
+      document.getElementById('install-btn').addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log(`User response to install prompt: ${outcome}`);
+          deferredPrompt = null;
+          installBanner.remove();
+        }
+      });
+
+      // Dismiss button handler
+      document.getElementById('dismiss-btn').addEventListener('click', () => {
+        installBanner.remove();
+        // Remember dismissal for 7 days
+        sessionStorage.setItem('pwa-install-dismissed', Date.now());
+      });
+    }
+
+    // Check if app is already installed
+    window.addEventListener('appinstalled', () => {
+      console.log('PWA was installed successfully');
+      const banner = document.getElementById('pwa-install-banner');
+      if (banner) banner.remove();
+    });
+
+    // Check if already dismissed today
+    window.addEventListener('load', () => {
+      const dismissed = sessionStorage.getItem('pwa-install-dismissed');
+      if (dismissed) {
+        const dayInMs = 24 * 60 * 60 * 1000;
+        if (Date.now() - parseInt(dismissed) < dayInMs) {
+          return; // Don't show banner if dismissed within last day
+        }
+      }
+    });
+  </script>
+
 </body>
 </html>
