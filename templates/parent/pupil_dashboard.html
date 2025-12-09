@@ -268,8 +268,8 @@
   <!-- ✅ Fixed Top Navbar -->
   <nav class="navbar fixed-top navbar-expand-lg">
     <div class="container-fluid px-3">
-      <a class="navbar-brand fw-bold" href="{{ url_for('parent_routes.dashboard') }}">
-        <i class="bi bi-people-fill me-2"></i>Parent Dashboard
+      <a class="navbar-brand fw-bold" href="{{ url_for('parent_routes.dashboard') }}" style="display:flex; align-items:center; gap:10px;">
+        <img src="/static/logo.png" alt="Logo" style="height:40px; width:auto;"><span>Parent Dashboard</span>
       </a>
       <div class="ms-auto">
         <form action="{{ url_for('user_routes.logout') }}" method="get" class="d-inline">
