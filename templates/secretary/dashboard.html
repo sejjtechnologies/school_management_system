@@ -39,7 +39,7 @@
       color: #fff;
       border: none;
       padding: 0.35rem 0.75rem;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       height: auto;
       min-height: 32px;
       border-radius: 4px;
@@ -47,6 +47,13 @@
       display: flex;
       align-items: center;
       gap: 4px;
+    }
+    @media (max-width: 480px) {
+      .logout-btn {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.65rem;
+        min-height: 28px;
+      }
     }
     .logout-btn i {
       font-size: 0.85rem;
@@ -85,12 +92,12 @@
   <nav class="navbar fixed-top navbar-expand-lg">
     <div class="container-fluid px-2">
       <a class="navbar-brand fw-bold" href="#">
-        <img src="/static/logo.png" alt="Logo"><span>Secretary</span>
+        <img src="/static/logo.png" alt="Logo"><span>Secretary Dashboard</span>
       </a>
       <div class="ms-auto">
         <form action="{{ url_for('user_routes.logout') }}" method="get" class="d-inline">
           <button type="submit" class="btn logout-btn">
-            <i class="bi bi-box-arrow-right me-1"></i><span class="d-none d-sm-inline">Logout</span>
+            <i class="bi bi-box-arrow-right me-1"></i>Logout
           </button>
         </form>
       </div>
