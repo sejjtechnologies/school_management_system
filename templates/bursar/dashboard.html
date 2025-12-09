@@ -92,8 +92,18 @@
         padding: 0.7rem 0.9rem;
       }
     }
-    /* Make columns center their content so buttons are balanced */
-    .row.g-3 { height: 100%; align-items: center; justify-content: center; }
+    /* Keep the buttons grouped and centered without stretching them vertically */
+    .row.g-3 {
+      height: auto; /* don't stretch to fill the main area */
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 0.75rem;
+      width: 100%;
+      max-width: 920px; /* limits the block width so it stays compact */
+      margin: 0 auto; /* center the grid horizontally */
+      justify-items: center;
+      align-items: start;
+    }
     .row.g-3 > [class*='col-'] { display:flex; align-items:center; justify-content:center; }
   </style>
 </head>
