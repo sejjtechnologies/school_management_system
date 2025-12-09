@@ -410,13 +410,78 @@
   </script>
 
   <script>
-    // Register service worker for PWA
+    // Register service worker for PWA with automatic update checking
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
-          .then(reg => console.log('ServiceWorker registered with scope:', reg.scope))
+          .then(reg => {
+            console.log('ServiceWorker registered with scope:', reg.scope);
+
+            // Check for updates every 1 hour
+            setInterval(() => {
+              reg.update().catch(err => console.warn('Update check failed:', err));
+            }, 3600000); // 1 hour in milliseconds
+
+            // Listen for service worker updates
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New service worker is ready, show update notification
+                  const updateMsg = document.createElement('div');
+                  updateMsg.id = 'update-notification';
+                  updateMsg.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: linear-gradient(135deg, #4CAF50, #45a049);
+                    color: white;
+                    padding: 16px 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                    z-index: 10000;
+                    font-weight: 600;
+                    max-width: 90%;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                  `;
+                  updateMsg.innerHTML = `
+                    <i class="bi bi-arrow-clockwise" style="font-size: 1.2rem;"></i>
+                    <span>New version available!</span>
+                    <button onclick="location.reload()" style="
+                      background: white;
+                      color: #4CAF50;
+                      border: none;
+                      padding: 6px 12px;
+                      border-radius: 4px;
+                      cursor: pointer;
+                      font-weight: 600;
+                      font-size: 0.9rem;
+                    ">Reload</button>
+                  `;
+                  document.body.insertBefore(updateMsg, document.body.firstChild);
+
+                  // Auto-remove notification after 10 seconds if not clicked
+                  setTimeout(() => {
+                    if (updateMsg.parentNode) updateMsg.remove();
+                  }, 10000);
+                }
+              });
+            });
+          })
           .catch(err => console.warn('ServiceWorker registration failed:', err));
       });
+
+      // Listen for messages from service worker
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.onmessage = (event) => {
+          if (event.data.type === 'SERVICE_WORKER_UPDATED') {
+            console.log('Service worker updated to version:', event.data.version);
+          }
+        };
+      }
     }
   </script>
 

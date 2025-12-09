@@ -1,4 +1,5 @@
-const CACHE_NAME = 'hf-sms-v1';
+const CACHE_VERSION = 1;
+const CACHE_NAME = `hf-sms-v${CACHE_VERSION}`;
 const APP_SHELL = [
   '/',
   '/static/manifest.json',
@@ -7,6 +8,7 @@ const APP_SHELL = [
   '/static/offline.html'
 ];
 
+// Check for updates every time the service worker activates
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL))
@@ -21,6 +23,17 @@ self.addEventListener('activate', event => {
     ))
   );
   self.clients.claim();
+  
+  // Notify all clients about the new service worker
+  self.clients.matchAll().then(clients => {
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'SERVICE_WORKER_UPDATED',
+        version: CACHE_VERSION,
+        timestamp: new Date().toISOString()
+      });
+    });
+  });
 });
 
 self.addEventListener('fetch', event => {
