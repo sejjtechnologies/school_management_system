@@ -174,8 +174,8 @@
   <main>
     <!-- Welcome Message -->
     <div class="welcome-message text-center my-4 px-3">
-      <h2 class="fw-bold text-primary">Welcome to the School Management System</h2>
-      <p class="text-muted">Empowering education through simplicity and clarity</p>
+      <h2 class="fw-bold text-primary">HOPEFUL FUTURE PRIMARY SCHOOL Management System</h2>
+      <p class="text-muted">Nurturing Minds, Shaping Future</p>
     </div>
 
     <!-- Login Box -->
@@ -192,6 +192,13 @@
               <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
               <input type="email" class="form-control" id="email" name="email" placeholder="Enter email" required>
             </div>
+              <!-- small inline checker (hidden by default) -->
+              <div id="emailCheck" class="email-check-indicator" style="display:none; margin-top:6px;">
+                <div class="spinner-border spinner-border-sm text-white" role="status" style="width:1rem;height:1rem;">
+                  <span class="visually-hidden">Checking...</span>
+                </div>
+                <small class="text-danger" style="color:#d32f2f;">Checking account…</small>
+              </div>
           </div>
           <div class="mb-3">
             <label for="password" class="form-label">Password</label>
@@ -273,7 +280,8 @@
     }
 
     // Show an inline error inside the email input (placeholder + invalid feedback)
-    function showEmailInlineError(message, duration = 5000) {
+    function showEmailInlineError(_message, duration = 5000) {
+      // Only show the short placeholder 'Email required' inside the email input.
       try {
         const input = document.getElementById('email');
         if (!input) return;
@@ -281,21 +289,12 @@
         // store original placeholder so we can restore later
         if (!input.dataset._origPlaceholder) input.dataset._origPlaceholder = input.placeholder || '';
 
-        // Clear value (so placeholder is visible) and set placeholder to message
+        // Clear value (so placeholder is visible) and set placeholder to the short message
         input.value = '';
-        input.placeholder = message;
+        input.placeholder = 'Email required';
 
-        // add bootstrap invalid class
+        // add bootstrap invalid class for visual cue (red border)
         input.classList.add('is-invalid');
-
-        // ensure we have an invalid-feedback element right after the input
-        let feedback = input.parentElement.querySelector('.invalid-feedback');
-        if (!feedback) {
-          feedback = document.createElement('div');
-          feedback.className = 'invalid-feedback';
-          input.parentElement.appendChild(feedback);
-        }
-        feedback.textContent = message;
 
         // focus so user can type immediately
         input.focus();
@@ -304,7 +303,6 @@
         const onInput = function(){
           input.classList.remove('is-invalid');
           input.placeholder = input.dataset._origPlaceholder || '';
-          if (feedback) feedback.textContent = '';
           input.removeEventListener('input', onInput);
         };
         input.addEventListener('input', onInput);
@@ -314,10 +312,27 @@
           try {
             input.classList.remove('is-invalid');
             input.placeholder = input.dataset._origPlaceholder || '';
-            if (feedback) feedback.textContent = '';
           } catch(e) {}
         }, duration);
       } catch (e) { console.warn('showEmailInlineError failed', e); }
+    }
+
+    // Small checking indicator controls
+    function showEmailChecking() {
+      try {
+        const el = document.getElementById('emailCheck');
+        if (!el) return;
+        el.style.display = 'flex';
+        el.style.alignItems = 'center';
+        el.style.gap = '8px';
+      } catch(e) { console.warn(e); }
+    }
+    function hideEmailChecking() {
+      try {
+        const el = document.getElementById('emailCheck');
+        if (!el) return;
+        el.style.display = 'none';
+      } catch(e) { console.warn(e); }
     }
 
     // Require email before allowing navigation to reset password
@@ -325,23 +340,55 @@
       const forgot = document.getElementById('forgotLink');
       const emailInput = document.getElementById('email');
       if (forgot){
-        forgot.addEventListener('click', function(e){
+        forgot.addEventListener('click', async function(e){
           e.preventDefault();
           const email = (emailInput && emailInput.value) ? emailInput.value.trim() : '';
           if (!email){
             // show inline error inside the email input and focus
-            showEmailInlineError('Email required! Please enter your email address.');
+            showEmailInlineError();
             return;
           }
           // optional: basic email format check
           const re = /^\S+@\S+\.\S+$/;
           if (!re.test(email)){
-            showEmailInlineError('Please enter a valid email address.');
+            showEmailInlineError();
             return;
           }
-          // navigate to reset page with email prefilled via querystring
-          const href = forgot.getAttribute('href') || '/reset_password';
-          window.location.href = href + '?email=' + encodeURIComponent(email);
+
+          // Check with server whether the email exists before redirecting
+          try {
+            showEmailChecking();
+            const start = Date.now();
+            const checkUrl = '/api/check-email?email=' + encodeURIComponent(email);
+            const resp = await fetch(checkUrl, { method: 'GET', credentials: 'same-origin' });
+            const elapsed = Date.now() - start;
+            // keep indicator visible at least 2000ms so user sees the check (mobile-friendly)
+            const minVisible = 2000;
+            const wait = Math.max(0, minVisible - elapsed);
+            if (!resp.ok) {
+              await new Promise(r => setTimeout(r, wait));
+              hideEmailChecking();
+              showPageAlert('Server error verifying email. Please try again later.');
+              return;
+            }
+            const data = await resp.json();
+            await new Promise(r => setTimeout(r, wait));
+            hideEmailChecking();
+            if (!data.exists) {
+              // show friendly inline page alert and focus input
+              showPageAlert('No account found for that email address.', 'danger');
+              if (emailInput) { emailInput.focus(); }
+              return;
+            }
+
+            // navigate to reset page with email prefilled via querystring
+            const href = forgot.getAttribute('href') || '/reset_password';
+            window.location.href = href + '?email=' + encodeURIComponent(email);
+          } catch (err) {
+            console.warn('Failed to verify email', err);
+            hideEmailChecking();
+            showPageAlert('Network error verifying email. Please try again.');
+          }
         });
       }
     });

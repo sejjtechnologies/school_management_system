@@ -177,6 +177,23 @@ def check_session():
         print(f"[ERROR] Session check failed: {str(e)}")
         return {"valid": False, "message": "Session validation error"}, 500
 
+
+# Simple API to check whether an email exists in the users table. Used by the
+# login page to validate whether a reset-password request should proceed.
+@user_routes.route("/api/check-email", methods=["GET"])
+def api_check_email():
+    try:
+        email = request.args.get('email', '') or ''
+        email = email.strip().lower()
+        if not email:
+            return {"exists": False}, 200
+
+        found = User.query.filter_by(email=email).first()
+        return {"exists": bool(found)}, 200
+    except Exception as e:
+        print(f"[ERROR] api_check_email failed: {e}")
+        return {"exists": False, "error": str(e)}, 500
+
 # Dashboard routes for each role
 @user_routes.route("/admin/dashboard")
 def admin_dashboard():
