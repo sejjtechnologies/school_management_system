@@ -158,7 +158,7 @@
       <div class="col-12 col-xl-8">
         <div class="card shadow-sm">
           <div class="card-header d-flex justify-content-between align-items-center">
-            <strong>Staff Directory</strong>
+            <strong>Staff Payment Directory</strong>
             <div>
               <input id="staffSearch" class="form-control form-control-sm" placeholder="Search staff..." style="width:220px; display:inline-block;" />
             </div>
@@ -169,9 +169,11 @@
                 <thead class="table-light">
                   <tr>
                     <th>Name</th>
-                    <th>Role</th>
-                    <th style="width:140px">Salary</th>
-                    <th style="max-width:110px">Last Paid</th>
+                    <th class="d-none d-sm-table-cell">Role</th>
+                    <th style="width:110px">Salary</th>
+                    <th style="width:100px">Paid</th>
+                    <th class="d-none d-md-table-cell" style="width:100px">Balance</th>
+                    <th style="max-width:130px">Last Paid</th>
                   </tr>
                 </thead>
                 <tbody id="staffTableBody">
@@ -484,13 +486,22 @@
           } else if (u.role && roleSalaryMap[u.role] !== undefined){
             salary_cents = Math.round(Number(roleSalaryMap[u.role]) * 100);
           }
-          const last_paid = u.latest_payment ? (u.latest_payment.date || null) : null;
+          // latest_payment may include amount, balance, date/time
+          const latest = u.latest_payment || null;
+          // prefer server-side preformatted display, then UTC iso, then legacy fields
+          const last_paid_iso = latest ? (latest.date_utc || latest.date || latest.paid_at || null) : null;
+          const last_paid_display = latest ? (latest.date_display || latest.payment_date_display || latest.date_eat || null) : null;
+          const last_paid_amount = latest && (latest.amount !== undefined && latest.amount !== null) ? Number(latest.amount) : null;
+          const last_paid_balance = latest && (latest.balance !== undefined && latest.balance !== null) ? Number(latest.balance) : null;
           return {
             id: u.id,
             name,
             role: u.role || '',
             salary_cents: salary_cents || 0,
-            last_paid: last_paid,
+            last_paid_iso: last_paid_iso,
+            last_paid_display: last_paid_display,
+            last_paid_amount: last_paid_amount,
+            last_paid_balance: last_paid_balance,
           };
         });
 
@@ -561,12 +572,23 @@
       tbody.innerHTML = '';
       list.forEach(s => {
         const tr = document.createElement('tr');
-        const lastPaidDisplay = s.last_paid ? formatEastAfricanTime(s.last_paid) : '-';
+        const paidDisplay = (s.last_paid_amount != null) ? formatCurrency(s.last_paid_amount) : '-';
+        const balanceDisplay = (s.last_paid_balance != null) ? formatCurrency(s.last_paid_balance) : '-';
+        let lastPaidDisplay = '-';
+        if (s.last_paid_display){
+          lastPaidDisplay = s.last_paid_display;
+        } else if (s.last_paid_iso){
+          const datePart = (s.last_paid_iso || '').slice(0,10);
+          const timePart = formatEastAfricanTime(s.last_paid_iso);
+          lastPaidDisplay = `${datePart} ${timePart}`;
+        }
         tr.innerHTML = `
           <td>${s.name}</td>
-          <td>${s.role}</td>
+          <td class="d-none d-sm-table-cell">${s.role}</td>
           <td>${formatCurrency((s.salary_cents||0)/100)}</td>
-          <td style="font-size:0.85rem;">${lastPaidDisplay}</td>`;
+          <td>${paidDisplay}</td>
+          <td class="d-none d-md-table-cell">${balanceDisplay}</td>
+          <td style="font-size:0.82rem;">${lastPaidDisplay}</td>`;
         tbody.appendChild(tr);
       });
     }

@@ -1,0 +1,302 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>School Management System — Operational Overview</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      :root{ --accent:#0b5ed7; --muted:#6b7280; --card-radius:12px; }
+      body{ font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial; background:#f6f8fb; color:#0f172a; }
+      .hero{ padding:2rem 0; }
+      h1.page-title{ font-weight:700; letter-spacing:-0.01em }
+      .toc a{ display:block; color:var(--muted); text-decoration:none; padding:.35rem .5rem; }
+      .toc a:hover{ color:var(--accent); }
+      .card-modern{ border-radius:var(--card-radius); box-shadow:0 6px 20px rgba(15,23,42,0.06); border:none; }
+      .card-ghost{ background:linear-gradient(180deg, #ffffff, #fbfdff); }
+      .card-amber{ background:linear-gradient(90deg,#fffaf0,#fffbf5); }
+      .card-azure{ background:linear-gradient(90deg,#f0fbff,#eef7ff); }
+      .card-rose{ background:linear-gradient(90deg,#fff6fb,#fff0f6); }
+      .icon-circle{ width:56px; height:56px; border-radius:12px; display:grid; place-items:center; font-size:22px; background:rgba(11,94,215,0.08); color:var(--accent); }
+      pre.cmd{ background:#0b1220; color:#e6eef8; padding:12px; border-radius:8px; overflow:auto; }
+      .role-grid .card{ min-height:140px; }
+      .muted-small{ color:var(--muted); font-size:.95rem }
+      .sales-tip{ border-left:4px solid var(--accent); padding-left:12px; }
+      @media (max-width:768px){ .icon-circle{ width:48px;height:48px;font-size:20px } }
+    </style>
+  </head>
+  <body>
+    <main class="container py-4">
+      <section class="hero mb-4 d-flex align-items-center justify-content-between">
+        <div>
+          <h1 class="page-title mb-1">School Management System — Operational Guide</h1>
+          <p class="muted-small mb-0">A detailed, non-technical manual for administrators and stakeholders. Designed for training, onboarding and sales demos.</p>
+        </div>
+        <div class="text-end d-none d-md-block muted-small">Version: <strong>1.0</strong><br>Generated: <strong>Dec 09, 2025</strong></div>
+      </section>
+
+      <div class="row g-4">
+        <aside class="col-lg-3">
+          <div class="card card-modern card-ghost p-3">
+            <h5 class="mb-2">Quick Contents</h5>
+            <nav class="toc mb-2">
+              <a href="#quickstart"><i class="bi bi-lightning-charge me-2"></i>Quick Start</a>
+              <a href="#roles"><i class="bi bi-people-fill me-2"></i>Roles & Tasks</a>
+              <a href="#operations"><i class="bi bi-gear-fill me-2"></i>Daily Operations</a>
+              <a href="#deploy"><i class="bi bi-cloud-upload-fill me-2"></i>Deploy & Run</a>
+              <a href="#db-mig"><i class="bi bi-database-fill me-2"></i>DB & Migrations</a>
+              <a href="#diagnostics"><i class="bi bi-speedometer2 me-2"></i>Diagnostics</a>
+              <a href="#sales"><i class="bi bi-megaphone-fill me-2"></i>Sales Tips</a>
+              <a href="#support"><i class="bi bi-headset me-2"></i>Support</a>
+            </nav>
+            <div class="mt-3 muted-small">
+              <strong>Preview:</strong>
+              <p class="mb-0">Open this file directly to preview. Do not link into production until you've tested workflows.</p>
+            </div>
+          </div>
+        </aside>
+
+        <div class="col-lg-9">
+          <section id="quickstart" class="mb-4">
+            <div class="card card-modern card-azure p-4">
+              <div class="d-flex gap-3 align-items-start">
+                <div class="icon-circle"><i class="bi bi-rocket-fill"></i></div>
+                <div>
+                  <h3 class="h5 mb-1">Quick Start (for evaluators)</h3>
+                  <p class="muted-small mb-2">Fast steps to get the system running in a development/demo environment.</p>
+                  <ol class="muted-small mb-2">
+                    <li>Clone the repository and copy a `.env` file with configuration (DATABASE_URL, SECRET_KEY).</li>
+                    <li>Create the Postgres DB, then run migrations: <code>alembic upgrade heads</code>.</li>
+                    <li>Seed default users (see <code>insert_default_users.py</code>) then start the server: <code>python app.py</code>.</li>
+                  </ol>
+                  <pre class="cmd">cd project-root
+python -m venv .venv; .venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+set -Path_to_.env
+alembic upgrade heads
+python app.py</pre>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="roles" class="mb-4">
+            <div class="card card-modern p-4 card-amber">
+              <div class="d-flex gap-3 align-items-start">
+                <div class="icon-circle"><i class="bi bi-shield-lock-fill"></i></div>
+                <div>
+                  <h3 class="h5 mb-1">Roles — Overview & Primary Responsibilities</h3>
+                  <p class="muted-small mb-3">Below are the primary user roles and their typical day‑to‑day tasks. Use this as a guide when training staff.</p>
+
+                  <div class="row role-grid">
+                    <div class="col-md-6 mb-3">
+                      <div class="card p-3 card-modern card-ghost">
+                        <h6><i class="bi bi-person-badge me-2 text-primary"></i>Admin</h6>
+                        <p class="muted-small mb-1">Full system administrative control.</p>
+                        <ul class="muted-small mb-0">
+                          <li>Create and manage users, set roles and permissions.</li>
+                          <li>Run data seeders and emergency fixes.</li>
+                          <li>Manage integrations and system settings (email, payments sandbox).</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                      <div class="card p-3 card-modern card-ghost">
+                        <h6><i class="bi bi-person-workspace me-2 text-success"></i>Headteacher</h6>
+                        <p class="muted-small mb-1">Academic oversight and reporting.</p>
+                        <ul class="muted-small mb-0">
+                          <li>Mark and review attendance, approve locked days.</li>
+                          <li>Generate attendance summaries (daily/termly) and export CSV.</li>
+                          <li>View staff assignments and approve timetable changes.</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                      <div class="card p-3 card-modern card-ghost">
+                        <h6><i class="bi bi-person-fill me-2 text-warning"></i>Teacher</h6>
+                        <p class="muted-small mb-1">Class-level operations.</p>
+                        <ul class="muted-small mb-0">
+                          <li>Record daily attendance for assigned classes.</li>
+                          <li>Enter marks and upload class notes or reports.</li>
+                          <li>Access pupil lists and print class reports.</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                      <div class="card p-3 card-modern card-ghost">
+                        <h6><i class="bi bi-journal-text me-2 text-info"></i>Secretary</h6>
+                        <p class="muted-small mb-1">Administrative data entry and records.</p>
+                        <ul class="muted-small mb-0">
+                          <li>Register pupils, assign to classes/streams and maintain personal records.</li>
+                          <li>Help parents with initial onboarding and data corrections.</li>
+                          <li>Run bulk operations (imports) and reconcile records with paper ledgers.</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                      <div class="card p-3 card-modern card-ghost">
+                        <h6><i class="bi bi-cash-stack me-2 text-danger"></i>Bursar</h6>
+                        <p class="muted-small mb-1">Finance and reconciliations.</p>
+                        <ul class="muted-small mb-0">
+                          <li>Record payments, issue receipts, maintain payment log.</li>
+                          <li>Download and reconcile daily receipts with bank statements.</li>
+                          <li>Manage salary data and run salary-related reports.</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                      <div class="card p-3 card-modern card-ghost">
+                        <h6><i class="bi bi-people me-2 text-muted"></i>Parent / Guardian</h6>
+                        <p class="muted-small mb-1">View-only / limited actions.</p>
+                        <ul class="muted-small mb-0">
+                          <li>View child's attendance and reports, download receipts.</li>
+                          <li>Update emergency contacts (where allowed) and view invoices.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="operations" class="mb-4">
+            <div class="card card-modern p-4 card-rose">
+              <div class="d-flex gap-3 align-items-start">
+                <div class="icon-circle"><i class="bi bi-list-check"></i></div>
+                <div>
+                  <h3 class="h5 mb-1">Daily & Monthly Operational Checklist</h3>
+                  <p class="muted-small mb-2">Suggested running order for each working day and month-end tasks.</p>
+                  <div class="row">
+                    <div class="col-md-6">
+                      <h6 class="mb-1">Daily (Headteacher / Teacher)</h6>
+                      <ul class="muted-small">
+                        <li>Check dashboard KPIs (attendance today, absent counts).</li>
+                        <li>Teachers submit attendance by start of lessons; Headteacher reviews and locks day if complete.</li>
+                        <li>Bursar records payments and uploads receipts; send digital copies to parents.</li>
+                      </ul>
+                    </div>
+                    <div class="col-md-6">
+                      <h6 class="mb-1">Monthly / Termly</h6>
+                      <ul class="muted-small">
+                        <li>Generate attendance summaries & export CSV for archive.</li>
+                        <li>Run financial reconciliation and export ledgers for accountant.</li>
+                        <li>Run backups before major migrations or upgrades.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="deploy" class="mb-4">
+            <div class="card card-modern p-4 card-azure">
+              <div class="d-flex gap-3 align-items-start">
+                <div class="icon-circle"><i class="bi bi-cloud-upload-fill"></i></div>
+                <div>
+                  <h3 class="h5 mb-1">Deploy & Run (production tips)</h3>
+                  <p class="muted-small mb-2">Production recommendations for reliability and security.</p>
+                  <ul class="muted-small">
+                    <li>Use Gunicorn behind Nginx for Python WSGI hosting; set up systemd for process supervision.</li>
+                    <li>Store secrets in environment variables; never commit `.env` to source control.</li>
+                    <li>Enable TLS at the proxy (Nginx/Load Balancer) and protect admin routes behind IP or VPN if needed.</li>
+                  </ul>
+                  <pre class="cmd"># example gunicorn start
+gunicorn -w 4 -b 0.0.0.0:8000 app:app --reload</pre>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="db-mig" class="mb-4">
+            <div class="card card-modern p-4 card-ghost">
+              <div class="d-flex gap-3 align-items-start">
+                <div class="icon-circle"><i class="bi bi-database-fill"></i></div>
+                <div>
+                  <h3 class="h5 mb-1">Database & Migrations</h3>
+                  <p class="muted-small mb-2">Key commands and tips for schema management.</p>
+                  <ul class="muted-small">
+                    <li>Check current DB revision: <code>alembic current</code>.</li>
+                    <li>List heads: <code>alembic heads</code>. If multiple heads exist, reconcile by stamping or merging.</li>
+                    <li>Apply migrations: <code>alembic upgrade heads</code>. If a migration fails due to already-applied changes, use <code>alembic stamp &lt;rev&gt;</code>.</li>
+                  </ul>
+                  <div class="mt-2 sales-tip muted-small">
+                    <strong>Tip:</strong> In development we sometimes enlarge <code>alembic_version.version_num</code> if revision names exceed the column width.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="diagnostics" class="mb-4">
+            <div class="card card-modern p-4 card-amber">
+              <div class="d-flex gap-3 align-items-start">
+                <div class="icon-circle"><i class="bi bi-tools"></i></div>
+                <div>
+                  <h3 class="h5 mb-1">Diagnostics & Performance</h3>
+                  <p class="muted-small mb-2">How to investigate slow queries or long-running summary operations.</p>
+                  <ol class="muted-small">
+                    <li>Use the aggregate endpoint for attendance summaries to avoid many per-day requests.</li>
+                    <li>Hit the debug EXPLAIN route (development only) to get <code>EXPLAIN ANALYZE</code> output and inspect for sequential scans.</li>
+                    <li>If necessary, add composite indexes or create materialized views for heavy reports.</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="sales" class="mb-4">
+            <div class="card card-modern p-4 card-azure">
+              <div class="d-flex gap-3 align-items-start">
+                <div class="icon-circle"><i class="bi bi-megaphone-fill"></i></div>
+                <div>
+                  <h3 class="h5 mb-1">Sales & Onboarding Notes</h3>
+                  <p class="muted-small mb-2">How to present the system to potential customers and onboard them quickly.</p>
+                  <ul class="muted-small">
+                    <li>Start with the business problem: show how hours saved in admin work translate to impact.</li>
+                    <li>Demo the role flows: Admin -> Secretary -> Teacher -> Headteacher -> Parent, showing the same pupil flowing through each stage.</li>
+                    <li>Offer a 2-week pilot (seed data, train 2 staff members, collect feedback) and include remote support in the proposal.</li>
+                  </ul>
+                  <div class="mt-2 sales-tip">
+                    <strong>Demo idea:</strong> Walk through registering a pupil, marking attendance for a week, recording a payment, and generating a monthly attendance CSV — this showcases the full loop.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="support" class="mb-4">
+            <div class="card card-modern p-4 card-ghost">
+              <div class="d-flex gap-3 align-items-start">
+                <div class="icon-circle"><i class="bi bi-headset"></i></div>
+                <div>
+                  <h3 class="h5 mb-1">Support, Training & Documentation</h3>
+                  <p class="muted-small mb-2">Recommended support bundle for purchasers.</p>
+                  <ul class="muted-small">
+                    <li>Starter training: 2-hour hands-on workshop for Admin & Secretary users.</li>
+                    <li>Monthly remote support for the first pilot period (bug fixes, small changes).</li>
+                    <li>Provide a PDF quick-start for non-technical staff and record a short walkthrough video.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <footer class="muted-small mt-3">This document is a living guide. Test thoroughly before linking into any live navigation. Contact: <strong>atukwasewilber78@gmail.com</strong></footer>
+        </div>
+      </div>
+
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

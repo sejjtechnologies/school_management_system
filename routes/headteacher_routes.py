@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, jsonify, request
-from datetime import date, datetime
-from decimal import Decimal
-from sqlalchemy import func
+from datetime import date, datetime, timezone, timedelta
+from decimal import Decimal, ROUND_HALF_UP
+from sqlalchemy import func, text
 
 from models.user_models import db
 from models.user_models import User, Role
@@ -15,6 +15,61 @@ from models.staff_models import StaffAttendance, StaffProfile, SalaryHistory
 headteacher_routes = Blueprint("headteacher_routes", __name__)
 
 
+def _to_utc_iso(dt):
+    if not dt:
+        return None
+    try:
+        if dt.tzinfo is None:
+            aware = dt.replace(tzinfo=timezone.utc)
+        else:
+            aware = dt.astimezone(timezone.utc)
+        # use Z to indicate UTC
+        return aware.isoformat().replace('+00:00', 'Z')
+    except Exception:
+        try:
+            return dt.isoformat()
+        except Exception:
+            return None
+
+
+def _to_eat_iso(dt):
+    if not dt:
+        return None
+    try:
+        if dt.tzinfo is None:
+            aware = dt.replace(tzinfo=timezone.utc)
+        else:
+            aware = dt.astimezone(timezone.utc)
+        eat = aware.astimezone(timezone(timedelta(hours=3)))
+        return eat.isoformat()
+    except Exception:
+        try:
+            return dt.isoformat()
+        except Exception:
+            return None
+
+
+def _to_eat_display(dt):
+    if not dt:
+        return None
+    try:
+        if dt.tzinfo is None:
+            aware = dt.replace(tzinfo=timezone.utc)
+        else:
+            aware = dt.astimezone(timezone.utc)
+        eat = aware.astimezone(timezone(timedelta(hours=3)))
+        date_part = eat.date().isoformat()
+        hour = eat.hour % 12 or 12
+        minute = str(eat.minute).zfill(2)
+        ampm = 'AM' if eat.hour < 12 else 'PM'
+        return f"{date_part} {hour}:{minute} {ampm}"
+    except Exception:
+        try:
+            return dt.isoformat()
+        except Exception:
+            return None
+
+
 @headteacher_routes.route("/headteacher/dashboard")
 def dashboard():
     # Fetch role salary defaults to display and allow editing from the dashboard
@@ -25,8 +80,9 @@ def dashboard():
             role_salaries.append({
                 'id': r.id,
                 'role_id': r.role_id,
-                'role_name': getattr(r.role, 'role_name', None),
-                'amount': str(r.amount) if getattr(r, 'amount', None) is not None else None,
+                    'role_name': getattr(r.role, 'role_name', None),
+                    # return role default as integer (no decimals)
+                    'amount': (lambda a: (int(Decimal(a).quantize(Decimal('1'), rounding=ROUND_HALF_UP)) if a is not None else None))(r.amount),
                 'min_amount': str(r.min_amount) if getattr(r, 'min_amount', None) is not None else None,
                 'max_amount': str(r.max_amount) if getattr(r, 'max_amount', None) is not None else None,
             })
@@ -85,6 +141,14 @@ def api_summary():
     # Salary payments summary
     salary_count = db.session.query(func.count(SalaryPayment.id)).scalar() or 0
     salary_total = db.session.query(func.coalesce(func.sum(SalaryPayment.amount), 0)).scalar() or 0
+    # normalize total to integer (no decimals)
+    try:
+        salary_total_int = int(Decimal(salary_total).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
+    except Exception:
+        try:
+            salary_total_int = int(salary_total)
+        except Exception:
+            salary_total_int = 0
 
     return jsonify({
         'total_pupils': int(total_pupils),
@@ -92,7 +156,7 @@ def api_summary():
         'pupils_by_class': pupils_by_class,
         'pupils_by_stream': pupils_by_stream,
         'salary_payments_count': int(salary_count),
-        'salary_payments_total': str(salary_total),
+        'salary_payments_total': salary_total_int,
     })
 
 
@@ -119,6 +183,71 @@ def api_staff():
             .order_by(SalaryPayment.payment_date.desc())
             .first()
         )
+        # compute expected salary for this user: per-user override or role default
+        expected_salary = None
+        try:
+            if user.salary_amount is not None:
+                expected_salary = user.salary_amount
+            else:
+                # try to find role default
+                rs = RoleSalary.query.filter_by(role_id=user.role_id).first()
+                if rs and rs.amount is not None:
+                    expected_salary = rs.amount
+        except Exception:
+            expected_salary = None
+
+        # compute balance if we have both expected salary and a latest payment
+        latest_payment_obj = None
+        if latest_payment:
+            try:
+                balance_val = None
+                if expected_salary is not None and latest_payment.amount is not None:
+                    # Decimal arithmetic: compute expected - paid and round to integer
+                    balance_val = Decimal(expected_salary) - Decimal(latest_payment.amount)
+                    try:
+                        balance_int = int(balance_val.quantize(Decimal('1'), rounding=ROUND_HALF_UP))
+                    except Exception:
+                        balance_int = int(balance_val)
+                else:
+                    balance_int = None
+
+                # normalize amount to integer (no decimals)
+                try:
+                    amount_int = int(Decimal(latest_payment.amount).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
+                except Exception:
+                    try:
+                        amount_int = int(latest_payment.amount)
+                    except Exception:
+                        amount_int = None
+
+                latest_payment_obj = {
+                    'id': latest_payment.id,
+                    'amount': amount_int,
+                    'balance': balance_int,
+                    'date_utc': _to_utc_iso(latest_payment.payment_date),
+                    'date_eat': _to_eat_iso(latest_payment.payment_date),
+                    'date_display': _to_eat_display(latest_payment.payment_date),
+                    'status': latest_payment.status if latest_payment.status else None,
+                }
+            except Exception:
+                # fallback to a minimal latest_payment representation with integer normalization
+                try:
+                    amount_int = int(Decimal(getattr(latest_payment, 'amount', 0)).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
+                except Exception:
+                    try:
+                        amount_int = int(getattr(latest_payment, 'amount', None))
+                    except Exception:
+                        amount_int = None
+                latest_payment_obj = {
+                    'id': latest_payment.id,
+                    'amount': amount_int,
+                    'balance': None,
+                    'date_utc': _to_utc_iso(getattr(latest_payment, 'payment_date', None)),
+                    'date_eat': _to_eat_iso(getattr(latest_payment, 'payment_date', None)),
+                    'date_display': _to_eat_display(getattr(latest_payment, 'payment_date', None)),
+                    'status': latest_payment.status if getattr(latest_payment, 'status', None) else None,
+                }
+
         out.append({
             'id': user.id,
             'first_name': user.first_name,
@@ -132,12 +261,7 @@ def api_staff():
                 'tax_id': profile.tax_id if profile else None,
                 'pay_grade': profile.pay_grade if profile else None,
             },
-            'latest_payment': {
-                'id': latest_payment.id,
-                'amount': str(latest_payment.amount),
-                'date': latest_payment.payment_date.isoformat() if latest_payment else None,
-                'status': latest_payment.status if latest_payment else None,
-            } if latest_payment else None
+            'latest_payment': latest_payment_obj
         })
 
     return jsonify(out)
@@ -149,13 +273,23 @@ def api_salary_payments():
         payments = SalaryPayment.query.order_by(SalaryPayment.payment_date.desc()).all()
         out = []
         for p in payments:
+            # normalize amount to integer (no decimals)
+            try:
+                amount_int = int(Decimal(p.amount).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
+            except Exception:
+                try:
+                    amount_int = int(p.amount)
+                except Exception:
+                    amount_int = None
             out.append({
                 'id': p.id,
                 'user_id': p.user_id,
                 'role_id': p.role_id,
-                'amount': str(p.amount),
+                'amount': amount_int,
                 'paid_by_user_id': p.paid_by_user_id,
-                'payment_date': p.payment_date.isoformat() if p.payment_date else None,
+                'payment_date_utc': _to_utc_iso(p.payment_date),
+                'payment_date_eat': _to_eat_iso(p.payment_date),
+                'payment_date_display': _to_eat_display(p.payment_date),
                 'period_month': p.period_month,
                 'period_year': p.period_year,
                 'term': p.term,
@@ -196,11 +330,21 @@ def api_salary_payments():
     )
     db.session.add(p)
     db.session.commit()
+    # normalize returned amount to integer
+    try:
+        amount_int = int(Decimal(p.amount).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
+    except Exception:
+        try:
+            amount_int = int(p.amount)
+        except Exception:
+            amount_int = None
     return jsonify({
         'id': p.id,
         'user_id': p.user_id,
-        'amount': str(p.amount),
-        'payment_date': p.payment_date.isoformat() if p.payment_date else None,
+        'amount': amount_int,
+        'payment_date_utc': _to_utc_iso(p.payment_date),
+        'payment_date_eat': _to_eat_iso(p.payment_date),
+        'payment_date_display': _to_eat_display(p.payment_date),
         'status': p.status,
     }), 201
 
@@ -526,11 +670,19 @@ def api_role_salaries():
         try:
             rs_rows = RoleSalary.query.join(Role, RoleSalary.role_id == Role.id).all()
             for r in rs_rows:
+                # normalize role salary amount to integer (no decimals)
+                try:
+                    amount_int = int(Decimal(r.amount).quantize(Decimal('1'), rounding=ROUND_HALF_UP)) if getattr(r, 'amount', None) is not None else None
+                except Exception:
+                    try:
+                        amount_int = int(r.amount) if getattr(r, 'amount', None) is not None else None
+                    except Exception:
+                        amount_int = None
                 role_salaries.append({
                     'id': r.id,
                     'role_id': r.role_id,
                     'role_name': getattr(r.role, 'role_name', None),
-                    'amount': str(r.amount) if getattr(r, 'amount', None) is not None else None,
+                    'amount': amount_int,
                     'min_amount': str(r.min_amount) if getattr(r, 'min_amount', None) is not None else None,
                     'max_amount': str(r.max_amount) if getattr(r, 'max_amount', None) is not None else None,
                     'created_at': r.created_at.isoformat() if getattr(r, 'created_at', None) else None,
@@ -571,7 +723,7 @@ def api_role_salaries():
             return jsonify({
                 'id': rs.id,
                 'role_id': rs.role_id,
-                'amount': str(rs.amount),
+                'amount': (lambda a: (int(Decimal(a).quantize(Decimal('1'), rounding=ROUND_HALF_UP)) if a is not None else None))(rs.amount),
                 'min_amount': str(rs.min_amount) if rs.min_amount else None,
                 'max_amount': str(rs.max_amount) if rs.max_amount else None,
             }), 201
@@ -603,7 +755,7 @@ def api_role_salaries():
             return jsonify({
                 'id': rs.id,
                 'role_id': rs.role_id,
-                'amount': str(rs.amount),
+                'amount': (lambda a: (int(Decimal(a).quantize(Decimal('1'), rounding=ROUND_HALF_UP)) if a is not None else None))(rs.amount),
                 'min_amount': str(rs.min_amount) if rs.min_amount else None,
                 'max_amount': str(rs.max_amount) if rs.max_amount else None,
                 'updated_at': rs.updated_at.isoformat(),

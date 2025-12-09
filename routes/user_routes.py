@@ -8,6 +8,7 @@ import csv
 import io
 from datetime import datetime
 import secrets
+from decimal import Decimal, ROUND_HALF_UP
 try:
     import xlsxwriter  # type: ignore
 except Exception as e:
@@ -492,7 +493,8 @@ def headteacher_dashboard():
                 'id': r.id,
                 'role_id': r.role_id,
                 'role_name': getattr(r.role, 'role_name', None),
-                'amount': str(r.amount) if getattr(r, 'amount', None) is not None else None,
+                # normalize to integer for templates (no decimals)
+                'amount': (lambda a: (int(Decimal(a).quantize(Decimal('1'), rounding=ROUND_HALF_UP)) if a is not None else None))(r.amount),
             })
     except Exception:
         role_salaries = []
