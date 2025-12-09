@@ -30,25 +30,31 @@
       border-radius: 5px;
     }
 
-    /* Main scrollable content */
+    /* Main content area: no vertical scrolling, center buttons in remaining space */
+    html, body { height: 100%; }
     main {
       padding-top: 20px;
       padding-bottom: 20px;
-      height: calc(100vh - 60px - 70px); /* viewport height minus navbar and footer */
-      overflow-y: auto;
+      /* use navbar (60px) and footer (48px) heights to size the area */
+      height: calc(100vh - 60px - 48px);
       margin-top: 60px; /* ensure content starts below fixed navbar */
+      overflow: hidden; /* remove vertical scrolling */
+      display: flex;
+      align-items: center; /* vertical centering */
+      justify-content: center; /* horizontal centering */
     }
 
     /* Dashboard buttons */
     .dashboard-btn {
       width: 100%;
+      max-width: 360px; /* keep buttons reasonably wide on larger screens */
       padding: 0.75rem 1rem;
       margin-bottom: 0.75rem;
       font-size: 1rem;
       font-weight: 500;
       border-radius: 8px;
       color: #fff;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
@@ -86,6 +92,9 @@
         padding: 0.7rem 0.9rem;
       }
     }
+    /* Make columns center their content so buttons are balanced */
+    .row.g-3 { height: 100%; align-items: center; justify-content: center; }
+    .row.g-3 > [class*='col-'] { display:flex; align-items:center; justify-content:center; }
   </style>
 </head>
 <body>

@@ -32,13 +32,26 @@
     .small-muted{ color:var(--muted); }
     .readonly-pill{ background:#fff5f5; color:var(--accent); padding:6px 10px; border-radius:999px; font-weight:700 }
 
-    /* mobile optimizations */
+    /* compact table cells and mobile optimizations */
     .table-responsive { overflow:auto; -webkit-overflow-scrolling:touch; }
     .summary-table { min-width:720px; }
+    /* reduce default padding and enable truncation */
+    .summary-table th, .summary-table td { padding: .45rem .6rem; }
+    .summary-table td { line-height:1.05rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
     @media (max-width:720px){
-      main{ padding:10px; margin:8px; }
+      main{ padding:8px; margin:6px; }
       .controls { gap:6px; }
-      .summary-table { min-width:600px; font-size:0.95rem }
+      .summary-table { min-width:520px; font-size:0.92rem }
+      .summary-table thead th, .summary-table td { padding: .35rem .5rem }
+      .summary-table td { line-height:1rem }
+      /* column width hints for mobile */
+      .summary-table td:nth-child(1), .summary-table th:nth-child(1) { max-width:140px }
+      .summary-table td:nth-child(2), .summary-table th:nth-child(2) { max-width:90px }
+      .summary-table td:nth-child(3), .summary-table th:nth-child(3),
+      .summary-table td:nth-child(4), .summary-table th:nth-child(4),
+      .summary-table td:nth-child(5), .summary-table th:nth-child(5),
+      .summary-table td:nth-child(6), .summary-table th:nth-child(6) { max-width:70px; text-align:center }
       .navbar .navbar-brand { font-size:1rem }
       .navbar .btn-back { padding:.35rem .6rem; font-size:.92rem }
     }
@@ -259,14 +272,39 @@
       }catch(e){ console.warn('render failed', e); showAlert('Failed to render results', 'error', 4000); document.getElementById('runSpinner').classList.add('d-none'); setControlsDisabled(false); statusEl.innerHTML = '<span class="badge bg-danger">Error</span>'; }
     });
 
-    // CSV export
+    // CSV export (compact output)
     document.getElementById('exportCsv').addEventListener('click', function(){
       const rows = Array.from(document.querySelectorAll('#summaryBody tr'));
       if (!rows.length){ showAlert('No data to export', 'info', 3000); return; }
+      // Produce a compact CSV: shorten names and roles for smaller output
       let csv = 'Staff,Role,Present,Absent,Total,Percent\n';
+      function compactCell(text, colIndex){
+        text = (text||'').trim();
+        if (colIndex === 0){ // Name => F. Last (reduced)
+          const parts = text.split(/\s+/).filter(Boolean);
+          if (parts.length >= 2){
+            const firstInitial = parts[0].charAt(0) + '.';
+            const last = parts.slice(-1)[0];
+            return `${firstInitial} ${last.slice(0,12)}`;
+          }
+          return text.slice(0,15);
+        }
+        if (colIndex === 1){ // Role => first word shortened
+          return (text.split(/\s+/)[0]||'').slice(0,12);
+        }
+        if (colIndex === 2 || colIndex === 3){ // Present / Absent => remove spaces in 'X / N' -> 'X/N'
+          return text.replace(/\s*\/\s*/,'/');
+        }
+        if (colIndex === 5){ // Percent -> remove % sign
+          return text.replace('%','');
+        }
+        return text;
+      }
       rows.forEach(r=>{
-        const cols = Array.from(r.querySelectorAll('td')).map(td=> '"'+td.textContent.trim().replace(/"/g,'""')+'"');
-        if (cols.length) csv += cols.join(',')+'\n';
+        const tds = Array.from(r.querySelectorAll('td'));
+        if (!tds.length) return;
+        const cols = tds.map((td, idx)=> '"'+ compactCell(td.textContent.trim(), idx).replace(/"/g,'""') +'"');
+        csv += cols.join(',')+'\n';
       });
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
