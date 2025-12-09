@@ -182,6 +182,9 @@
     <div class="login-box">
       <div class="login-content px-3">
         <h4 class="text-center mb-4">Login to Your Account</h4>
+        <!-- Alert container for inline messages -->
+        <div id="pageAlert" class="mb-3" aria-live="polite"></div>
+
         <form method="POST" action="/login" onsubmit="showSpinner(event)">
           <div class="mb-3">
             <label for="email" class="form-label">Email address</label>
@@ -210,7 +213,7 @@
             </button>
           </div>
           <div class="text-center">
-            Forgot password? Click <a href="/reset_password" class="text-decoration-none">here to reset it!!</a>
+            Forgot password? Click <a href="/reset_password" id="forgotLink" class="text-decoration-none">here to reset it!!</a>
           </div>
         </form>
       </div>
@@ -241,6 +244,107 @@
         event.target.submit();
       }, 100); // ⏱️ updated to 1 second
     }
+
+    // Show an inline bootstrap-style alert in the page (dismissible, auto-hide)
+    function showPageAlert(message, type = 'danger') {
+      try {
+        const container = document.getElementById('pageAlert');
+        if (!container) return;
+        // sanitize minimal HTML by escaping user-controlled values (message comes from our code)
+        const alertHtml = `
+          <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" aria-label="Close"></button>
+          </div>`;
+        container.innerHTML = alertHtml;
+        const alertEl = container.querySelector('.alert');
+        const closeBtn = alertEl.querySelector('.btn-close');
+        closeBtn.addEventListener('click', () => {
+          // fade out then remove
+          alertEl.classList.remove('show');
+          alertEl.classList.add('hide');
+          setTimeout(() => { container.innerHTML = ''; }, 220);
+        });
+        // auto-dismiss after 6 seconds
+        setTimeout(() => {
+          if (container.innerHTML) closeBtn.click();
+        }, 6000);
+      } catch (e) { console.warn('Failed to show inline alert', e); }
+    }
+
+    // Show an inline error inside the email input (placeholder + invalid feedback)
+    function showEmailInlineError(message, duration = 5000) {
+      try {
+        const input = document.getElementById('email');
+        if (!input) return;
+
+        // store original placeholder so we can restore later
+        if (!input.dataset._origPlaceholder) input.dataset._origPlaceholder = input.placeholder || '';
+
+        // Clear value (so placeholder is visible) and set placeholder to message
+        input.value = '';
+        input.placeholder = message;
+
+        // add bootstrap invalid class
+        input.classList.add('is-invalid');
+
+        // ensure we have an invalid-feedback element right after the input
+        let feedback = input.parentElement.querySelector('.invalid-feedback');
+        if (!feedback) {
+          feedback = document.createElement('div');
+          feedback.className = 'invalid-feedback';
+          input.parentElement.appendChild(feedback);
+        }
+        feedback.textContent = message;
+
+        // focus so user can type immediately
+        input.focus();
+
+        // remove invalid state when user starts typing
+        const onInput = function(){
+          input.classList.remove('is-invalid');
+          input.placeholder = input.dataset._origPlaceholder || '';
+          if (feedback) feedback.textContent = '';
+          input.removeEventListener('input', onInput);
+        };
+        input.addEventListener('input', onInput);
+
+        // auto-clear after duration if user does nothing
+        setTimeout(() => {
+          try {
+            input.classList.remove('is-invalid');
+            input.placeholder = input.dataset._origPlaceholder || '';
+            if (feedback) feedback.textContent = '';
+          } catch(e) {}
+        }, duration);
+      } catch (e) { console.warn('showEmailInlineError failed', e); }
+    }
+
+    // Require email before allowing navigation to reset password
+    document.addEventListener('DOMContentLoaded', function(){
+      const forgot = document.getElementById('forgotLink');
+      const emailInput = document.getElementById('email');
+      if (forgot){
+        forgot.addEventListener('click', function(e){
+          e.preventDefault();
+          const email = (emailInput && emailInput.value) ? emailInput.value.trim() : '';
+          if (!email){
+            // show inline error inside the email input and focus
+            showEmailInlineError('Email required! Please enter your email address.');
+            return;
+          }
+          // optional: basic email format check
+          const re = /^\S+@\S+\.\S+$/;
+          if (!re.test(email)){
+            showEmailInlineError('Please enter a valid email address.');
+            return;
+          }
+          // navigate to reset page with email prefilled via querystring
+          const href = forgot.getAttribute('href') || '/reset_password';
+          window.location.href = href + '?email=' + encodeURIComponent(email);
+        });
+      }
+    });
   </script>
 
 </body>
