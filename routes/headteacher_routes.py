@@ -37,6 +37,12 @@ def dashboard():
     return render_template("headteacher/dashboard.html", role_salaries=role_salaries)
 
 
+@headteacher_routes.route('/headteacher/attendance_summary')
+def attendance_summary():
+    """Render the attendance summary page for querying attendance over ranges."""
+    return render_template('headteacher/attendance_summary.html')
+
+
 @headteacher_routes.route('/headteacher/api/summary')
 def api_summary():
     # Total pupils
@@ -302,6 +308,153 @@ def api_attendance():
     return jsonify({'status': 'ok', 'id': rec.id})
 
 
+@headteacher_routes.route('/headteacher/api/attendance/aggregate', methods=['GET'])
+def api_attendance_aggregate():
+    """Aggregate attendance counts per staff over a date range.
+    Query params:
+      start=YYYY-MM-DD (required)
+      end=YYYY-MM-DD (optional; defaults to start)
+      term (optional)
+      year (optional)
+    Returns JSON: { start, end, days_in_range, results: [{id, first_name, last_name, role, present_count}] }
+    """
+    from sqlalchemy import func, case
+    start_s = request.args.get('start')
+    end_s = request.args.get('end') or start_s
+    if not start_s:
+        return jsonify({'error': 'start_date_required'}), 400
+    try:
+        start_date = datetime.strptime(start_s, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_s, '%Y-%m-%d').date()
+    except Exception:
+        return jsonify({'error': 'invalid_date_format'}), 400
+
+    if end_date < start_date:
+        return jsonify({'error': 'end_before_start'}), 400
+
+    term = request.args.get('term')
+    year = request.args.get('year')
+
+    # Build counts subquery: present_count per staff
+    present_sum = func.coalesce(func.sum(case([(StaffAttendance.status == 'present', 1)], else_=0)), 0).label('present_count')
+    counts_q = db.session.query(StaffAttendance.staff_id.label('staff_id'), present_sum)
+    counts_q = counts_q.filter(StaffAttendance.date >= start_date, StaffAttendance.date <= end_date)
+    if term:
+        counts_q = counts_q.filter(StaffAttendance.term == term)
+    if year:
+        try:
+            yv = int(year)
+            counts_q = counts_q.filter(StaffAttendance.year == yv)
+        except Exception:
+            pass
+    counts_q = counts_q.group_by(StaffAttendance.staff_id).subquery()
+
+    # Exclude Pupil and Parent roles from staff listing (consistent with api_staff)
+    pupil_role = Role.query.filter_by(role_name='Pupil').first()
+    parent_role = Role.query.filter_by(role_name='Parent').first()
+    excluded = []
+    if pupil_role: excluded.append(pupil_role.id)
+    if parent_role: excluded.append(parent_role.id)
+
+    # Query all users (staff) with their present count (0 when absent from counts_q)
+    q = db.session.query(
+        User.id.label('id'), User.first_name, User.last_name, Role.role_name.label('role'),
+        func.coalesce(counts_q.c.present_count, 0).label('present_count')
+    ).outerjoin(Role, User.role_id == Role.id).outerjoin(counts_q, counts_q.c.staff_id == User.id)
+
+    if excluded:
+        q = q.filter(~User.role_id.in_(excluded))
+
+    rows = q.order_by(User.first_name, User.last_name).all()
+
+    results = []
+    for r in rows:
+        results.append({
+            'id': r.id,
+            'first_name': r.first_name,
+            'last_name': r.last_name,
+            'role': r.role,
+            'present_count': int(r.present_count) if r.present_count is not None else 0,
+        })
+
+    days_in_range = (end_date - start_date).days + 1
+    return jsonify({
+        'start': start_date.isoformat(),
+        'end': end_date.isoformat(),
+        'days_in_range': days_in_range,
+        'results': results,
+    })
+
+
+@headteacher_routes.route('/headteacher/api/attendance/aggregate/explain')
+def api_attendance_aggregate_explain():
+    """Return EXPLAIN ANALYZE plan for the aggregate attendance query.
+    Use this in development to inspect the query plan and identify slow parts.
+    Same params as aggregate: start (required), end (optional), term, year
+    """
+    start_s = request.args.get('start')
+    end_s = request.args.get('end') or start_s
+    if not start_s:
+        return jsonify({'error': 'start_date_required'}), 400
+    try:
+        start_date = datetime.strptime(start_s, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_s, '%Y-%m-%d').date()
+    except Exception:
+        return jsonify({'error': 'invalid_date_format'}), 400
+
+    term = request.args.get('term')
+    year = request.args.get('year')
+
+    # determine excluded roles
+    pupil_role = Role.query.filter_by(role_name='Pupil').first()
+    parent_role = Role.query.filter_by(role_name='Parent').first()
+    excluded_ids = []
+    if pupil_role: excluded_ids.append(pupil_role.id)
+    if parent_role: excluded_ids.append(parent_role.id)
+
+    # build raw SQL for explain analyze
+    params = {'start_date': start_date, 'end_date': end_date}
+    where_clauses = ["sa.date >= :start_date", "sa.date <= :end_date"]
+    if term:
+        where_clauses.append("sa.term = :term")
+        params['term'] = term
+    if year:
+        where_clauses.append("sa.year = :year")
+        try:
+            params['year'] = int(year)
+        except Exception:
+            params['year'] = year
+
+    where_sql = ' AND '.join(where_clauses)
+
+    excluded_sql = ''
+    if excluded_ids:
+        excluded_sql = 'WHERE u.role_id NOT IN (' + ','.join(str(x) for x in excluded_ids) + ')'
+
+    sql = f"""
+EXPLAIN ANALYZE
+WITH counts AS (
+  SELECT sa.staff_id, COALESCE(SUM(CASE WHEN sa.status = 'present' THEN 1 ELSE 0 END),0) AS present_count
+  FROM staff_attendance sa
+  WHERE {where_sql}
+  GROUP BY sa.staff_id
+)
+SELECT u.id, u.first_name, u.last_name, r.role_name, COALESCE(c.present_count,0) AS present_count
+FROM users u
+LEFT JOIN counts c ON c.staff_id = u.id
+LEFT JOIN roles r ON u.role_id = r.id
+{excluded_sql}
+ORDER BY u.first_name, u.last_name;
+"""
+
+    try:
+        res = db.session.execute(text(sql), params)
+        plan_rows = [row[0] for row in res.fetchall()]
+        return jsonify({'plan': plan_rows})
+    except Exception as e:
+        return jsonify({'error': 'explain_failed', 'detail': str(e)}), 500
+
+
 # Batch attendance endpoint: accept an array of attendance records and upsert them in a transaction
 @headteacher_routes.route('/headteacher/api/attendance/batch', methods=['POST'])
 def api_attendance_batch():
@@ -394,17 +547,17 @@ def api_role_salaries():
         amount = data.get('amount')
         if not role_id or amount is None:
             return jsonify({'error': 'role_id_and_amount_required'}), 400
-        
+
         # Check if role exists
         role = Role.query.get(role_id)
         if not role:
             return jsonify({'error': 'role_not_found'}), 404
-        
+
         # Check if already exists
         existing = RoleSalary.query.filter_by(role_id=role_id).first()
         if existing:
             return jsonify({'error': 'role_salary_already_exists'}), 400
-        
+
         try:
             amt = Decimal(str(amount))
             rs = RoleSalary(
@@ -432,11 +585,11 @@ def api_role_salaries():
         role_salary_id = data.get('id')
         if not role_salary_id:
             return jsonify({'error': 'id_required'}), 400
-        
+
         rs = RoleSalary.query.get(role_salary_id)
         if not rs:
             return jsonify({'error': 'role_salary_not_found'}), 404
-        
+
         try:
             if 'amount' in data and data['amount'] is not None:
                 rs.amount = Decimal(str(data['amount']))
@@ -444,7 +597,7 @@ def api_role_salaries():
                 rs.min_amount = Decimal(str(data['min_amount']))
             if 'max_amount' in data and data['max_amount'] is not None:
                 rs.max_amount = Decimal(str(data['max_amount']))
-            
+
             rs.updated_at = datetime.utcnow()
             db.session.commit()
             return jsonify({

@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Attendance Summary</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    :root{
+      --nav-height:64px;
+      --accent:#c62828; /* deep red */
+      --muted:#6b7280;
+      --card-bg: #ffffff;
+      --surface:#f3f4f6;
+      --maxw:1100px;
+      --radius:14px;
+    }
+    html,body{height:100%; margin:0; background:linear-gradient(180deg,#fbfdff 0%, #f1f5f9 100%); font-family: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial; color:#0f172a}
+    body{ padding-top:var(--nav-height); }
+    .navbar { height:var(--nav-height); background:var(--accent); box-shadow:0 6px 18px rgba(198,40,40,0.12); }
+    .navbar .navbar-brand { color:#fff; font-weight:700 }
+    .navbar .btn-back { background:#fff; color:var(--accent); border:1px solid rgba(255,255,255,0.12); display:inline-flex; align-items:center; gap:8px; padding:.4rem .65rem }
+    .navbar .btn-back i { background:#fff; color:var(--accent); border-radius:6px; }
+    .navbar .btn-back:hover{ background:#fff; filter:brightness(.98); }
+    main{ max-width:var(--maxw); margin:12px auto; padding:12px; }
+    .card { background:var(--card-bg); border-radius:var(--radius); box-shadow:0 6px 20px rgba(15,23,42,0.06); }
+    .controls { display:flex; gap:8px; flex-wrap:wrap; align-items:center }
+    .controls .form-select, .controls .form-control { min-width:0; }
+    .summary-table th, .summary-table td { vertical-align:middle; }
+    .summary-table thead th { position: sticky; top:0; background: #fff; z-index:2; }
+    .small-muted{ color:var(--muted); }
+    .readonly-pill{ background:#fff5f5; color:var(--accent); padding:6px 10px; border-radius:999px; font-weight:700 }
+
+    /* mobile optimizations */
+    .table-responsive { overflow:auto; -webkit-overflow-scrolling:touch; }
+    .summary-table { min-width:720px; }
+    @media (max-width:720px){
+      main{ padding:10px; margin:8px; }
+      .controls { gap:6px; }
+      .summary-table { min-width:600px; font-size:0.95rem }
+      .navbar .navbar-brand { font-size:1rem }
+      .navbar .btn-back { padding:.35rem .6rem; font-size:.92rem }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar fixed-top navbar-expand-lg">
+    <div class="container-fluid px-3 d-flex align-items-center">
+      <a class="navbar-brand d-flex align-items-center" href="/headteacher/dashboard"><i class="bi bi-calendar2-check-fill me-2" style="color:rgba(255,255,255,0.95)"></i>Attendance Summary</a>
+      <div class="ms-auto">
+        <a class="btn btn-back btn-sm" href="/headteacher/dashboard"><i class="bi bi-box-arrow-left me-1" style="color:var(--accent)"></i><span style="color:var(--accent); font-weight:700">Back</span></a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container main-scroll">
+    <div class="card shadow-sm p-3">
+      <div class="d-flex align-items-center gap-3 mb-2">
+        <div class="controls d-flex gap-2 flex-wrap align-items-center">
+          <label class="small-muted mb-0">Term</label>
+          <select id="summaryTerm" class="form-select form-select-sm">
+            <option value="">(any)</option>
+            <option>Term 1</option>
+            <option>Term 2</option>
+            <option>Term 3</option>
+          </select>
+          <label class="small-muted mb-0">Year</label>
+          <select id="summaryYear" class="form-select form-select-sm"></select>
+          <label class="small-muted mb-0">Mode</label>
+          <select id="summaryMode" class="form-select form-select-sm">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="termly">Termly (3.5 months)</option>
+          </select>
+          <label class="small-muted mb-0">Anchor date</label>
+          <input type="date" id="summaryDate" class="form-control form-control-sm" />
+          <button id="runSummary" class="btn btn-sm btn-primary">Run Query <span id="runSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span></button>
+          <button id="exportCsv" class="btn btn-sm btn-outline-secondary">Export CSV</button>
+        </div>
+        <div class="ms-auto text-end"><span id="summaryStatus" class="small-muted">Ready</span></div>
+      </div>
+      <!-- alert area -->
+      <div id="alertArea" class="mb-2"></div>
+
+      <div class="table-responsive">
+        <table class="table table-striped summary-table">
+          <thead class="table-light">
+            <tr><th>Staff</th><th>Role</th><th style="width:120px">Present</th><th style="width:120px">Absent</th><th style="width:120px">Total</th><th style="width:120px">%</th></tr>
+          </thead>
+          <tbody id="summaryBody"><tr><td colspan="6" class="small-muted">No results yet — pick filters and Run Query.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  {% include 'footer.html' %}
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Populate years
+    (function(){
+      const sel = document.getElementById('summaryYear');
+      const now = new Date();
+      const year = now.getFullYear();
+      for (let y = year-2; y <= year+1; y++){ const opt = document.createElement('option'); opt.value = y; opt.textContent = y; if (y===year) opt.selected = true; sel.appendChild(opt); }
+      document.getElementById('summaryDate').value = new Date().toISOString().slice(0,10);
+    })();
+
+    // Fetch staff list once to map ids -> names
+    let staffMap = {};
+    async function loadStaffMap(){
+      try{
+        const res = await fetch('/headteacher/api/staff');
+        if (!res.ok) return;
+        const arr = await res.json();
+        arr.forEach(s => { staffMap[s.id] = { name: s.first_name + ' ' + s.last_name, role: s.role || '' }; });
+      }catch(e){ console.warn('staff map failed', e); }
+    }
+    loadStaffMap();
+
+    function dateToYMD(d){ return d.toISOString().slice(0,10); }
+
+    // helper: show dismissible bootstrap alert in alertArea
+    function showAlert(message, type='info', timeout=3500){
+      const area = document.getElementById('alertArea');
+      if (!area) return alert(message);
+      const div = document.createElement('div');
+      // map types to bootstrap classes
+      const typeClass = (type === 'error' ? 'danger' : (type === 'success' ? 'success' : (type === 'warning' ? 'warning' : 'info')));
+      div.className = `alert alert-${typeClass} alert-dismissible fade show`;
+      div.role = 'alert';
+      div.innerHTML = `${message} <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+      area.appendChild(div);
+      if (timeout>0){ setTimeout(()=>{ try{ bootstrap.Alert.getOrCreateInstance(div).close(); }catch(e){} }, timeout); }
+    }
+
+    function setControlsDisabled(disabled){
+      const controls = document.querySelectorAll('#summaryTerm, #summaryYear, #summaryMode, #summaryDate, #runSummary, #exportCsv');
+      controls.forEach(c => { try{ c.disabled = disabled; }catch(e){} });
+    }
+
+    document.getElementById('runSummary').addEventListener('click', async function(){
+      const mode = document.getElementById('summaryMode').value;
+      const anchor = document.getElementById('summaryDate').value || new Date().toISOString().slice(0,10);
+      const term = document.getElementById('summaryTerm').value || null;
+      const year = document.getElementById('summaryYear').value ? Number(document.getElementById('summaryYear').value) : null;
+      const start = new Date(anchor);
+      let days = 1;
+      if (mode === 'daily') days = 1;
+      else if (mode === 'weekly') days = 7;
+      else if (mode === 'monthly') days = 30;
+      else if (mode === 'termly') days = 105;
+
+      // build date list
+      const end = new Date(anchor);
+      const startDate = new Date(end);
+      startDate.setDate(end.getDate() - (days-1));
+
+      const staffCounts = {}; // staff_id -> { present: 0 }
+      const statusEl = document.getElementById('summaryStatus');
+      // show bootstrap badge for searching
+      statusEl.innerHTML = '<span class="badge bg-info">Searching...</span>';
+      // show spinner and disable controls
+      document.getElementById('runSpinner').classList.remove('d-none');
+      setControlsDisabled(true);
+      // clear previous alerts
+      const alertArea = document.getElementById('alertArea'); if (alertArea) alertArea.innerHTML = '';
+
+      // build list of ISO date strings for the range
+      const dates = [];
+      for (let d = new Date(startDate); d <= end; d.setDate(d.getDate()+1)){
+        dates.push(dateToYMD(new Date(d)));
+      }
+      const daysInRange = dates.length;
+
+      // For better performance use the server-side aggregate endpoint when available
+      try{
+        const aggUrl = `/headteacher/api/attendance/aggregate?start=${dates[0]}&end=${dates[dates.length-1]}` + (term? `&term=${encodeURIComponent(term)}`: '') + (year? `&year=${encodeURIComponent(year)}`: '');
+        const respAgg = await fetch(aggUrl);
+        if (respAgg.ok){
+          const payload = await respAgg.json();
+          if (Array.isArray(payload.results)){
+            payload.results.forEach(r => { const sid = String(r.id); staffCounts[sid] = { present: Number(r.present_count) || 0 }; });
+          }
+        } else {
+          // fallback to per-day fetches if aggregate fails
+          for (const ds of dates){
+            try{
+              const resp = await fetch(`/headteacher/api/attendance?date=${ds}`);
+              if (!resp.ok) continue;
+              const arr = await resp.json();
+              if (!Array.isArray(arr)) continue;
+              arr.forEach(rec => {
+                // optional filter by term/year
+                if (term && rec.term && String(rec.term) !== String(term)) return;
+                if (year && rec.year && Number(rec.year) !== Number(year)) return;
+                const sid = String(rec.staff_id);
+                if (!staffCounts[sid]) staffCounts[sid] = { present:0 };
+                if (rec.status === 'present') staffCounts[sid].present += 1;
+              });
+            }catch(e){ console.warn('fetch failed', ds, e); showAlert('Failed to fetch attendance for '+ds, 'warning', 3000); }
+          }
+        }
+      }catch(e){
+        console.warn('aggregate fetch failed', e);
+        // fallback: per-day fetches
+        for (const ds of dates){
+          try{
+            const resp = await fetch(`/headteacher/api/attendance?date=${ds}`);
+            if (!resp.ok) continue;
+            const arr = await resp.json();
+            if (!Array.isArray(arr)) continue;
+            arr.forEach(rec => {
+              if (term && rec.term && String(rec.term) !== String(term)) return;
+              if (year && rec.year && Number(rec.year) !== Number(year)) return;
+              const sid = String(rec.staff_id);
+              if (!staffCounts[sid]) staffCounts[sid] = { present:0 };
+              if (rec.status === 'present') staffCounts[sid].present += 1;
+            });
+          }catch(e2){ console.warn('fetch failed', ds, e2); showAlert('Failed to fetch attendance for '+ds, 'warning', 3000); }
+        }
+      }
+
+      // Ensure all staff appear (even with zero records) and render table
+      try{
+        const res2 = await fetch('/headteacher/api/staff');
+        const sarr = res2.ok ? await res2.json() : [];
+        // ensure counts exist for all staff
+        sarr.forEach(s=>{ const sid = String(s.id); if (!staffCounts[sid]) staffCounts[sid] = { present:0 }; });
+
+        // build a local map from the fresh staff endpoint response to avoid depending on earlier load timing
+        const localMap = {};
+        sarr.forEach(s => {
+          const sid = String(s.id);
+          // prefer a display/name field if present, fall back to first/last
+          const name = s.display_name || (s.first_name ? (s.first_name + (s.last_name ? (' ' + s.last_name) : '')) : (s.name || s.username || ('Staff ' + sid)));
+          const role = s.role || s.type || s.user_type || s.job_title || '';
+          localMap[sid] = { name: name, role: role };
+        });
+
+        const tbody = document.getElementById('summaryBody'); tbody.innerHTML = '';
+        const rows = Object.keys(staffCounts).sort((a,b)=> ( (localMap[a]?.name||staffMap[a]?.name||('Staff '+a)) .localeCompare(localMap[b]?.name||staffMap[b]?.name||('Staff '+b)) ));
+        if (!rows.length){ tbody.innerHTML = '<tr><td colspan="6" class="small-muted">No records found for the selected range.</td></tr>'; statusEl.innerHTML = '<span class="badge bg-secondary">Done</span>'; document.getElementById('runSpinner').classList.add('d-none'); setControlsDisabled(false); return; }
+        rows.forEach(sid => {
+          const presentDays = staffCounts[sid].present || 0;
+          const absentDays = Math.max(0, daysInRange - presentDays);
+          const name = localMap[sid]?.name || staffMap[sid]?.name || ('Staff '+sid);
+          const role = localMap[sid]?.role || staffMap[sid]?.role || '';
+          const pct = daysInRange ? Math.round((presentDays / daysInRange)*100) : 0;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${name}</td><td>${role}</td><td>${presentDays} / ${daysInRange}</td><td>${absentDays} / ${daysInRange}</td><td>${daysInRange}</td><td>${pct}%</td>`;
+          tbody.appendChild(tr);
+        });
+        statusEl.innerHTML = '<span class="badge bg-success">Done</span>';
+        document.getElementById('runSpinner').classList.add('d-none');
+        setControlsDisabled(false);
+      }catch(e){ console.warn('render failed', e); showAlert('Failed to render results', 'error', 4000); document.getElementById('runSpinner').classList.add('d-none'); setControlsDisabled(false); statusEl.innerHTML = '<span class="badge bg-danger">Error</span>'; }
+    });
+
+    // CSV export
+    document.getElementById('exportCsv').addEventListener('click', function(){
+      const rows = Array.from(document.querySelectorAll('#summaryBody tr'));
+      if (!rows.length){ showAlert('No data to export', 'info', 3000); return; }
+      let csv = 'Staff,Role,Present,Absent,Total,Percent\n';
+      rows.forEach(r=>{
+        const cols = Array.from(r.querySelectorAll('td')).map(td=> '"'+td.textContent.trim().replace(/"/g,'""')+'"');
+        if (cols.length) csv += cols.join(',')+'\n';
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'attendance_summary.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      showAlert('CSV exported', 'success', 2000);
+    });
+  </script>
+</body>
+</html>

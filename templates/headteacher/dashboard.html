@@ -785,49 +785,9 @@
     document.getElementById('attendanceYear').addEventListener('change', ()=>{ updateAttendanceInfo(); });
 
     // view attendance summary (weekly/monthly/termly)
-    document.getElementById('viewAttendanceSummary').addEventListener('click', async function(){
-      const today = new Date(document.getElementById('attendanceDate').value || new Date().toISOString().slice(0,10));
-      // compute ranges
-      const ranges = [
-        { label: 'Weekly', days: 7 },
-        { label: 'Monthly', days: 30 },
-        { label: 'Termly (3.5 months)', days: 105 }
-      ];
-      const results = [];
-      for (const r of ranges){
-        const start = new Date(today);
-        start.setDate(today.getDate() - (r.days-1));
-        // fetch attendance for each day in range
-        let presentCount = 0;
-        let dayCount = 0;
-        for (let d = new Date(start); d <= today; d.setDate(d.getDate()+1)){
-          const ds = d.toISOString().slice(0,10);
-          try{
-            const resp = await fetch(`/headteacher/api/attendance?date=${ds}`);
-            if (!resp.ok) continue;
-            const arr = await resp.json();
-            if (Array.isArray(arr)){
-              dayCount += arr.length ? 1 : 0; // count days with records
-              presentCount += arr.filter(x=> x.status === 'present').length;
-            }
-          }catch(e){ /* ignore */ }
-        }
-        results.push({ label: r.label, presentCount, dayCount });
-      }
-      // show brief modal with results (use Bootstrap modal instead of alert)
-      const body = document.getElementById('attendanceSummaryBody');
-      if (body){
-        let html = '<ul class="list-unstyled mb-0">';
-        results.forEach(x => { html += `<li><strong>${x.label}:</strong> present entries ${x.presentCount}, days with records ${x.dayCount}</li>`; });
-        html += '</ul>';
-        body.innerHTML = html;
-        const modalEl = document.getElementById('attendanceSummaryModal');
-        const modal = new bootstrap.Modal(modalEl);
-        modal.show();
-      } else {
-        // fallback to toast
-        showToast(results.map(x=> `${x.label}: ${x.presentCount}/${x.dayCount}`).join(' | '), 'success', 2500);
-      }
+    document.getElementById('viewAttendanceSummary').addEventListener('click', function(){
+      // Navigate to the dedicated attendance summary page
+      try{ window.location.href = '/headteacher/attendance_summary'; }catch(e){ console.warn('redirect failed', e); }
     });
 
     // initial load
