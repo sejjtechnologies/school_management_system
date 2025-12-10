@@ -6,7 +6,6 @@
   <title>Admin Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
-  <!-- Dancing Script removed; using system Comic Sans for consistent styling -->
   <style>
     body {
       background-color: #f1f8e9;
@@ -16,15 +15,18 @@
       height: 100vh;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow: hidden; /* No scrolling anywhere */
     }
+
     .navbar {
       background-color: #4a148c;
       height: 60px;
     }
+
     .navbar-brand, .nav-link {
       color: #fff !important;
     }
+
     .logout-btn {
       background-color: #d32f2f;
       color: #fff;
@@ -32,8 +34,44 @@
       font-size: 0.85rem;
       padding: 6px 12px;
     }
-    .logout-btn:hover {
-      background-color: #b71c1c;
+    .logout-btn:hover { background-color: #b71c1c; }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      padding-top: 70px;
+      padding-bottom: 70px;
+      height: calc(100vh - 140px);
+      overflow: hidden; /* No scrolling inside main */
+      align-items: center;
+      justify-content: flex-start;
+      gap: 20px;
+    }
+
+    .welcome-message {
+      font-family: 'Comic Sans MS', 'Comic Sans', 'Segoe UI', Arial, sans-serif;
+      font-size: 0.9rem;
+      color: red;
+      text-align: center;
+      margin: 0;
+      padding: 10px 15px;
+      width: 100%;
+    }
+
+    .role-style {
+      color: red;
+      font-weight: bold;
+    }
+
+    /* BUTTON GROUP — ALL IN ONE VERTICAL COLUMN */
+    .buttons-container {
+      display: flex;
+      flex-direction: column; /* ← vertical only */
+      justify-content: flex-start;
+      align-items: center;
+      gap: 15px;
+      width: 100%;
+      max-width: 300px; /* Narrow column */
     }
 
     .main-btn {
@@ -42,22 +80,17 @@
       padding: 10px 20px;
       font-size: 0.85rem;
       border-radius: 6px;
-      display: inline-flex;
+      display: flex;
       align-items: center;
-      text-decoration: none;
       justify-content: center;
-      width: 140px;
-      height: 45px;
+      width: 100%; /* All same width */
+      height: 45px; /* All same height */
       white-space: nowrap;
       flex-shrink: 0;
     }
-    .main-btn i {
-      margin-right: 6px;
-    }
-    .main-btn:hover {
-      color: #fff;
-      box-shadow: none;
-    }
+
+    .main-btn i { margin-right: 6px; }
+    .main-btn:hover { color: #fff; box-shadow: none; }
 
     .btn-create { background-color: #00796b; }
     .btn-create:hover { background-color: #004d40 !important; }
@@ -71,67 +104,22 @@
     .btn-timetable { background-color: #00897b; }
     .btn-timetable:hover { background-color: #00695c !important; }
 
-    main {
-      display: flex;
-      flex-direction: column;
-      padding-top: 70px;
-      padding-bottom: 70px;
-      height: calc(100vh - 140px);
-      overflow: hidden;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 15px;
-    }
-
-    .buttons-container {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: center;
-      gap: 12px;
-      padding: 20px;
-      width: 100%;
-      max-width: 600px;
-    }
-
     footer {
       height: 70px;
       background: linear-gradient(to right, #4a148c, #1a237e);
       box-shadow: 0 -2px 6px rgba(0,0,0,0.2);
       color: #fff;
     }
-
-    .welcome-message {
-      font-family: 'Comic Sans MS', 'Comic Sans', 'Segoe UI', Arial, sans-serif;
-      font-size: 0.9rem;
-      color: red; /* Welcome message in red */
-      text-align: center;
-      margin: 0;
-      padding: 10px 15px;
-      width: 100%;
-    }
-    .role-style {
-      color: red; /* ✅ Role stays red */
-      font-weight: bold;
-    }
-
-    @media (max-width: 767px) {
-      .main-btn {
-        width: auto;
-        margin: 0 auto;
-        display: block;
-      }
-      .row.g-3 > div {
-        text-align: center;
-      }
-    }
   </style>
 </head>
 <body data-user-role="admin">
-  <!-- ✅ Fixed Navbar -->
+
   <nav class="navbar fixed-top navbar-expand-lg">
     <div class="container-fluid px-3">
-      <a class="navbar-brand fw-bold" href="#" style="display:flex; align-items:center; gap:10px;"><img src="/static/logo.png" alt="Logo" style="height:40px; width:auto;"><span>Admin Dashboard</span></a>
+      <a class="navbar-brand fw-bold" href="#" style="display:flex; align-items:center; gap:10px;">
+        <img src="/static/logo.png" alt="Logo" style="height:40px; width:auto;">
+        <span>Admin Dashboard</span>
+      </a>
       <div class="ms-auto">
         <form action="{{ url_for('user_routes.logout') }}" method="get" class="d-inline">
           <button type="submit" class="btn logout-btn">
@@ -142,9 +130,7 @@
     </div>
   </nav>
 
-  <!-- ✅ Scrollable Main Section -->
   <main class="container my-4">
-    <!-- ✅ Welcome Message -->
     <h3 class="welcome-message">
       Welcome, {{ admin.first_name.upper() }} <span class="role-style">{{ admin.role.role_name.capitalize() }}</span>
     </h3>
@@ -153,62 +139,27 @@
       <a href="{{ url_for('admin_routes.create_user') }}" class="main-btn btn-create">
         <i class="bi bi-person-plus-fill"></i>Create User
       </a>
+
       <a href="{{ url_for('admin_routes.manage_users') }}" class="main-btn btn-manage">
         <i class="bi bi-people-fill"></i>Manage Users
       </a>
+
       <a href="{{ url_for('admin_routes.assign_teacher') }}" class="main-btn btn-assign">
         <i class="bi bi-journal-check"></i>Assign Classes & Streams
       </a>
+
       <a href="{{ url_for('admin_routes.manage_timetables') }}" class="main-btn btn-timetable">
         <i class="bi bi-calendar-check"></i>Manage Timetables
       </a>
-      <button type="button" class="main-btn btn-settings" style="background-color: #f57f17; cursor: not-allowed;" disabled>
+
+      <button type="button" class="main-btn" style="background-color: #f57f17; cursor: not-allowed;" disabled>
         <i class="bi bi-gear-fill"></i>Manage System Settings
       </button>
     </div>
   </main>
 
-  <!-- ✅ Fixed Footer -->
   {% include 'footer.html' %}
-  <script>
-    // Auto-dismiss alerts if they appear on this page (2 seconds) and allow immediate close via (x)
-    (function initAutoDismissAlerts(){
-      const ALERT_TIMEOUT = 2000;
-      function setupAlert(alert){
-        if (!alert || !alert.parentNode) return;
-        const btn = alert.querySelector('.btn-close');
-        if (btn) btn.addEventListener('click', ()=>{ try{ alert.remove(); }catch(e){ if(alert.parentNode) alert.parentNode.removeChild(alert); } });
 
-        alert.addEventListener('close.bs.alert', ()=>{ clearTimeout(alert._autoDismissTimer); });
-        alert.addEventListener('closed.bs.alert', ()=>{ clearTimeout(alert._autoDismissTimer); });
-
-        alert._autoDismissTimer = setTimeout(()=>{
-          try {
-            if (window.bootstrap && bootstrap.Alert) {
-              const inst = bootstrap.Alert.getOrCreateInstance(alert);
-              inst.close();
-            } else {
-              alert.classList.remove('show');
-              setTimeout(()=>{ if (alert.parentNode) alert.parentNode.removeChild(alert); }, 150);
-            }
-          } catch(e) { if (alert.parentNode) alert.parentNode.removeChild(alert); }
-        }, ALERT_TIMEOUT);
-      }
-
-      // initialize existing alerts
-      document.querySelectorAll('.alert').forEach(setupAlert);
-
-      // observe for dynamically added alerts
-      const mo = new MutationObserver(muts=>{
-        muts.forEach(m=>{
-          m.addedNodes.forEach(n=>{ if (n.nodeType===1 && n.matches && n.matches('.alert')) setupAlert(n); });
-        });
-      });
-      mo.observe(document.body, { childList: true, subtree: true });
-    })();
-  </script>
-
-  <!-- ✅ Admin Session Monitor: Real-time logout detection -->
   <script src="{{ url_for('static', filename='js/session-monitor.js') }}"></script>
 </body>
 </html>
