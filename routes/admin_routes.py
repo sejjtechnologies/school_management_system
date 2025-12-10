@@ -14,6 +14,7 @@ import uuid
 import time
 import json
 import os
+import logging
 try:
     import redis
 except Exception:
@@ -55,6 +56,8 @@ def teacher_has_overlap(teacher_id, day_of_week, start_time, end_time,
 
 admin_routes = Blueprint("admin_routes", __name__)
 
+logger = logging.getLogger(__name__)
+
 # In-memory store for backup job progress. Keyed by job_id.
 BACKUP_PROGRESS = {}
 
@@ -85,10 +88,54 @@ def dashboard():
     return render_template("admin/dashboard.html")
 
 
-@admin_routes.route("/admin/system-settings")
+@admin_routes.route("/admin/system-settings", methods=["GET", "POST"])
 def system_settings():
-    """Render the System Settings placeholder page. Sidebar buttons are currently placeholders and not linked."""
-    return render_template("admin/system_settings.html")
+    """Render and optionally update the System Settings page.
+    Accepts POST to update a small set of settings (maintenance_mode, maintenance_message,
+    auto_backup_enabled, backup_schedule). This prevents 405s when forms post to this URL.
+    """
+    try:
+        db.session.expunge_all()
+        settings = SystemSettings.get_settings()
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"[SYSTEM_SETTINGS] Error fetching settings: {str(e)}")
+        settings = SystemSettings()
+
+    if request.method == "POST":
+        try:
+            # Only update known fields to avoid surprising changes
+            if 'backup_schedule' in request.form:
+                settings.backup_schedule = request.form.get('backup_schedule')
+
+            # For checkboxes: if present and equals 'on', it's checked; otherwise it's unchecked
+            m_val = request.form.get('maintenance_mode')
+            settings.maintenance_mode = (m_val == 'on')
+            logger.info(f"[SYSTEM_SETTINGS] maintenance_mode form={repr(m_val)} -> {settings.maintenance_mode}")
+
+            if 'maintenance_message' in request.form:
+                settings.maintenance_message = request.form.get('maintenance_message')
+
+            a_val = request.form.get('auto_backup_enabled')
+            settings.auto_backup_enabled = (a_val == 'on')
+            logger.info(f"[SYSTEM_SETTINGS] auto_backup_enabled form={repr(a_val)} -> {settings.auto_backup_enabled}")
+
+            settings.updated_by_user_id = session.get('user_id')
+            try:
+                db.session.add(settings)
+            except Exception:
+                logger.debug('[SYSTEM_SETTINGS] settings may already be in session')
+            db.session.commit()
+            logger.info(f"[SYSTEM_SETTINGS] SystemSettings saved: maintenance_mode={settings.maintenance_mode} by user {session.get('user_id')}")
+            flash("System settings updated successfully!", "success")
+            return redirect(url_for("admin_routes.system_settings"))
+        except Exception as e:
+            db.session.rollback()
+            logger.exception(f"[SYSTEM_SETTINGS] Error updating settings: {e}")
+            flash(f"Error updating settings: {str(e)}", "danger")
+            return redirect(url_for("admin_routes.system_settings"))
+
+    return render_template("admin/system_settings.html", settings=settings)
 
 @admin_routes.route("/admin/manage-users")
 def manage_users():
@@ -609,26 +656,41 @@ def edit_timetable_slot(slot_id):
 def backup_maintenance():
     """Handle backup and maintenance settings management."""
     try:
+        db.session.expunge_all()
         settings = SystemSettings.get_settings()
     except Exception as e:
         db.session.rollback()
-        print(f"[BACKUP_MAINTENANCE] Error fetching settings: {str(e)}")
+        logger.error(f"[BACKUP_MAINTENANCE] Error fetching settings: {str(e)}")
         settings = SystemSettings()  # Return empty settings object
 
     if request.method == "POST":
         try:
             settings.backup_schedule = request.form.get("backup_schedule", "weekly")
-            settings.maintenance_mode = request.form.get("maintenance_mode") == "on"
+
+            # For checkboxes: if present and equals 'on', it's checked; otherwise it's unchecked
+            m_val = request.form.get("maintenance_mode")
+            settings.maintenance_mode = (m_val == "on")
+            logger.info(f"[BACKUP_MAINTENANCE] maintenance_mode form={repr(m_val)} -> {settings.maintenance_mode}")
+
             settings.maintenance_message = request.form.get("maintenance_message", "")
-            settings.auto_backup_enabled = request.form.get("auto_backup_enabled") == "on"
+
+            a_val = request.form.get("auto_backup_enabled")
+            settings.auto_backup_enabled = (a_val == "on")
+            logger.info(f"[BACKUP_MAINTENANCE] auto_backup_enabled form={repr(a_val)} -> {settings.auto_backup_enabled}")
             settings.updated_by_user_id = session.get('user_id')
+            # Ensure the settings object is attached to the session before committing
+            try:
+                db.session.add(settings)
+            except Exception:
+                logger.debug('[BACKUP_MAINTENANCE] settings may already be in session')
 
             db.session.commit()
+            logger.info(f"[BACKUP_MAINTENANCE] SystemSettings saved: maintenance_mode={settings.maintenance_mode} by user {session.get('user_id')}")
             flash("Backup & Maintenance settings updated successfully!", "success")
             return redirect(url_for("admin_routes.backup_maintenance"))
         except Exception as e:
             db.session.rollback()
-            print(f"[BACKUP_MAINTENANCE] Error updating settings: {str(e)}")
+            logger.error(f"[BACKUP_MAINTENANCE] Error updating settings: {str(e)}")
             flash(f"Error updating settings: {str(e)}", "danger")
             return redirect(url_for("admin_routes.backup_maintenance"))
 
@@ -673,17 +735,18 @@ def trigger_backup():
             'started_at': None,
             'finished_at': None
         }
-        print(f"[BACKUP] Enqueued backup job {job_id} by user {initiating_user_id}")
+        logger.info(f"[BACKUP] Enqueued backup job {job_id} by user {initiating_user_id}")
 
         def run_backup_job(jid):
             try:
-                print(f'[BACKUP] Starting backup job {jid}')
+                logger.info(f'[BACKUP] Starting backup job {jid}')
                 BACKUP_PROGRESS[jid].update({'status': 'running', 'started_at': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')})
 
                 def progress_cb(percent, msg=None):
                     try:
                         BACKUP_PROGRESS[jid].update({'percent': int(percent), 'message': msg or ''})
-                        print(f'[BACKUP] Progress update: {percent}% - {msg}')
+                        logger.debug(f'[BACKUP] Progress update: {percent}% - {msg}')
+
                         # persist to redis if available
                         r = get_redis_client()
                         payload = {'percent': int(percent), 'status': BACKUP_PROGRESS[jid].get('status'), 'message': msg}
@@ -692,19 +755,18 @@ def trigger_backup():
                                 r.set(f'backup:job:{jid}', json.dumps({'progress': payload}), ex=3600)
                                 r.publish(f'backup:job:{jid}', json.dumps({'progress': payload}))
                             except Exception:
-                                pass
+                                logger.debug('[BACKUP] Redis publish failed')
                     except Exception as e:
-                        print(f'[BACKUP] Error in progress_cb: {e}')
-                        pass
+                        logger.exception(f'[BACKUP] Error in progress_cb: {e}')
 
                 # Call the backup utility with progress callback
-                print(f'[BACKUP] Calling create_backup for job {jid}')
+                logger.info(f'[BACKUP] Calling create_backup for job {jid}')
                 result = create_backup(description="manual", progress_callback=progress_cb)
-                print(f'[BACKUP] create_backup returned: {result}')
+                logger.info(f'[BACKUP] create_backup returned: {result}')
 
                 # final update - FORCE 100% if successful
                 if result and result.get('success'):
-                    print(f'[BACKUP] Backup successful, setting to 100%')
+                    logger.info(f'[BACKUP] Backup successful, setting to 100%')
                     BACKUP_PROGRESS[jid].update({
                         'percent': 100,
                         'status': 'finished',
@@ -715,14 +777,14 @@ def trigger_backup():
                         'message': 'Backup complete'
                     })
                 else:
-                    print(f'[BACKUP] Backup failed, setting error status')
+                    logger.warning(f'[BACKUP] Backup failed, setting error status')
                     BACKUP_PROGRESS[jid].update({
                         'percent': 0,
                         'status': 'error',
                         'result': result,
                         'finished_at': datetime.utcnow().strftime('%d/%m/%Y %I:%M:%S %p'),
                         'expires_at': (datetime.utcnow() + timedelta(seconds=120)).strftime('%Y-%m-%d %H:%M:%S'),
-                        'message': result.get('message', 'Backup failed')
+                        'message': (result.get('message') if isinstance(result, dict) else 'Backup failed')
                     })
 
                 # persist final state to redis and publish
@@ -731,17 +793,17 @@ def trigger_backup():
                     payload = {'percent': BACKUP_PROGRESS[jid].get('percent'), 'status': BACKUP_PROGRESS[jid].get('status'), 'result': result, 'finished_at': BACKUP_PROGRESS[jid].get('finished_at')}
                     if r:
                         try:
-                            r.set(f'backup:job:{jid}', json.dumps({'progress': payload}), ex=3600)
-                            r.publish(f'backup:job:{jid}', json.dumps({'progress': payload}))
+                            r.set(f'backup:job:{jid}', json.dumps({'progress': payload}, default=str), ex=3600)
+                            r.publish(f'backup:job:{jid}', json.dumps({'progress': payload}, default=str))
                         except Exception as e:
-                            print(f'[BACKUP] Error persisting to Redis: {e}')
+                            logger.exception(f'[BACKUP] Error persisting to Redis: {e}')
                 except Exception as e:
-                    print(f'[BACKUP] Error in Redis persist block: {e}')
+                    logger.exception(f'[BACKUP] Error in Redis persist block: {e}')
 
                 # If successful, update system settings (use app context and captured initiating user id)
-                if result.get('success'):
-                    try:
-                        print(f'[BACKUP] Updating SystemSettings for job {jid}')
+                try:
+                    if result and isinstance(result, dict) and result.get('success'):
+                        logger.info(f'[BACKUP] Updating SystemSettings for job {jid}')
                         from flask import current_app
                         with current_app.app_context():
                             settings = SystemSettings.get_settings()
@@ -750,21 +812,19 @@ def trigger_backup():
                             settings.updated_by_user_id = initiating_user_id
                             db.session.add(settings)
                             db.session.commit()
-                        print(f'[BACKUP] SystemSettings updated successfully for job {jid}')
-                    except Exception as e:
-                        print(f'[BACKUP] Error updating SystemSettings for job {jid}: {e}')
-                        try:
-                            from flask import current_app
-                            with current_app.app_context():
-                                db.session.rollback()
-                        except Exception:
-                            pass
-                        print(f'[BACKUP] Rolled back SystemSettings update')
+                        logger.info(f'[BACKUP] SystemSettings updated successfully for job {jid}')
+                except Exception as e:
+                    logger.exception(f'[BACKUP] Error updating SystemSettings for job {jid}: {e}')
+                    try:
+                        from flask import current_app
+                        with current_app.app_context():
+                            db.session.rollback()
+                    except Exception:
+                        pass
+                    logger.info(f'[BACKUP] Rolled back SystemSettings update')
 
             except Exception as e:
-                print(f'[BACKUP] Exception in run_backup_job {jid}: {e}')
-                import traceback
-                traceback.print_exc()
+                logger.exception(f'[BACKUP] Exception in run_backup_job {jid}: {e}')
                 try:
                     BACKUP_PROGRESS[jid].update({'status': 'error', 'message': str(e), 'finished_at': datetime.utcnow().strftime('%d/%m/%Y %I:%M:%S %p')})
                 except Exception:
@@ -811,10 +871,10 @@ def list_backups():
 def backup_progress(job_id):
     """Return progress for a given backup job id (in-memory store)."""
     try:
-        print(f"[BACKUP] Progress GET requested for job {job_id}")
+        logger.debug(f"[BACKUP] Progress GET requested for job {job_id}")
         data = BACKUP_PROGRESS.get(job_id)
         if not data:
-            print(f"[BACKUP] Job {job_id} not found in BACKUP_PROGRESS")
+            logger.debug(f"[BACKUP] Job {job_id} not found in BACKUP_PROGRESS")
             return jsonify({'success': False, 'message': 'Job not found'}), 404
 
         # If entry has an expires_at timestamp, and it's past expiry, remove it and return 404
@@ -823,7 +883,7 @@ def backup_progress(job_id):
             try:
                 expires_dt = datetime.strptime(expires_at, '%Y-%m-%d %H:%M:%S')
                 if datetime.utcnow() > expires_dt:
-                    print(f"[BACKUP] Job {job_id} expired at {expires_at}, removing from memory")
+                    logger.debug(f"[BACKUP] Job {job_id} expired at {expires_at}, removing from memory")
                     try:
                         del BACKUP_PROGRESS[job_id]
                     except Exception:
@@ -831,9 +891,9 @@ def backup_progress(job_id):
                     return jsonify({'success': False, 'message': 'Job not found'}), 404
             except Exception:
                 # if parsing fails, continue to return the entry
-                pass
+                logger.debug(f"[BACKUP] Failed to parse expires_at for job {job_id}: {expires_at}")
 
-        print(f"[BACKUP] Returning progress for job {job_id}: {data.get('percent')}% status={data.get('status')}")
+        logger.debug(f"[BACKUP] Returning progress for job {job_id}: {data.get('percent')}% status={data.get('status')}")
         return jsonify({'success': True, 'progress': data}), 200
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error retrieving progress: {str(e)}'}), 500
@@ -850,7 +910,7 @@ def backup_progress_sse(job_id):
         sent_count = 0
         last_snapshot = None
         timeout = time.time() + 300  # 5 minute timeout
-        print(f'[SSE] New SSE generator started for job {job_id}')
+        logger.debug(f'[SSE] New SSE generator started for job {job_id}')
 
         try:
             while time.time() < timeout:
@@ -860,16 +920,20 @@ def backup_progress_sse(job_id):
                     # Only send if state changed (compare JSON snapshot to handle in-place dict mutation)
                     if state:
                         try:
-                                snapshot = json.dumps(state, sort_keys=True, default=str)
+                            snapshot = json.dumps(state, sort_keys=True, default=str)
                         except Exception:
                             snapshot = str(state)
 
-                            if snapshot != last_snapshot:
-                                # ensure we can serialize datetime objects, use default=str
+                        if snapshot != last_snapshot:
+                            # ensure we can serialize datetime objects, use default=str
+                            try:
                                 payload = json.dumps({'progress': state}, default=str)
+                            except Exception:
+                                payload = json.dumps({'progress': str(state)})
+
                             yield f'data: {payload}\n\n'
                             sent_count += 1
-                            print(f'[SSE] Sent update for job {job_id}: {state.get("percent")}% - {state.get("status")}')
+                            logger.debug(f'[SSE] Sent update for job {job_id}: {state.get("percent")}% - {state.get("status")}')
                             last_snapshot = snapshot
 
                             # If finished, send one more time then stop
@@ -881,21 +945,21 @@ def backup_progress_sse(job_id):
                                     sent_count += 1
                                 except Exception:
                                     pass
-                                print(f'[SSE] Job {job_id} finished, closing connection after {sent_count} messages')
+                                logger.info(f'[SSE] Job {job_id} finished, closing connection after {sent_count} messages')
                                 break
 
                     # Poll every 100ms while job is running
                     time.sleep(0.1)
 
                 except Exception as e:
-                    print(f'[SSE] Error in polling loop for {job_id}: {e}')
+                    logger.exception(f'[SSE] Error in polling loop for {job_id}: {e}')
                     time.sleep(0.5)
 
         except GeneratorExit:
-            print(f'[SSE] Client closed connection for job {job_id} after {sent_count} messages')
+            logger.debug(f'[SSE] Client closed connection for job {job_id} after {sent_count} messages')
             return
         except Exception as e:
-            print(f'[SSE] Generator error for job {job_id}: {e}')
+            logger.exception(f'[SSE] Generator error for job {job_id}: {e}')
             return
 
     response = current_app.response_class(gen(), mimetype='text/event-stream')
@@ -904,6 +968,32 @@ def backup_progress_sse(job_id):
     response.headers['Connection'] = 'keep-alive'
     response.headers['X-Accel-Buffering'] = 'no'  # Disable proxy buffering
     return response
+
+
+@admin_routes.route('/admin/debug/system-settings', methods=['GET'])
+def debug_system_settings():
+    """Admin-only debug endpoint that returns the raw SystemSettings rows for inspection."""
+    try:
+        user_role = session.get('role', '').lower() if session.get('role') else None
+        if user_role != 'admin':
+            return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+
+        rows = SystemSettings.query.all()
+        out = []
+        for r in rows:
+            out.append({
+                'id': r.id,
+                'maintenance_mode': bool(r.maintenance_mode),
+                'maintenance_message': r.maintenance_message,
+                'backup_schedule': r.backup_schedule,
+                'auto_backup_enabled': bool(r.auto_backup_enabled),
+                'updated_by_user_id': r.updated_by_user_id,
+                'updated_at': r.updated_at.strftime('%Y-%m-%d %H:%M:%S') if r.updated_at else None
+            })
+        return jsonify({'success': True, 'count': len(out), 'rows': out}), 200
+    except Exception as e:
+        logger.exception(f'[DEBUG] Error fetching system settings rows: {e}')
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 @admin_routes.route("/admin/backup-maintenance/download/<filename>", methods=["GET"])
@@ -952,9 +1042,9 @@ def delete_backup(filename):
         if '..' in filename or '/' in filename or '\\' in filename:
             return jsonify({'success': False, 'message': 'Invalid filename'}), 400
 
-        print(f"[DELETE_BACKUP] Attempting to delete: {filename}")
+        logger.info(f"[DELETE_BACKUP] Attempting to delete: {filename}")
         result = delete_backup_util(filename)
-        print(f"[DELETE_BACKUP] Result: {result}")
+        logger.info(f"[DELETE_BACKUP] Result: {result}")
 
         if result.get('success'):
             # Update system settings last_backup_time to latest remaining backup (or None)
@@ -969,8 +1059,8 @@ def delete_backup(filename):
                 settings.updated_by_user_id = session.get('user_id')
                 db.session.commit()
             except Exception as e:
-                # If updating settings fails, log to console but still return success for delete
-                print(f"Warning: failed to update SystemSettings after deleting backup: {e}")
+                # If updating settings fails, log a warning but still return success for delete
+                logger.warning(f"Failed to update SystemSettings after deleting backup: {e}")
 
             return jsonify({'success': True, 'message': result.get('message', 'Backup deleted')}), 200
         else:
@@ -999,15 +1089,3 @@ def get_backup_settings():
         }), 200
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
-
-
-@admin_routes.route('/admin/debug/backup-progresses', methods=['GET'])
-def debug_backup_progresses():
-    """Debug route to list current in-memory backup progress entries. For development only."""
-    try:
-        keys = list(BACKUP_PROGRESS.keys())
-        summary = {k: {'percent': BACKUP_PROGRESS[k].get('percent'), 'status': BACKUP_PROGRESS[k].get('status')} for k in keys}
-        print(f"[DEBUG] Current BACKUP_PROGRESS keys: {keys}")
-        return jsonify({'success': True, 'count': len(keys), 'summary': summary}), 200
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500

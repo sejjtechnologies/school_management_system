@@ -15,6 +15,7 @@ from routes.parent_routes import parent_routes   # ✅ Import parent_routes
 from routes.headteacher_routes import headteacher_routes  # ✅ Import headteacher_routes
 from dotenv import load_dotenv   # ✅ Import dotenv
 from sqlalchemy import text
+from werkzeug.exceptions import MethodNotAllowed
 
 # ✅ Load environment variables from .env file
 load_dotenv()
@@ -71,6 +72,29 @@ app.register_blueprint(reset_password_routes)     # ✅ Register reset password 
 app.register_blueprint(bursar_routes, url_prefix="/bursar")  # ✅ Register bursar_routes
 app.register_blueprint(parent_routes)             # ✅ Register parent_routes
 app.register_blueprint(headteacher_routes)        # ✅ Register headteacher_routes
+
+
+# Inject system settings into all templates so dashboards can show maintenance/backup banners
+@app.context_processor
+def inject_system_settings():
+    try:
+        from models.system_settings import SystemSettings
+        settings = SystemSettings.get_settings()
+        last = settings.last_backup_time.strftime('%d/%m/%Y %I:%M:%S %p') if settings.last_backup_time else None
+        nxt = settings.next_scheduled_backup.strftime('%d/%m/%Y %I:%M:%S %p') if settings.next_scheduled_backup else None
+        return {
+            'system_settings': {
+                'maintenance_mode': bool(settings.maintenance_mode),
+                'maintenance_message': settings.maintenance_message,
+                'auto_backup_enabled': bool(settings.auto_backup_enabled),
+                'backup_schedule': settings.backup_schedule,
+                'last_backup_time': last,
+                'next_scheduled_backup': nxt
+            }
+        }
+    except Exception as e:
+        logger.debug(f"Could not inject system_settings: {e}")
+        return {}
 
 # ✅ RESPONSE UTF-8 CHARSET MIDDLEWARE
 @app.after_request
@@ -157,6 +181,47 @@ def validate_admin_session():
         logger.error(f"[SESSION VALIDATION ERROR] {str(e)}")
         print(f"[SESSION VALIDATION ERROR] {str(e)}")
 
+
+# Enforce maintenance mode: if maintenance is active, show a minimal maintenance
+# page on user dashboards (teacher, parent, secretary, headteacher, bursar),
+# but allow admin users to access the admin dashboard normally.
+@app.before_request
+def enforce_maintenance_mode():
+    try:
+        # Skip static and admin endpoints and API endpoints
+        path = request.path or ''
+        if path.startswith('/static') or path.startswith('/sw.js') or path.startswith('/api'):
+            return
+
+        # If the admin dashboard or admin routes are requested, allow (admins should still access)
+        if path.startswith('/admin'):
+            return
+
+        from models.system_settings import SystemSettings
+        settings = SystemSettings.get_settings()
+        if not settings or not settings.maintenance_mode:
+            return
+
+        # Dashboard paths to intercept when maintenance is active
+        maintenance_paths = [
+            '/teacher/dashboard',
+            '/parent/dashboard',
+            '/secretary/dashboard',
+            '/headteacher/dashboard',
+            '/bursar/dashboard',
+        ]
+
+        # If request.path starts with one of the dashboard routes, and the user is not admin,
+        # render the maintenance page.
+        if any(path.startswith(p) for p in maintenance_paths):
+            role = session.get('role', '').lower() if session.get('role') else None
+            if role != 'admin':
+                message = settings.maintenance_message or 'Maintenance mode: System is under maintenance. Please try again later.'
+                return render_template('maintenance.html', message=message), 503
+    except Exception as e:
+        logger.exception(f"Error enforcing maintenance mode: {e}")
+        return
+
 # ✅ GLOBAL ERROR HANDLER for aborted transactions
 @app.errorhandler(Exception)
 def handle_db_error(error):
@@ -198,6 +263,33 @@ def offline_page():
 def developer():
     logger.info("Developer route accessed")
     return render_template("developer.html")
+
+
+# Provide a helpful handler for MethodNotAllowed (405) so we log the request method/path
+# and return a friendly message instead of the default Werkzeug HTML traceback.
+@app.errorhandler(MethodNotAllowed)
+def handle_method_not_allowed(error):
+    try:
+        logger.warning(f"MethodNotAllowed: {request.method} {request.path} - {error}")
+    except Exception:
+        logger.warning(f"MethodNotAllowed error: {error}")
+    # Return a concise JSON response for API clients; for browsers, Flask will still render JSON
+    return ("Method Not Allowed", 405)
+
+
+# Generic OPTIONS handler to gracefully respond to preflight requests.
+# This helps avoid 405 responses for CORS preflight when clients issue requests
+# with custom headers. It intentionally returns permissive headers; restrict
+# in production as appropriate.
+@app.route('/<path:unused>', methods=['OPTIONS'])
+@app.route('/', methods=['OPTIONS'])
+def handle_options(unused=None):
+    from flask import make_response
+    resp = make_response("")
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    resp.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,DELETE,OPTIONS'
+    resp.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+    return resp
 
 # ✅ Health check route for DB connection
 @app.route("/health")

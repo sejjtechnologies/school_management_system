@@ -1,0 +1,22 @@
+{% if system_settings %}
+  {% if system_settings.maintenance_mode %}
+    <div class="alert alert-danger text-center mb-0" role="alert" style="position:fixed;top:60px;left:0;right:0;z-index:1050;">
+      <strong>Maintenance mode:</strong> {{ system_settings.maintenance_message }}
+    </div>
+  {% elif system_settings.auto_backup_enabled %}
+    <div class="alert alert-info text-center mb-0" role="alert" style="position:fixed;top:60px;left:0;right:0;z-index:1050;">
+      <strong>Automatic backups enabled</strong>
+      {% if system_settings.last_backup_time %}
+        — Last backup: {{ system_settings.last_backup_time }}
+      {% else %}
+        — No backups yet
+      {% endif %}
+      {% if system_settings.backup_schedule %}
+        | Schedule: {{ system_settings.backup_schedule|capitalize }}
+      {% endif %}
+      {% if system_settings.next_scheduled_backup %}
+        | Next: {{ system_settings.next_scheduled_backup }}
+      {% endif %}
+    </div>
+  {% endif %}
+{% endif %}

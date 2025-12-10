@@ -1,5 +1,8 @@
 from models.user_models import db
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 class SystemSettings(db.Model):
     """
@@ -35,22 +38,40 @@ class SystemSettings(db.Model):
     def get_settings():
         """Fetch the single system settings record; create default if none exists."""
         try:
-            settings = SystemSettings.query.first()
-            if not settings:
+            # Prefer the most recently updated settings row if multiple exist
+            rows = SystemSettings.query.order_by(SystemSettings.updated_at.desc()).all()
+            if not rows:
                 settings = SystemSettings()
                 db.session.add(settings)
                 db.session.commit()
-            return settings
+                return settings
+
+            # If there are multiple rows, keep the most recently updated and remove others
+            if len(rows) > 1:
+                keeper = rows[0]
+                to_remove = rows[1:]
+                try:
+                    for r in to_remove:
+                        db.session.delete(r)
+                    db.session.commit()
+                    logger.info(f"[SystemSettings] Removed {len(to_remove)} duplicate settings rows, kept id={keeper.id}")
+                except Exception as e:
+                    db.session.rollback()
+                    logger.exception(f"[SystemSettings] Error removing duplicate rows: {e}")
+                return keeper
+
+            return rows[0]
         except Exception as e:
             # If the transaction is aborted, rollback and retry
             db.session.rollback()
             try:
-                settings = SystemSettings.query.first()
-                if not settings:
+                rows = SystemSettings.query.order_by(SystemSettings.updated_at.desc()).all()
+                if not rows:
                     settings = SystemSettings()
                     db.session.add(settings)
                     db.session.commit()
-                return settings
+                    return settings
+                return rows[0]
             except Exception:
                 # If still failing, create a default in-memory object
                 settings = SystemSettings()

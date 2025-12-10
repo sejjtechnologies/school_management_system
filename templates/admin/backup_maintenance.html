@@ -699,7 +699,7 @@
                     <label>Enable Automatic Backups</label>
                     <div class="toggle-switch">
                         <label class="switch">
-                            <input type="checkbox" id="auto_backup_enabled" name="auto_backup_enabled" {% if settings.auto_backup_enabled %}checked{% endif %}>
+                            <input type="checkbox" id="auto_backup_enabled" name="auto_backup_enabled" value="on" {% if settings.auto_backup_enabled %}checked{% endif %}>
                             <span class="slider"></span>
                         </label>
                         <span id="auto_backup_status">{% if settings.auto_backup_enabled %}Enabled{% else %}Disabled{% endif %}</span>
@@ -742,7 +742,7 @@
                     <label>Enable Maintenance Mode</label>
                     <div class="toggle-switch">
                         <label class="switch">
-                            <input type="checkbox" id="maintenance_mode" name="maintenance_mode" {% if settings.maintenance_mode %}checked{% endif %}>
+                            <input type="checkbox" id="maintenance_mode" name="maintenance_mode" value="on" {% if settings.maintenance_mode %}checked{% endif %}>
                             <span class="slider"></span>
                         </label>
                         <span id="maintenance_status">{% if settings.maintenance_mode %}Enabled{% else %}Disabled{% endif %}</span>
