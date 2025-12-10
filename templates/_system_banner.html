@@ -1,9 +1,21 @@
 {% if system_settings %}
-  {% if system_settings.maintenance_mode %}
+  {# transient welcome_back message shown once when maintenance is turned off #}
+  {% if welcome_back %}
+    <div id="welcome-banner" class="alert alert-success text-center mb-0" role="status" aria-live="polite" style="position:fixed;top:60px;left:0;right:0;z-index:1050;">
+      <strong>Welcome back!</strong> System has now been upgraded with new features.
+    </div>
+    <script>
+      (function(){
+        const el = document.getElementById('welcome-banner');
+        if(!el) return;
+        setTimeout(()=>{ el.style.transition='opacity 0.4s'; el.style.opacity='0'; setTimeout(()=>el.remove(),450); }, 2000);
+      })();
+    </script>
+  {% elif system_settings.maintenance_mode %}
     <div class="alert alert-danger text-center mb-0" role="alert" style="position:fixed;top:60px;left:0;right:0;z-index:1050;">
       <strong>Maintenance mode:</strong> {{ system_settings.maintenance_message }}
     </div>
-  {% elif system_settings.auto_backup_enabled %}
+  {% elif system_settings.auto_backup_enabled and (session.get('role') and session.get('role')|lower == 'admin') %}
     <div class="alert alert-info text-center mb-0" role="alert" style="position:fixed;top:60px;left:0;right:0;z-index:1050;">
       <strong>Automatic backups enabled</strong>
       {% if system_settings.last_backup_time %}

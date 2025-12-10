@@ -82,6 +82,13 @@ def inject_system_settings():
         settings = SystemSettings.get_settings()
         last = settings.last_backup_time.strftime('%d/%m/%Y %I:%M:%S %p') if settings.last_backup_time else None
         nxt = settings.next_scheduled_backup.strftime('%d/%m/%Y %I:%M:%S %p') if settings.next_scheduled_backup else None
+        # Pop any transient 'welcome back' flag from session so it only appears once
+        welcome = False
+        try:
+            welcome = bool(session.pop('welcome_back', False))
+        except Exception:
+            welcome = False
+
         return {
             'system_settings': {
                 'maintenance_mode': bool(settings.maintenance_mode),
@@ -90,7 +97,8 @@ def inject_system_settings():
                 'backup_schedule': settings.backup_schedule,
                 'last_backup_time': last,
                 'next_scheduled_backup': nxt
-            }
+            },
+            'welcome_back': welcome
         }
     except Exception as e:
         logger.debug(f"Could not inject system_settings: {e}")

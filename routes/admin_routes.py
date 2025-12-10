@@ -102,15 +102,20 @@ def system_settings():
         logger.error(f"[SYSTEM_SETTINGS] Error fetching settings: {str(e)}")
         settings = SystemSettings()
 
+
     if request.method == "POST":
         try:
             # Only update known fields to avoid surprising changes
             if 'backup_schedule' in request.form:
                 settings.backup_schedule = request.form.get('backup_schedule')
 
+            # detect previous maintenance mode so we can show a one-time welcome message
+            prev_maintenance = bool(settings.maintenance_mode)
+
             # For checkboxes: if present and equals 'on', it's checked; otherwise it's unchecked
             m_val = request.form.get('maintenance_mode')
-            settings.maintenance_mode = (m_val == 'on')
+            new_maintenance = (m_val == 'on')
+            settings.maintenance_mode = new_maintenance
             logger.info(f"[SYSTEM_SETTINGS] maintenance_mode form={repr(m_val)} -> {settings.maintenance_mode}")
 
             if 'maintenance_message' in request.form:
@@ -119,6 +124,13 @@ def system_settings():
             a_val = request.form.get('auto_backup_enabled')
             settings.auto_backup_enabled = (a_val == 'on')
             logger.info(f"[SYSTEM_SETTINGS] auto_backup_enabled form={repr(a_val)} -> {settings.auto_backup_enabled}")
+
+            # If maintenance was ON and is now being turned OFF, set a transient session flag
+            try:
+                if prev_maintenance and not new_maintenance:
+                    session['welcome_back'] = True
+            except Exception:
+                logger.debug('[SYSTEM_SETTINGS] Could not set welcome_back session flag')
 
             settings.updated_by_user_id = session.get('user_id')
             try:
@@ -666,10 +678,13 @@ def backup_maintenance():
     if request.method == "POST":
         try:
             settings.backup_schedule = request.form.get("backup_schedule", "weekly")
+            # detect previous maintenance mode so we can show a one-time welcome message
+            prev_maintenance = bool(settings.maintenance_mode)
 
             # For checkboxes: if present and equals 'on', it's checked; otherwise it's unchecked
             m_val = request.form.get("maintenance_mode")
-            settings.maintenance_mode = (m_val == "on")
+            new_maintenance = (m_val == "on")
+            settings.maintenance_mode = new_maintenance
             logger.info(f"[BACKUP_MAINTENANCE] maintenance_mode form={repr(m_val)} -> {settings.maintenance_mode}")
 
             settings.maintenance_message = request.form.get("maintenance_message", "")
@@ -677,6 +692,13 @@ def backup_maintenance():
             a_val = request.form.get("auto_backup_enabled")
             settings.auto_backup_enabled = (a_val == "on")
             logger.info(f"[BACKUP_MAINTENANCE] auto_backup_enabled form={repr(a_val)} -> {settings.auto_backup_enabled}")
+
+            # If maintenance was ON and is now being turned OFF, set a transient session flag
+            try:
+                if prev_maintenance and not new_maintenance:
+                    session['welcome_back'] = True
+            except Exception:
+                logger.debug('[BACKUP_MAINTENANCE] Could not set welcome_back session flag')
             settings.updated_by_user_id = session.get('user_id')
             # Ensure the settings object is attached to the session before committing
             try:
