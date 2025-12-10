@@ -1,6 +1,6 @@
 {
-  "name": "Hopeful Future SMS",
-  "short_name": "HF-SMS",
+  "name": "Hopeful Future Sch. MS",
+  "short_name": "School Manager",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
