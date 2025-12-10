@@ -1,6 +1,9 @@
 {
   "version": 2,
   "buildCommand": "pip install -r requirements.txt",
+  "env": {
+    "CACHE_BUST": "2025-12-10-redis-5.0.8-fix"
+  },
   "routes": [
     {
       "src": "/(.*)",
