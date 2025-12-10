@@ -129,7 +129,9 @@
         <span style="color:#fff">System Settings</span>
       </a>
       <div class="ms-auto">
-        <a href="{{ url_for('admin_routes.dashboard') }}" class="btn" style="background:#ffffff;color:#dc3545;border:none;padding:6px 10px;border-radius:6px; display:flex; align-items:center; gap:8px">
+        <!-- Use history.back() so we return to the previous page without forcing a new server request
+             (avoids server-side session validation redirecting to login if session is invalid) -->
+        <a href="javascript:void(0)" class="btn" style="background:#ffffff;color:#dc3545;border:none;padding:6px 10px;border-radius:6px; display:flex; align-items:center; gap:8px" onclick="history.back()">
           <i class="bi bi-box-arrow-left" style="color:#dc3545"></i> Back
         </a>
       </div>
@@ -147,7 +149,7 @@
       <button class="nav-btn theme" type="button" data-content="theme"><i class="bi bi-brightness-high-fill"></i> Light / Dark Theme</button>
 
       <div style="height:10px"></div>
-      <small class="text-muted">(Buttons load content in place — no page reload except Backup & Maintenance)</small>
+      <small class="text-muted"></small>
     </aside>
 
     <main class="content" id="main-content">

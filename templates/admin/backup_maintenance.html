@@ -687,9 +687,10 @@
     </div>
 
     <script>
-        // Navigation function
+        // Navigation function: prefer history.back() to avoid forcing a server request that
+        // may trigger session validation redirects to the login page.
         function goBack() {
-            window.location.href = "{{ url_for('admin_routes.system_settings') }}";
+            try { history.back(); } catch(e) { window.location.href = "{{ url_for('admin_routes.system_settings') }}"; }
         }
 
         // Toast notification function
