@@ -58,6 +58,12 @@ def convert_to_12hour(time_24h):
 def dashboard():
     return render_template("admin/dashboard.html")
 
+
+@admin_routes.route("/admin/system-settings")
+def system_settings():
+    """Render the System Settings placeholder page. Sidebar buttons are currently placeholders and not linked."""
+    return render_template("admin/system_settings.html")
+
 @admin_routes.route("/admin/manage-users")
 def manage_users():
     users = User.query.order_by(User.id.asc()).all()
