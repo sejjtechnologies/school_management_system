@@ -77,14 +77,21 @@ app.register_blueprint(headteacher_routes)        # ✅ Register headteacher_rou
 def ensure_utf8_charset(response):
     """Ensure all text responses include UTF-8 charset in Content-Type header."""
     content_type = response.headers.get('Content-Type', '')
-    
+
     # ONLY modify text/html responses - leave everything else alone
     # This ensures binary files (gzip, pdf, etc.) are NOT affected
     if content_type.startswith('text/html'):
         if 'charset' not in content_type:
             response.headers['Content-Type'] = 'text/html; charset=utf-8'
-    
+
     # Don't touch any other content types (binary files, JSON, etc.)
+
+    # ✅ Cleanup: Remove any pending database session to prevent connection pool leaks
+    try:
+        db.session.remove()
+    except Exception as e:
+        logger.warning(f"[SESSION CLEANUP] Could not remove session: {str(e)}")
+
     return response
 
 # ✅ ADMIN SESSION VALIDATION MIDDLEWARE
@@ -94,6 +101,9 @@ def validate_admin_session():
     try:
         # ✅ Skip validation for API endpoints and login/logout pages
         if request.path.startswith('/api/') or request.path in ['/login', '/logout', '/']:
+            return
+        # ✅ Skip validation for backup progress endpoints (they need to work in background)
+        if request.path.startswith('/admin/backup-maintenance/backup-progress') or request.path.startswith('/admin/backup-maintenance/trigger'):
             return
 
         user_id = session.get("user_id")
@@ -146,6 +156,25 @@ def validate_admin_session():
         # Log the error but don't break the request - fail gracefully for Vercel
         logger.error(f"[SESSION VALIDATION ERROR] {str(e)}")
         print(f"[SESSION VALIDATION ERROR] {str(e)}")
+
+# ✅ GLOBAL ERROR HANDLER for aborted transactions
+@app.errorhandler(Exception)
+def handle_db_error(error):
+    """Catch database transaction errors and rollback."""
+    from sqlalchemy.exc import InternalError
+
+    if isinstance(error, InternalError) and "InFailedSqlTransaction" in str(error):
+        logger.error(f"[DB TRANSACTION ERROR] Transaction aborted, rolling back: {str(error)}")
+        try:
+            db.session.rollback()
+        except Exception as rollback_error:
+            logger.error(f"[DB ROLLBACK ERROR] Failed to rollback: {str(rollback_error)}")
+
+        # Re-raise the error so Flask can handle it normally
+        raise error
+
+    # Let Flask handle other errors normally
+    raise error
 
 @app.route("/")
 def index():

@@ -7,6 +7,7 @@ import os
 import psycopg2
 from dotenv import load_dotenv
 from urllib.parse import urlparse
+from functools import wraps
 
 # Load environment variables
 load_dotenv()
@@ -31,6 +32,38 @@ def get_db_connection():
     )
     
     return conn
+
+def safe_db_operation(operation_name="DB Operation"):
+    """
+    Decorator for SQLAlchemy database operations to handle transaction rollbacks.
+    Ensures that if a transaction is aborted, it's properly rolled back.
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            from models.user_models import db
+            from sqlalchemy.exc import InternalError
+            
+            try:
+                result = func(*args, **kwargs)
+                return result
+            except InternalError as e:
+                if "InFailedSqlTransaction" in str(e):
+                    print(f"[{operation_name}] Transaction aborted, rolling back...")
+                    try:
+                        db.session.rollback()
+                    except Exception as rollback_error:
+                        print(f"[{operation_name}] Rollback failed: {str(rollback_error)}")
+                raise
+            except Exception as e:
+                print(f"[{operation_name}] Error: {str(e)}")
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                raise
+        return wrapper
+    return decorator
 
 def execute_sql(sql_query, fetch=False):
     """Execute SQL query directly to Neon database"""

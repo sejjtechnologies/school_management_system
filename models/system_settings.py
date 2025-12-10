@@ -34,9 +34,24 @@ class SystemSettings(db.Model):
     @staticmethod
     def get_settings():
         """Fetch the single system settings record; create default if none exists."""
-        settings = SystemSettings.query.first()
-        if not settings:
-            settings = SystemSettings()
-            db.session.add(settings)
-            db.session.commit()
-        return settings
+        try:
+            settings = SystemSettings.query.first()
+            if not settings:
+                settings = SystemSettings()
+                db.session.add(settings)
+                db.session.commit()
+            return settings
+        except Exception as e:
+            # If the transaction is aborted, rollback and retry
+            db.session.rollback()
+            try:
+                settings = SystemSettings.query.first()
+                if not settings:
+                    settings = SystemSettings()
+                    db.session.add(settings)
+                    db.session.commit()
+                return settings
+            except Exception:
+                # If still failing, create a default in-memory object
+                settings = SystemSettings()
+                return settings

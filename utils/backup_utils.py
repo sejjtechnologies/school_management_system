@@ -40,7 +40,7 @@ def parse_database_url(db_url):
     }
 
 
-def create_backup(description="manual"):
+def create_backup(description="manual", progress_callback=None):
     """
     Create a backup of the database.
     
@@ -95,6 +95,11 @@ def create_backup(description="manual"):
             env['PGSSLMODE'] = 'require'
 
         # Execute pg_dump and save to file
+        if progress_callback:
+            try:
+                progress_callback(10, 'Starting pg_dump')
+            except Exception:
+                pass
         with open(backup_path, 'w') as backup_file:
             result = subprocess.run(
                 pg_dump_cmd,
@@ -104,7 +109,12 @@ def create_backup(description="manual"):
                 env=env,
                 timeout=300  # 5 minute timeout
             )
-
+        if progress_callback:
+            try:
+                # pg_dump finished (success or failure) - mark progress
+                progress_callback(60, 'pg_dump finished')
+            except Exception:
+                pass
         if result.returncode != 0:
             if os.path.exists(backup_path):
                 os.remove(backup_path)
@@ -116,17 +126,32 @@ def create_backup(description="manual"):
             }
 
         # Compress the backup
+        if progress_callback:
+            try:
+                progress_callback(70, 'Starting compression')
+            except Exception:
+                pass
         compressed_path = f"{backup_path}.gz"
         with open(backup_path, 'rb') as f_in:
             with gzip.open(compressed_path, 'wb') as f_out:
                 shutil.copyfileobj(f_in, f_out)
-
+        if progress_callback:
+            try:
+                progress_callback(95, 'Compression complete')
+            except Exception:
+                pass
         # Remove uncompressed backup
         os.remove(backup_path)
 
         # Get file size
         file_size = os.path.getsize(compressed_path)
         file_size_mb = file_size / (1024 * 1024)
+
+        if progress_callback:
+            try:
+                progress_callback(100, 'Backup complete')
+            except Exception:
+                pass
 
         return {
             'success': True,
@@ -224,13 +249,20 @@ def delete_backup(backup_filename):
             return {'success': False, 'message': 'Invalid backup filename'}
 
         backup_path = os.path.join(BACKUP_DIR, backup_filename)
+        
+        print(f"[BACKUP_UTILS] Delete attempt - BACKUP_DIR: {BACKUP_DIR}")
+        print(f"[BACKUP_UTILS] Delete attempt - filename: {backup_filename}")
+        print(f"[BACKUP_UTILS] Delete attempt - full path: {backup_path}")
+        print(f"[BACKUP_UTILS] Delete attempt - exists: {os.path.exists(backup_path)}")
 
         if not os.path.exists(backup_path):
             return {'success': False, 'message': 'Backup file not found'}
 
         os.remove(backup_path)
+        print(f"[BACKUP_UTILS] Delete success - file removed")
         return {'success': True, 'message': f'Backup {backup_filename} deleted'}
     except Exception as e:
+        print(f"[BACKUP_UTILS] Delete error: {str(e)}")
         return {'success': False, 'message': f'Error deleting backup: {str(e)}'}
 
 

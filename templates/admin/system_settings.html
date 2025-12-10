@@ -340,6 +340,15 @@
         // Put it inside a wrapper so local styles apply
         container.innerHTML = `<div class="embedded-internal">${inner}</div>`;
 
+        // Also extract and inject any modals from the fetched document
+        const modals = doc.querySelectorAll('.modal');
+        modals.forEach(modal => {
+            const existingModal = document.getElementById(modal.id);
+            if (!existingModal) {
+                document.body.appendChild(modal.cloneNode(true));
+            }
+        });
+
         // Execute any inline scripts found in the fetched document (in order)
         const scripts = doc.querySelectorAll('script');
         for (const s of scripts){
