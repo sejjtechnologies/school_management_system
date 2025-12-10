@@ -104,5 +104,7 @@
   }
 </script>
 
-<!-- ✅ INACTIVITY MONITOR - Auto-logout after 1 minute of inactivity on any page -->
+<!-- ✅ INACTIVITY MONITOR - Auto-logout after 1 minute of inactivity on any page (NOT on login/index page) -->
+{% if session.get('user_id') %}
 <script src="{{ url_for('static', filename='js/inactivity-monitor.js') }}"></script>
+{% endif %}
