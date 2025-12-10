@@ -374,6 +374,86 @@
             font-size: 0.9rem;
             opacity: 0.95;
         }
+
+        /* Compact sidebar + responsive tweaks to match system_settings area */
+        .sidebar {
+            width: 180px; /* slightly reduced */
+            padding: 18px 12px;
+        }
+
+        .sidebar .logo-container img,
+        .sidebar .logo img,
+        .logo-img {
+            height: 34px;
+        }
+
+        .sidebar-section {
+            gap: 8px;
+        }
+
+        /* smaller buttons/text in sidebar */
+        .sidebar-btn {
+            padding: 8px 10px;
+            font-size: 0.88rem;
+            border-radius: 6px;
+        }
+
+        /* reduce spacing between sidebar and main content */
+        .main-container, .app-shell {
+            display: flex;
+            gap: 12px;
+        }
+
+        .main-content, .content {
+            padding: 18px;
+        }
+
+        /* Make backup list allow horizontal scroll on small screens and reduce table density */
+        #backup-list {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #backup-list table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 480px; /* allow moderate horizontal scroll on mobile */
+        }
+
+        /* Smaller typography and tighter buttons for mobile */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                display: flex;
+                gap: 8px;
+                padding: 8px;
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
+                overflow-x: auto;
+            }
+
+            .sidebar-section {
+                flex-direction: row;
+                flex-wrap: nowrap;
+            }
+
+            .sidebar-btn {
+                flex: 0 0 auto;
+                white-space: nowrap;
+                padding: 8px 10px;
+                font-size: 0.85rem;
+            }
+
+            h1 { font-size: 1.25rem; }
+            h3 { font-size: 1rem; }
+
+            .btn-trigger-backup, .btn-download-backup, .btn-submit {
+                padding: 8px 12px;
+                font-size: 0.88rem;
+            }
+
+            .settings-card { padding: 14px; }
+        }
     </style>
 </head>
 <body>
