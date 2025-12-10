@@ -14,6 +14,8 @@
       --sidebar-bg: #ffffff;
       --accent: #00796b;
     }
+
+
     body{
       font-family: 'Segoe UI', sans-serif;
       background:var(--bg);
@@ -61,12 +63,54 @@
     .content{padding:18px}
     .settings-card{padding:14px}
 
+    /* iframe used when embedding other admin pages into the main-content area */
+    .embedded-frame {
+      width: 100%;
+      border: none;
+      min-height: 60vh;
+      height: calc(100vh - 180px);
+    }
+
+    /* Wrapper to constrain embedded content and provide a small horizontal scrollbar */
+    .embedded-wrapper {
+      overflow-x: auto;
+      overflow-y: auto;
+      max-height: calc(100vh - 220px);
+      padding: 6px 2px;
+      border: 1px solid #eef2ff;
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    /* Scale down full-page embeds so their layout fits inside the right card */
+    .embedded-frame.compact-embed {
+      transform: scale(0.86);
+      transform-origin: 0 0;
+      width: 116%; /* compensate for scaling */
+      height: calc((100vh - 220px) / 0.86);
+      box-shadow: none;
+    }
+
+    /* Small horizontal scrollbar styling */
+    .embedded-wrapper::-webkit-scrollbar { height: 8px; }
+    .embedded-wrapper::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 8px; }
+
+    @media (max-width: 768px) {
+      /* On small screens reduce the scale so embedded content is readable and fits */
+      .embedded-frame.compact-embed { transform: scale(0.98); width: 102%; height: calc((100vh - 180px) / 0.98); }
+      .embedded-wrapper { max-height: calc(100vh - 160px); }
+    }
+
     @media (max-width:768px){
-      .sidebar{width:100%; display:flex; gap:8px; padding:8px; border-right:none; border-bottom:1px solid #e9ecef; overflow-x:auto}
-      .sidebar .nav-btn{flex:0 0 auto; white-space:nowrap; padding:8px 10px; font-size:0.85rem}
+      .sidebar{width:100%; display:flex; flex-direction:row; flex-wrap:nowrap; gap:8px; padding:8px; border-right:none; border-bottom:1px solid #e9ecef; overflow-x:auto; align-items:center}
+      .sidebar .nav-btn{flex:0 0 auto; white-space:nowrap; padding:8px 10px; font-size:0.85rem; width:auto !important; display:inline-flex}
       h4{font-size:1rem}
       .settings-card{padding:12px}
     }
+
+      /* Auto-dismiss backend flash alerts injected into embedded content */
+      .embedded-alert { transition: opacity 0.35s ease, transform 0.35s ease; }
+      .embedded-alert.fade-out { opacity: 0 !important; transform: translateY(-6px); }
   </style>
 </head>
 <body>
@@ -91,7 +135,7 @@
       <button class="nav-btn security" type="button" data-content="security"><i class="bi bi-shield-lock-fill"></i> Session &amp; Security</button>
       <button class="nav-btn calendar" type="button" data-content="calendar"><i class="bi bi-calendar3"></i> Academic Calendar</button>
       <button class="nav-btn payments" type="button" data-content="payments"><i class="bi bi-credit-card-2-front-fill"></i> Payment &amp; Receipts</button>
-      <a href="{{ url_for('admin_routes.backup_maintenance') }}" class="nav-btn backup" type="button"><i class="bi bi-hdd-fill"></i> Backup &amp; Maintenance</a>
+      <button class="nav-btn backup" type="button" data-content="backup"><i class="bi bi-hdd-fill"></i> Backup &amp; Maintenance</button>
       <button class="nav-btn theme" type="button" data-content="theme"><i class="bi bi-brightness-high-fill"></i> Light / Dark Theme</button>
 
       <div style="height:10px"></div>
@@ -138,6 +182,16 @@
           <button class="btn btn-light" onclick="document.body.classList.remove('bg-dark');document.body.style.color='';">Light</button>
         </div>
       `
+      ,
+      backup: `
+        <div class="settings-card">
+          <h4>Backup & Maintenance</h4>
+          <p>The Backup & Maintenance page is embedded below. You can trigger backups, download, or delete existing backups. Actions will be performed without leaving this settings area.</p>
+          <div id="embedded-backup-wrapper" class="embedded-wrapper" style="min-height:320px;">
+            <div id="embedded-backup-container">Loading backup UI…</div>
+          </div>
+        </div>
+      `
     };
 
     const buttons = document.querySelectorAll('.nav-btn');
@@ -145,9 +199,7 @@
 
     function setActiveButton(activeBtn){
       buttons.forEach(btn => btn.classList.remove('active'));
-      if(!activeBtn.classList.contains('backup')) { // Do not activate backup link
-        activeBtn.classList.add('active');
-      }
+      activeBtn.classList.add('active');
     }
 
     buttons.forEach(btn => {
@@ -157,6 +209,10 @@
           const key = btn.dataset.content;
           mainContent.innerHTML = contentMap[key] || '<p>Content not found.</p>';
           setActiveButton(btn);
+          // If it's the backup panel, fetch and embed the partial page instead of an iframe
+          if (key === 'backup') {
+            loadEmbeddedBackup();
+          }
         });
       }
     });
@@ -165,7 +221,145 @@
     window.addEventListener('DOMContentLoaded', () => {
       const firstBtn = Array.from(buttons).find(b=>b.dataset.content);
       if(firstBtn) firstBtn.click();
+      // Also attempt to initialize embedded frames if present on DOMContentLoaded
+      setTimeout(initEmbeddedIframes, 200);
     });
+
+    function initEmbeddedIframes(){
+      try {
+        const iframes = document.querySelectorAll('.embedded-frame');
+        iframes.forEach(iframe => {
+          // avoid attaching multiple listeners
+          if (iframe._embedInitialized) return;
+          iframe._embedInitialized = true;
+
+          function setup(){
+            try {
+              const doc = iframe.contentDocument || iframe.contentWindow.document;
+              if (!doc) return;
+              // hide the embedded page's navbar and footer to avoid duplicate chrome
+              const header = doc.querySelector('.navbar-fixed') || doc.querySelector('.navbar');
+              if (header) header.style.display = 'none';
+              const footer = doc.querySelector('footer') || doc.querySelector('.site-footer');
+              if (footer) footer.style.display = 'none';
+              // remove top padding applied for fixed navbars inside the embedded page
+              doc.body.style.paddingTop = '0px';
+
+              // compute inner content height and resize iframe
+              const mainInner = doc.querySelector('.main-content') || doc.body;
+              const h = mainInner.scrollHeight || doc.body.scrollHeight;
+              iframe.style.height = (h + 24) + 'px';
+              // slightly scale so the layout fits nicely
+              iframe.style.transform = 'scale(0.95)';
+              iframe.style.transformOrigin = '0 0';
+              iframe.style.width = '105%';
+            } catch(e){
+              // ignore cross-origin or other timing errors
+              console.warn('Could not initialize embedded iframe', e);
+            }
+          }
+
+          // run on load and also shortly after to allow scripts to render
+          iframe.addEventListener('load', () => setTimeout(setup, 60));
+          setTimeout(setup, 300);
+        });
+      } catch(e){ console.warn('initEmbeddedIframes error', e); }
+    }
+
+    // Schedule auto-dismiss for backend flash alerts inside an embedded container
+    function scheduleEmbeddedAlerts(container){
+      try {
+        if (!container) return;
+        function schedule(el){
+          if (!el) return;
+          el.classList.add('embedded-alert');
+          setTimeout(function(){
+            el.classList.add('fade-out');
+            setTimeout(function(){ try { el.remove(); } catch(e){} }, 360);
+          }, 2000);
+        }
+        // schedule existing alerts
+        container.querySelectorAll && container.querySelectorAll('.alert').forEach(schedule);
+        // observe for new alerts
+        if (window.MutationObserver){
+          const mo = new MutationObserver(function(muts){
+            muts.forEach(function(m){
+              m.addedNodes && m.addedNodes.forEach(function(node){
+                if (!(node instanceof HTMLElement)) return;
+                if (node.classList && node.classList.contains('alert')) schedule(node);
+                node.querySelectorAll && node.querySelectorAll('.alert').forEach(schedule);
+              });
+            });
+          });
+          mo.observe(container, { childList: true, subtree: true });
+        }
+      } catch(e){ /* ignore */ }
+    }
+
+    // Fetch the backup page and inject only its main content + styles and scripts into this card.
+    async function loadEmbeddedBackup(){
+      const container = document.getElementById('embedded-backup-container');
+      if (!container) return;
+      container.innerHTML = '<p class="text-muted">Loading backup UI…</p>';
+      try {
+        const resp = await fetch('{{ url_for("admin_routes.backup_maintenance") }}', { cache: 'no-store' });
+        const text = await resp.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
+
+        // Inject styles from fetched document head (avoid duplicates)
+        const headStyles = doc.querySelectorAll('head style, head link[rel="stylesheet"]');
+        headStyles.forEach(node => {
+          try {
+            // simple dedupe by textContent or href
+            if (node.tagName.toLowerCase() === 'style'){
+              const id = 'embedded-style-' + btoa(node.textContent || '').slice(0,8);
+              if (!document.getElementById(id)){
+                const s = document.createElement('style'); s.id = id; s.textContent = node.textContent; document.head.appendChild(s);
+              }
+            } else if (node.tagName.toLowerCase() === 'link'){
+              const href = node.getAttribute('href');
+              if (href && !document.querySelector('link[href="' + href + '"]')){
+                const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; document.head.appendChild(l);
+              }
+            }
+          } catch(e){/* ignore */}
+        });
+
+        // Extract the main content area from fetched doc
+        const fetchedMain = doc.querySelector('.main-content') || doc.querySelector('main') || doc.body;
+        const inner = fetchedMain ? fetchedMain.innerHTML : text;
+        // Put it inside a wrapper so local styles apply
+        container.innerHTML = `<div class="embedded-internal">${inner}</div>`;
+
+        // Execute any inline scripts found in the fetched document (in order)
+        const scripts = doc.querySelectorAll('script');
+        for (const s of scripts){
+          try {
+            if (s.src){
+              // external script: add to document if not present
+              if (!document.querySelector('script[src="' + s.src + '"]')){
+                const ext = document.createElement('script'); ext.src = s.src; ext.async = false; document.body.appendChild(ext);
+                await new Promise((res, rej) => { ext.onload = res; ext.onerror = res; });
+              }
+            } else {
+              // inline script: execute by creating a new script element
+              const inline = document.createElement('script'); inline.text = s.textContent; document.body.appendChild(inline);
+            }
+          } catch(e){ console.warn('Error executing embedded script', e); }
+        }
+
+        // After scripts executed, schedule auto-dismiss for backend alerts and try to call loadBackupHistory()
+        try { scheduleEmbeddedAlerts(container); } catch(e){}
+        if (typeof loadBackupHistory === 'function'){
+          try { loadBackupHistory(); } catch(e){}
+        }
+
+      } catch(e){
+        console.error('Failed to load embedded backup content', e);
+        container.innerHTML = `<p class="text-danger">Failed to load backup UI: ${e.message}</p>`;
+      }
+    }
   </script>
 </body>
 </html>
