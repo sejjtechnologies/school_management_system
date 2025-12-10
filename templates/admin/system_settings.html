@@ -27,17 +27,16 @@
     .navbar{background:var(--primary); height:60px}
     .navbar .navbar-brand{color:#fff !important; display:flex; align-items:center; gap:10px}
     .app-shell{display:flex; flex:1; min-height: calc(100vh - 60px);}
-    .sidebar{width:140px; background:var(--sidebar-bg); border-right:1px solid #e9ecef; padding:10px 8px; position:sticky; top:60px; height:calc(100vh - 60px - 24px); overflow-y:auto}
+    .sidebar{width:96px; background:var(--sidebar-bg); border-right:1px solid #e9ecef; padding:8px 6px; position:sticky; top:60px; height:calc(100vh - 60px - 24px); overflow-y:auto}
     .sidebar .logo{display:flex; align-items:center; gap:10px; padding:8px 6px; margin-bottom:18px}
     .sidebar .logo img{height:42px; width:auto}
     .sidebar .nav-btn{
-      display:flex; align-items:center; gap:8px; width:100%; padding:6px 8px; margin-bottom:8px;
+      display:flex; flex-direction:column; align-items:center; gap:4px; width:100%; padding:6px 6px; margin-bottom:10px;
       border-radius:6px; border: 1px solid rgba(0,0,0,0.04); background:transparent; color:var(--muted);
-      text-align:left; box-shadow: 0 1px 4px rgba(16,24,40,0.03); font-weight:600; cursor:pointer;
-      transition: all 0.15s ease; font-size:0.82rem;
+      text-align:center; box-shadow: 0 1px 4px rgba(16,24,40,0.03); font-weight:600; cursor:pointer;
+      transition: all 0.15s ease; font-size:0.72rem; white-space:normal; word-break:break-word; min-height:56px;
     }
-    .sidebar .nav-btn i{font-size:18px}
-    .sidebar .nav-btn i{font-size:14px}
+    .sidebar .nav-btn i{font-size:16px}
     .sidebar .nav-btn:hover{transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.06);}
     .sidebar .nav-btn.active{box-shadow:0 4px 12px rgba(0,0,0,0.12); transform: translateY(-1px); border-color: var(--accent);}
 
@@ -54,11 +53,12 @@
     .settings-list .setting-item:last-child{border-bottom:0}
 
     @media (max-width:768px){
-      .sidebar{width:160px; padding:12px 8px}
-      .sidebar .nav-btn{padding:10px 8px; font-size:0.9rem}
+      /* Keep the sidebar narrow on small screens so it remains a compact left column */
+      .sidebar{width:96px; padding:8px 6px}
+      .sidebar .nav-btn{padding:8px 6px; font-size:0.78rem}
     }
     /* Compact sidebar & card tweaks to match backup_maintenance adjustments */
-    .sidebar{width:180px; padding:14px 10px}
+    .sidebar{width:96px; padding:8px 6px}
     .sidebar .logo img{height:34px}
     .sidebar .nav-btn{padding:8px 10px; font-size:0.88rem; border-radius:6px}
     .content{padding:18px}
@@ -100,15 +100,15 @@
       /* On small screens reduce the scale so embedded content is readable and fits */
       .embedded-frame.compact-embed { transform: scale(0.98); width: 102%; height: calc((100vh - 180px) / 0.98); }
       .embedded-wrapper { max-height: calc(100vh - 160px); }
-      /* Keep the sidebar vertical on mobile (stacked buttons) instead of a horizontal strip */
-      .sidebar{width:100%; display:block; padding:10px 8px; border-right:none; border-bottom:1px solid #e9ecef}
-      .sidebar .nav-btn{display:flex; width:100%; white-space:normal; margin-bottom:8px}
+      /* Keep the sidebar narrow on mobile as a compact left column; buttons stack vertically inside it */
+      .sidebar{width:96px; display:block; padding:8px 6px; border-right:1px solid #e9ecef}
+      .sidebar .nav-btn{display:flex; width:100%; white-space:normal; margin-bottom:10px}
     }
 
     @media (max-width:768px){
-      /* On narrow screens keep sidebar buttons stacked vertically */
-      .sidebar{width:100%; display:block; padding:8px; border-right:none; border-bottom:1px solid #e9ecef}
-      .sidebar .nav-btn{display:flex; width:100%; white-space:normal; padding:8px 10px; font-size:0.9rem; margin-bottom:8px}
+      /* On narrow screens keep sidebar as a narrow left column and keep buttons stacked vertically inside it */
+      .sidebar{width:96px; display:block; padding:8px 6px; border-right:1px solid #e9ecef}
+      .sidebar .nav-btn{display:flex; width:100%; white-space:normal; padding:8px 6px; font-size:0.78rem; margin-bottom:10px}
       h4{font-size:1rem}
       .settings-card{padding:12px}
     }
