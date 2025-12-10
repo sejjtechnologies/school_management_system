@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backup & Maintenance</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding-top: 60px;
+        }
+
+        /* Fixed Navbar */
+        .navbar-fixed {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .navbar-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-img {
+            height: 40px;
+            width: auto;
+        }
+
+        .navbar-title {
+            color: white;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .back-btn {
+            background-color: white;
+            color: #dc3545;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .back-btn:hover {
+            background-color: #f8f9fa;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.2);
+        }
+
+        /* Container */
+        .main-container {
+            display: flex;
+            min-height: calc(100vh - 60px);
+        }
+
+        /* Left Sidebar */
+        .sidebar {
+            width: 220px;
+            background-color: #fff;
+            border-right: 1px solid #e0e0e0;
+            padding: 30px 20px;
+            overflow-y: auto;
+        }
+
+        .sidebar-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .sidebar-btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            color: white;
+            text-decoration: none;
+            display: block;
+            font-size: 0.95rem;
+        }
+
+        .sidebar-btn:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .sidebar-btn.active {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-session {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .btn-calendar {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        }
+
+        .btn-payment {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .btn-backup {
+            background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
+        }
+
+        .btn-theme {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            background-color: #f9f9f9;
+            overflow-y: auto;
+        }
+
+        .content-header {
+            margin-bottom: 30px;
+        }
+
+        .content-header h1 {
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .content-header p {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        /* Form Styling */
+        .form-section {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+        }
+
+        .form-section h3 {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+        }
+
+        .for
+        m-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.3s;
+            border-radius: 26px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #667eea;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        /* Info Box */
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .info-box strong {
+            color: #1d4ed8;
+        }
+
+        .info-box p {
+            color: #0c63e4;
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        /* Button Styling */
+        .btn-submit {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        .btn-trigger-backup {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .btn-trigger-backup:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+            color: white;
+        }
+
+        .btn-trigger-backup:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Download Button Styling */
+        .btn-download-backup {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-download-backup:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            color: white;
+            text-decoration: none;
+        }
+
+        .btn-download-backup:active {
+            transform: translateY(0);
+        }
+
+        /* Status Messages */
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            background: #f3f4f6;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        .status-item label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .status-item span {
+            color: #666;
+        }
+
+        .status-time {
+            color: #10b981;
+            font-weight: 500;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                display: flex;
+                gap: 10px;
+                padding: 15px;
+                overflow-x: auto;
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+            }
+
+            .sidebar-section {
+                flex-direction: row;
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+
+            .sidebar-btn {
+                flex: 1;
+                min-width: 140px;
+                padding: 10px 12px;
+                font-size: 0.85rem;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .content-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .form-section {
+                padding: 20px;
+            }
+        }
+
+        /* Alert Styles */
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .alert-danger {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1050;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 16px;
+            min-width: 300px;
+            max-width: 400px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-left: 4px solid #059669;
+        }
+
+        .toast.error {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            border-left: 4px solid #dc2626;
+        }
+
+        .toast-content {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .toast-icon {
+            font-size: 1.3rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .toast-message {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .toast-description {
+            font-size: 0.9rem;
+            opacity: 0.95;
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Fixed Navbar -->
+    <div class="navbar-fixed">
+        <div class="navbar-content">
+            <div class="logo-container">
+                {% if url_for('static', filename='logo.png') %}
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-img">
+                {% endif %}
+                <h1 class="navbar-title">Backup & Maintenance</h1>
+            </div>
+            <div class="navbar-actions">
+                <button class="back-btn" onclick="goBack()">
+                    <i class="bi bi-box-arrow-left"></i> Back
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Left Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <button class="sidebar-btn btn-session" onclick="alert('Session & Security settings coming soon!')">
+                    <i class="bi bi-shield-lock"></i> Session & Security
+                </button>
+                <button class="sidebar-btn btn-calendar" onclick="alert('Academic Calendar settings coming soon!')">
+                    <i class="bi bi-calendar3"></i> Academic Calendar
+                </button>
+                <button class="sidebar-btn btn-payment" onclick="alert('Payment & Receipts settings coming soon!')">
+                    <i class="bi bi-credit-card"></i> Payment & Receipts
+                </button>
+                <button class="sidebar-btn btn-backup active" onclick="alert('You are here!')">
+                    <i class="bi bi-cloud-check"></i> Backup & Maintenance
+                </button>
+                <button class="sidebar-btn btn-theme" onclick="alert('Light/Dark Theme settings coming soon!')">
+                    <i class="bi bi-palette"></i> Light/Dark Theme
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="content-header">
+                <h1>Backup & Maintenance Management</h1>
+                <p>Configure automatic backups and maintenance schedules for your system</p>
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Backup Configuration Section -->
+            <form method="POST" class="form-section">
+                <h3><i class="bi bi-cloud-arrow-down"></i> Backup Configuration</h3>
+
+                <!-- Backup Schedule -->
+                <div class="form-group">
+                    <label for="backup_schedule">Backup Schedule</label>
+                    <select id="backup_schedule" name="backup_schedule" required>
+                        <option value="daily" {% if settings.backup_schedule == 'daily' %}selected{% endif %}>Daily</option>
+                        <option value="weekly" {% if settings.backup_schedule == 'weekly' %}selected{% endif %}>Weekly</option>
+                        <option value="monthly" {% if settings.backup_schedule == 'monthly' %}selected{% endif %}>Monthly</option>
+                    </select>
+                    <small class="text-muted">Select how frequently automatic backups should run</small>
+                </div>
+
+                <!-- Auto Backup Toggle -->
+                <div class="form-group">
+                    <label>Enable Automatic Backups</label>
+                    <div class="toggle-switch">
+                        <label class="switch">
+                            <input type="checkbox" id="auto_backup_enabled" name="auto_backup_enabled" {% if settings.auto_backup_enabled %}checked{% endif %}>
+                            <span class="slider"></span>
+                        </label>
+                        <span id="auto_backup_status">{% if settings.auto_backup_enabled %}Enabled{% else %}Disabled{% endif %}</span>
+                    </div>
+                </div>
+
+                <!-- Last Backup Status -->
+                {% if settings.last_backup_time %}
+                <div class="info-box">
+                    <p><strong>Last Backup:</strong> {{ settings.last_backup_time.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                </div>
+                {% else %}
+                <div class="info-box">
+                    <p><strong>Last Backup:</strong> No backups have been created yet</p>
+                </div>
+                {% endif %}
+
+                <!-- Manual Backup Button -->
+                <div class="form-group">
+                    <button type="button" class="btn-trigger-backup" onclick="triggerManualBackup()">
+                        <i class="bi bi-arrow-repeat"></i> Trigger Manual Backup
+                    </button>
+                    <small class="text-muted d-block mt-2">Manually create a backup immediately</small>
+                </div>
+
+                <!-- Backup History -->
+                <div class="form-group">
+                    <label><i class="bi bi-clock-history"></i> Backup History</label>
+                    <div id="backup-list" style="border: 1px solid #ddd; border-radius: 6px; padding: 15px; background: #f9f9f9; max-height: 300px; overflow-y: auto;">
+                        <p class="text-muted">Loading backup history...</p>
+                    </div>
+                    <small class="text-muted d-block mt-2">Most recent backups are shown at the top</small>
+                </div>
+
+                <hr>
+
+                <!-- Maintenance Mode Section -->
+                <h3 style="margin-top: 30px;"><i class="bi bi-tools"></i> Maintenance Mode</h3>
+
+                <!-- Maintenance Mode Toggle -->
+                <div class="form-group">
+                    <label>Enable Maintenance Mode</label>
+                    <div class="toggle-switch">
+                        <label class="switch">
+                            <input type="checkbox" id="maintenance_mode" name="maintenance_mode" {% if settings.maintenance_mode %}checked{% endif %}>
+                            <span class="slider"></span>
+                        </label>
+                        <span id="maintenance_status">{% if settings.maintenance_mode %}Enabled{% else %}Disabled{% endif %}</span>
+                    </div>
+                    <small class="text-muted d-block mt-2">When enabled, only administrators can access the system</small>
+                </div>
+
+                <!-- Maintenance Message -->
+                <div class="form-group">
+                    <label for="maintenance_message">Maintenance Message</label>
+                    <textarea id="maintenance_message" name="maintenance_message" placeholder="Enter a message to display to users when system is under maintenance...">{{ settings.maintenance_message or '' }}</textarea>
+                    <small class="text-muted">This message will be shown to users when maintenance mode is enabled</small>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="form-group">
+                    <button type="submit" class="btn-submit">
+                        <i class="bi bi-check-circle"></i> Save Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Navigation function
+        function goBack() {
+            window.location.href = "{{ url_for('admin_routes.system_settings') }}";
+        }
+
+        // Toast notification function
+        function showToast(type, title, message) {
+            const container = document.getElementById('toastContainer');
+            const toastId = 'toast-' + Date.now();
+
+            const toastHTML = `
+                <div class="toast ${type}" id="${toastId}">
+                    <div class="toast-content">
+                        <div class="toast-icon">
+                            ${type === 'success' ? '<i class="bi bi-check-circle-fill"></i>' : '<i class="bi bi-exclamation-circle-fill"></i>'}
+                        </div>
+                        <div class="toast-message">
+                            <div class="toast-title">${title}</div>
+                            <div class="toast-description">${message}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.insertAdjacentHTML('beforeend', toastHTML);
+            const toast = document.getElementById(toastId);
+
+            // Auto-remove after 2 seconds
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        }
+
+        // Update toggle status displays
+        document.getElementById('auto_backup_enabled').addEventListener('change', function() {
+            document.getElementById('auto_backup_status').textContent = this.checked ? 'Enabled' : 'Disabled';
+        });
+
+        document.getElementById('maintenance_mode').addEventListener('change', function() {
+            document.getElementById('maintenance_status').textContent = this.checked ? 'Enabled' : 'Disabled';
+        });
+
+        // Load backup history on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadBackupHistory();
+        });
+
+        // Load backup history from server
+        function loadBackupHistory() {
+            fetch('{{ url_for("admin_routes.list_backups") }}')
+            .then(response => response.json())
+            .then(data => {
+                const backupList = document.getElementById('backup-list');
+
+                if (!data.success) {
+                    backupList.innerHTML = `<p class="text-danger">Error: ${data.message}</p>`;
+                    return;
+                }
+
+                if (data.backups.length === 0) {
+                    backupList.innerHTML = '<p class="text-muted">No backups available yet</p>';
+                    return;
+                }
+
+                let html = '<table style="width: 100%; border-collapse: collapse;">';
+                html += '<thead><tr style="border-bottom: 2px solid #ddd; padding-bottom: 8px;">';
+                html += '<th style="text-align: left; padding: 8px; font-weight: 600;">Filename</th>';
+                html += '<th style="text-align: center; padding: 8px; font-weight: 600;">Size</th>';
+                html += '<th style="text-align: center; padding: 8px; font-weight: 600;">Date</th>';
+                html += '<th style="text-align: center; padding: 8px; font-weight: 600;">Action</th>';
+                html += '</tr></thead>';
+                html += '<tbody>';
+
+                data.backups.forEach(backup => {
+                    html += '<tr style="border-bottom: 1px solid #eee;">';
+                    html += `<td style="padding: 8px; font-size: 0.9rem;"><i class="bi bi-file-zip"></i> ${backup.filename}</td>`;
+                    html += `<td style="padding: 8px; text-align: center; font-size: 0.9rem;">${backup.size_mb} MB</td>`;
+                    html += `<td style="padding: 8px; text-align: center; font-size: 0.9rem; color: #666;">${backup.created}</td>`;
+                    html += `<td style="padding: 8px; text-align: center;"><a href="{{ url_for('admin_routes.download_backup', filename='') }}${backup.filename}" class="btn-download-backup" title="Download backup"><i class="bi bi-download"></i> Download</a></td>`;
+                    html += '</tr>';
+                });
+
+                html += '</tbody></table>';
+                backupList.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('backup-list').innerHTML = `<p class="text-danger">Error loading backups: ${error.message}</p>`;
+            });
+        }
+
+        // Trigger manual backup
+        function triggerManualBackup() {
+            const btn = event.target.closest('button');
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Creating backup...';
+
+            // Make AJAX call to trigger backup
+            fetch('{{ url_for("admin_routes.trigger_backup") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success toast
+                    showToast(
+                        'success',
+                        'Backup Successful! ✅',
+                        `${data.filename} (${data.file_size} MB) - Created at ${data.timestamp}`
+                    );
+
+                    // Reload backup history
+                    loadBackupHistory();
+
+                    // Re-enable button
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                } else {
+                    // Show error toast
+                    showToast(
+                        'error',
+                        'Backup Failed ❌',
+                        data.message
+                    );
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Show error toast
+                showToast(
+                    'error',
+                    'Error ❌',
+                    error.message || 'An unexpected error occurred'
+                );
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            });
+        }
+    </script>
+
+    {% include 'footer.html' %}
+</body>
+</html>

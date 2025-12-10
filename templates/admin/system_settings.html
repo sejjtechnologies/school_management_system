@@ -55,7 +55,7 @@
       <button class="nav-btn security" type="button"><i class="bi bi-shield-lock-fill"></i> Session &amp; Security</button>
       <button class="nav-btn calendar" type="button"><i class="bi bi-calendar3"></i> Academic Calendar</button>
       <button class="nav-btn payments" type="button"><i class="bi bi-credit-card-2-front-fill"></i> Payment &amp; Receipts</button>
-      <button class="nav-btn backup" type="button"><i class="bi bi-hdd-fill"></i> Backup &amp; Maintenance</button>
+      <a href="{{ url_for('admin_routes.backup_maintenance') }}" class="nav-btn backup" type="button"><i class="bi bi-hdd-fill"></i> Backup &amp; Maintenance</a>
       <button class="nav-btn theme" type="button"><i class="bi bi-brightness-high-fill"></i> Light / Dark Theme</button>
       <div style="height:10px"></div>
       <small class="text-muted">(Buttons are placeholders — implement actions later)</small>

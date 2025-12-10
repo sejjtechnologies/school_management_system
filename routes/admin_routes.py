@@ -1,5 +1,6 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from models.user_models import db, User, Role
+from models.system_settings import SystemSettings
 from sqlalchemy import func
 from models.class_model import Class
 from models.stream_model import Stream
@@ -577,3 +578,143 @@ def edit_timetable_slot(slot_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+
+@admin_routes.route("/admin/backup-maintenance", methods=["GET", "POST"])
+def backup_maintenance():
+    """Handle backup and maintenance settings management."""
+    settings = SystemSettings.get_settings()
+
+    if request.method == "POST":
+        try:
+            settings.backup_schedule = request.form.get("backup_schedule", "weekly")
+            settings.maintenance_mode = request.form.get("maintenance_mode") == "on"
+            settings.maintenance_message = request.form.get("maintenance_message", "")
+            settings.auto_backup_enabled = request.form.get("auto_backup_enabled") == "on"
+            settings.updated_by_user_id = session.get('user_id')
+
+            db.session.commit()
+            flash("Backup & Maintenance settings updated successfully!", "success")
+            return redirect(url_for("admin_routes.backup_maintenance"))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error updating settings: {str(e)}", "danger")
+            return redirect(url_for("admin_routes.backup_maintenance"))
+
+    return render_template("admin/backup_maintenance.html", settings=settings)
+
+
+@admin_routes.route("/admin/backup-maintenance/download-page", methods=["GET"])
+def download_backup_page():
+    """Download the backup maintenance page as HTML file with proper UTF-8 encoding."""
+    from flask import make_response
+    settings = SystemSettings.get_settings()
+    
+    # Render the template
+    html_content = render_template("admin/backup_maintenance.html", settings=settings)
+    
+    # Create a response with proper encoding
+    response = make_response(html_content)
+    response.headers['Content-Type'] = 'text/html; charset=utf-8'
+    response.headers['Content-Disposition'] = 'attachment; filename="backup_maintenance.html"'
+    
+    return response
+
+
+@admin_routes.route("/admin/backup-maintenance/trigger", methods=["POST"])
+def trigger_backup():
+    """Trigger a manual database backup and return status as JSON."""
+    from utils.backup_utils import create_backup
+    from models.system_settings import SystemSettings
+
+    try:
+        # Create the backup
+        result = create_backup(description="manual")
+
+        if result['success']:
+            # Update system settings with backup info
+            settings = SystemSettings.get_settings()
+            settings.last_backup_time = result['timestamp']
+            settings.updated_by_user_id = session.get('user_id')
+            db.session.commit()
+
+            return jsonify({
+                'success': True,
+                'message': result['message'],
+                'filename': result.get('filename'),
+                'file_size': result.get('file_size_mb'),
+                'timestamp': result['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'message': result['message']
+            }), 400
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Backup error: {str(e)}'
+        }), 500
+
+
+@admin_routes.route("/admin/backup-maintenance/list", methods=["GET"])
+def list_backups():
+    """Get list of all available backups as JSON."""
+    from utils.backup_utils import list_backups as get_backups
+
+    try:
+        backups = get_backups()
+        return jsonify({
+            'success': True,
+            'backups': [
+                {
+                    'filename': b['filename'],
+                    'size_mb': b['size_mb'],
+                    'created': b['created'].strftime('%Y-%m-%d %H:%M:%S')
+                }
+                for b in backups
+            ]
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error listing backups: {str(e)}'
+        }), 500
+
+
+@admin_routes.route("/admin/backup-maintenance/download/<filename>", methods=["GET"])
+def download_backup(filename):
+    """Download a specific backup file."""
+    from utils.backup_utils import BACKUP_DIR
+    from flask import send_file
+    import os
+
+    try:
+        # Validate filename to prevent directory traversal attacks
+        if '..' in filename or '/' in filename or '\\' in filename:
+            return jsonify({'error': 'Invalid filename'}), 400
+
+        backup_path = os.path.join(BACKUP_DIR, filename)
+
+        # Verify file exists
+        if not os.path.exists(backup_path):
+            return jsonify({'error': 'Backup file not found'}), 404
+
+        # Verify it's actually a backup file (ends with .gz)
+        if not filename.endswith('.gz'):
+            return jsonify({'error': 'Invalid file type'}), 400
+
+        # Use Flask's send_file with binary mimetype to prevent browser decompression
+        # application/octet-stream tells browser "this is binary data, don't try to decompress"
+        return send_file(
+            backup_path,
+            mimetype='application/octet-stream',
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        return jsonify({'error': f'Download error: {str(e)}'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Download error: {str(e)}'}), 500

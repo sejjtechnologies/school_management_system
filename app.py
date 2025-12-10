@@ -31,6 +31,13 @@ logger = logging.getLogger(__name__)
 # ✅ Secret key from environment
 app.secret_key = os.getenv("SECRET_KEY", "default_secret")
 
+# ✅ Configure UTF-8 charset for all responses and templates
+app.config['JSON_AS_ASCII'] = False  # Allow non-ASCII characters in JSON responses
+# Ensure Jinja2 template loading uses UTF-8
+import jinja2
+loader = jinja2.FileSystemLoader('templates', encoding='utf-8')
+app.jinja_loader = loader
+
 # Remember-me session lifetime (in days). When `session.permanent = True` is set
 # for a user (e.g., the "Remember me" checkbox), Flask will set the session cookie
 # to expire after this duration. You can override via REMEMBER_DAYS environment var.
@@ -64,6 +71,21 @@ app.register_blueprint(reset_password_routes)     # ✅ Register reset password 
 app.register_blueprint(bursar_routes, url_prefix="/bursar")  # ✅ Register bursar_routes
 app.register_blueprint(parent_routes)             # ✅ Register parent_routes
 app.register_blueprint(headteacher_routes)        # ✅ Register headteacher_routes
+
+# ✅ RESPONSE UTF-8 CHARSET MIDDLEWARE
+@app.after_request
+def ensure_utf8_charset(response):
+    """Ensure all text responses include UTF-8 charset in Content-Type header."""
+    content_type = response.headers.get('Content-Type', '')
+    
+    # ONLY modify text/html responses - leave everything else alone
+    # This ensures binary files (gzip, pdf, etc.) are NOT affected
+    if content_type.startswith('text/html'):
+        if 'charset' not in content_type:
+            response.headers['Content-Type'] = 'text/html; charset=utf-8'
+    
+    # Don't touch any other content types (binary files, JSON, etc.)
+    return response
 
 # ✅ ADMIN SESSION VALIDATION MIDDLEWARE
 @app.before_request
