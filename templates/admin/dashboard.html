@@ -16,6 +16,7 @@
       height: 100vh;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
     .navbar {
       background-color: #4a148c;
@@ -38,15 +39,17 @@
     .main-btn {
       color: #fff;
       border: none;
-      padding: 12px 24px;
-      font-size: 0.9rem;
+      padding: 10px 20px;
+      font-size: 0.85rem;
       border-radius: 6px;
       display: inline-flex;
       align-items: center;
       text-decoration: none;
       justify-content: center;
-      min-width: 180px;
-      height: 50px;
+      width: 140px;
+      height: 45px;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
     .main-btn i {
       margin-right: 6px;
@@ -69,14 +72,15 @@
     .btn-timetable:hover { background-color: #00695c !important; }
 
     main {
-      flex: 1;
-      overflow-y: auto;
-      padding-top: 80px;
-      padding-bottom: 80px;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      padding-top: 70px;
+      padding-bottom: 70px;
+      height: calc(100vh - 140px);
+      overflow: hidden;
       align-items: center;
+      justify-content: flex-start;
+      gap: 15px;
     }
 
     .buttons-container {
@@ -84,8 +88,10 @@
       flex-wrap: wrap;
       justify-content: center;
       align-items: center;
-      gap: 20px;
-      max-width: 100%;
+      gap: 12px;
+      padding: 20px;
+      width: 100%;
+      max-width: 600px;
     }
 
     footer {
@@ -97,10 +103,12 @@
 
     .welcome-message {
       font-family: 'Comic Sans MS', 'Comic Sans', 'Segoe UI', Arial, sans-serif;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       color: red; /* Welcome message in red */
       text-align: center;
-      margin-bottom: 30px;
+      margin: 0;
+      padding: 10px 15px;
+      width: 100%;
     }
     .role-style {
       color: red; /* ✅ Role stays red */
