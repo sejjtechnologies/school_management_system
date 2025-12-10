@@ -27,18 +27,19 @@
     .navbar{background:var(--primary); height:60px}
     .navbar .navbar-brand{color:#fff !important; display:flex; align-items:center; gap:10px}
     .app-shell{display:flex; flex:1; min-height: calc(100vh - 60px);}
-    .sidebar{width:220px; background:var(--sidebar-bg); border-right:1px solid #e9ecef; padding:18px 12px;}
+    .sidebar{width:140px; background:var(--sidebar-bg); border-right:1px solid #e9ecef; padding:10px 8px; position:sticky; top:60px; height:calc(100vh - 60px - 24px); overflow-y:auto}
     .sidebar .logo{display:flex; align-items:center; gap:10px; padding:8px 6px; margin-bottom:18px}
     .sidebar .logo img{height:42px; width:auto}
     .sidebar .nav-btn{
-      display:flex; align-items:center; gap:10px; width:100%; padding:12px 12px; margin-bottom:10px;
-      border-radius:8px; border: 1px solid rgba(0,0,0,0.04); background:transparent; color:var(--muted);
-      text-align:left; box-shadow: 0 2px 6px rgba(16,24,40,0.03); font-weight:600; cursor:pointer;
-      transition: all 0.2s ease;
+      display:flex; align-items:center; gap:8px; width:100%; padding:6px 8px; margin-bottom:8px;
+      border-radius:6px; border: 1px solid rgba(0,0,0,0.04); background:transparent; color:var(--muted);
+      text-align:left; box-shadow: 0 1px 4px rgba(16,24,40,0.03); font-weight:600; cursor:pointer;
+      transition: all 0.15s ease; font-size:0.82rem;
     }
     .sidebar .nav-btn i{font-size:18px}
-    .sidebar .nav-btn:hover{transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,0.06);}
-    .sidebar .nav-btn.active{box-shadow:0 6px 18px rgba(0,0,0,0.12); transform: translateY(-1px); border-color: var(--accent);}
+    .sidebar .nav-btn i{font-size:14px}
+    .sidebar .nav-btn:hover{transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.06);}
+    .sidebar .nav-btn.active{box-shadow:0 4px 12px rgba(0,0,0,0.12); transform: translateY(-1px); border-color: var(--accent);}
 
     /* Color variants */
     .nav-btn.security{ background: linear-gradient(90deg,#e8f5e9 0%,#c8e6c9 100%); color:#1b5e20 }

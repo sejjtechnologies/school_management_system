@@ -94,11 +94,11 @@
 
         /* Left Sidebar */
         .sidebar {
-            width: 180px;
+            width: 140px;
             background-color: #fff;
             border-right: 1px solid #e0e0e0;
-            padding: 20px 12px;
-            overflow-y: auto;
+            padding: 12px 8px;
+            position:sticky; top:60px; height:calc(100vh - 60px - 24px); overflow-y:auto;
         }
 
         .sidebar-section {
@@ -108,17 +108,18 @@
         }
 
         .sidebar-btn {
-            padding: 12px 16px;
+            padding: 8px 10px;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.15s ease;
             text-align: left;
             color: white;
             text-decoration: none;
             display: block;
-            font-size: 0.95rem;
+            font-size: 0.88rem;
+            display:flex; align-items:center; gap:8px;
         }
 
         .sidebar-btn:hover {
@@ -709,6 +710,44 @@
             }, 2000);
         }
 
+        // CSRF helper: try to detect CSRF token from meta tags or common cookies
+        function getCookie(name) {
+            try {
+                const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+                return v ? decodeURIComponent(v.pop()) : null;
+            } catch (e) { return null; }
+        }
+
+        function getCSRFToken() {
+            // Check meta tags
+            const metaNames = ['csrf-token', 'csrf_token', 'csrf-token-value', 'csrfmiddlewaretoken'];
+            for (const n of metaNames) {
+                const m = document.querySelector('meta[name="' + n + '"]');
+                if (m && m.content) return m.content;
+            }
+
+            // Common cookie names
+            const cookieNames = ['csrf_token', 'XSRF-TOKEN', 'csrf-token', 'csrftoken'];
+            for (const c of cookieNames) {
+                const val = getCookie(c);
+                if (val) return val;
+            }
+
+            // Fallback to window-scoped var if set by server
+            if (window.__csrf_token) return window.__csrf_token;
+            return null;
+        }
+
+        function getCSRFHeaders() {
+            const token = getCSRFToken();
+            if (!token) return {};
+            // Try common header names
+            return {
+                'X-CSRFToken': token,
+                'X-CSRF-Token': token
+            };
+        }
+
         // Update toggle status displays
         document.getElementById('auto_backup_enabled').addEventListener('change', function() {
             document.getElementById('auto_backup_status').textContent = this.checked ? 'Enabled' : 'Disabled';
@@ -780,9 +819,7 @@
             // Make AJAX call to trigger backup
             fetch('{{ url_for("admin_routes.trigger_backup") }}', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: Object.assign({ 'Content-Type': 'application/json' }, getCSRFHeaders()),
             })
             .then(response => response.json())
             .then(data => {
@@ -881,9 +918,7 @@
 
                 fetch(`{{ url_for('admin_routes.delete_backup', filename='') }}${filename}`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: Object.assign({ 'Content-Type': 'application/json' }, getCSRFHeaders()),
                 })
                 .then(resp => resp.json())
                 .then(data => {
