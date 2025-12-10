@@ -99,11 +99,15 @@
       /* On small screens reduce the scale so embedded content is readable and fits */
       .embedded-frame.compact-embed { transform: scale(0.98); width: 102%; height: calc((100vh - 180px) / 0.98); }
       .embedded-wrapper { max-height: calc(100vh - 160px); }
+      /* Keep the sidebar vertical on mobile (stacked buttons) instead of a horizontal strip */
+      .sidebar{width:100%; display:block; padding:10px 8px; border-right:none; border-bottom:1px solid #e9ecef}
+      .sidebar .nav-btn{display:flex; width:100%; white-space:normal; margin-bottom:8px}
     }
 
     @media (max-width:768px){
-      .sidebar{width:100%; display:flex; flex-direction:row; flex-wrap:nowrap; gap:8px; padding:8px; border-right:none; border-bottom:1px solid #e9ecef; overflow-x:auto; align-items:center}
-      .sidebar .nav-btn{flex:0 0 auto; white-space:nowrap; padding:8px 10px; font-size:0.85rem; width:auto !important; display:inline-flex}
+      /* On narrow screens keep sidebar buttons stacked vertically */
+      .sidebar{width:100%; display:block; padding:8px; border-right:none; border-bottom:1px solid #e9ecef}
+      .sidebar .nav-btn{display:flex; width:100%; white-space:normal; padding:8px 10px; font-size:0.9rem; margin-bottom:8px}
       h4{font-size:1rem}
       .settings-card{padding:12px}
     }

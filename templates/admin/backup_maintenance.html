@@ -443,31 +443,24 @@
         @media (max-width: 768px) {
             .sidebar {
                 width: 100%;
-                display: flex;
-                flex-direction: row;
-                flex-wrap: nowrap;
-                gap: 8px;
+                display: block;
                 padding: 8px;
                 border-right: none;
                 border-bottom: 1px solid #e9ecef;
-                overflow-x: auto;
-                align-items: center;
             }
 
             .sidebar-section {
-                flex-direction: row;
-                flex-wrap: nowrap;
+                display: block;
             }
 
             .sidebar-btn, .nav-btn, .sidebar .nav-btn {
-                flex: 0 0 auto;
-                white-space: nowrap;
+                display: flex;
+                width: 100%;
+                white-space: normal;
                 padding: 8px 10px;
-                font-size: 0.85rem;
-                width: auto !important;
-                display: inline-flex !important;
+                font-size: 0.9rem;
                 align-items: center;
-                margin-right: 8px;
+                margin-bottom: 8px;
             }
 
             h1 { font-size: 1.25rem; }
