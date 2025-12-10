@@ -367,5 +367,61 @@
       }
     }
   </script>
+  <script>
+    // Dynamically compute per-card max-height so cards can scroll independently and leave gap above footer
+    (function cardHeightManager(){
+      function getViewportHeight(){
+        return (window.visualViewport && visualViewport.height) || window.innerHeight;
+      }
+
+      function adjustHeights(){
+        try{
+          const footer = document.querySelector('.site-footer');
+          const navbar = document.querySelector('.navbar');
+          const gap = 10; // desired gap above footer when scrolled to bottom
+          const vpH = getViewportHeight();
+          const footerH = footer ? footer.offsetHeight : 48;
+          const navH = navbar ? navbar.offsetHeight : 60;
+
+          // elements that should scroll independently
+          const selectors = ['.settings-card', '.settings-card .embedded-wrapper', '.panel .nav-btn', '.panel .panel-buttons .settings-card'];
+          // also target any .settings-card inside main-content
+          const cards = Array.from(document.querySelectorAll('.settings-card, .form-section'));
+
+          cards.forEach(el => {
+            // compute top offset relative to viewport
+            const rect = el.getBoundingClientRect();
+            const top = Math.max(0, rect.top);
+            // available space below top until footer (subtract footer + gap)
+            const available = vpH - footerH - gap - top;
+            const minH = 120;
+            const maxH = Math.max(minH, available);
+            el.style.maxHeight = maxH + 'px';
+            el.style.overflow = 'auto';
+            el.style.webkitOverflowScrolling = 'touch';
+          });
+        }catch(e){ console.warn('adjustHeights error', e); }
+      }
+
+      window.addEventListener('load', adjustHeights);
+      window.addEventListener('resize', adjustHeights);
+      window.addEventListener('orientationchange', adjustHeights);
+      if (window.visualViewport){
+        visualViewport.addEventListener('resize', adjustHeights);
+        visualViewport.addEventListener('scroll', adjustHeights);
+      }
+
+      // observe additions to main-content (embedded fragments) to recompute heights
+      const main = document.getElementById('main-content');
+      if (main && window.MutationObserver){
+        const mo = new MutationObserver(function(){ setTimeout(adjustHeights, 60); });
+        mo.observe(main, { childList:true, subtree:true });
+      }
+
+      // initial call
+      setTimeout(adjustHeights, 80);
+      window.__adjustCardHeights = adjustHeights;
+    })();
+  </script>
 </body>
 </html>
