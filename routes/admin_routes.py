@@ -609,15 +609,15 @@ def download_backup_page():
     """Download the backup maintenance page as HTML file with proper UTF-8 encoding."""
     from flask import make_response
     settings = SystemSettings.get_settings()
-    
+
     # Render the template
     html_content = render_template("admin/backup_maintenance.html", settings=settings)
-    
+
     # Create a response with proper encoding
     response = make_response(html_content)
     response.headers['Content-Type'] = 'text/html; charset=utf-8'
     response.headers['Content-Disposition'] = 'attachment; filename="backup_maintenance.html"'
-    
+
     return response
 
 
@@ -718,3 +718,37 @@ def download_backup(filename):
         return jsonify({'error': f'Download error: {str(e)}'}), 500
     except Exception as e:
         return jsonify({'error': f'Download error: {str(e)}'}), 500
+
+
+@admin_routes.route("/admin/backup-maintenance/delete/<filename>", methods=["POST"])
+def delete_backup(filename):
+    """Delete a specific backup file and return JSON status."""
+    from utils.backup_utils import delete_backup as delete_backup_util
+
+    try:
+        # Basic validation to prevent directory traversal
+        if '..' in filename or '/' in filename or '\\' in filename:
+            return jsonify({'success': False, 'message': 'Invalid filename'}), 400
+
+        result = delete_backup_util(filename)
+        if result.get('success'):
+            # Update system settings last_backup_time to latest remaining backup (or None)
+            try:
+                from utils.backup_utils import get_latest_backup
+                latest = get_latest_backup()
+                settings = SystemSettings.get_settings()
+                if latest:
+                    settings.last_backup_time = latest.get('created')
+                else:
+                    settings.last_backup_time = None
+                settings.updated_by_user_id = session.get('user_id')
+                db.session.commit()
+            except Exception as e:
+                # If updating settings fails, log to console but still return success for delete
+                print(f"Warning: failed to update SystemSettings after deleting backup: {e}")
+
+            return jsonify({'success': True, 'message': result.get('message', 'Backup deleted')}), 200
+        else:
+            return jsonify({'success': False, 'message': result.get('message', 'Unable to delete backup')}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Delete error: {str(e)}'}), 500
